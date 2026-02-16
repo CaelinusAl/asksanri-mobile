@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "AskSanri",
+    "slug": "asksanri",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "bundleIdentifier": "com.caelinusai.asksanri",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.caelinusai.asksanri",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f2d81bef-b1a5-4de7-b0cb-22747bfae469"
+      }
+    }
+  }
+}
