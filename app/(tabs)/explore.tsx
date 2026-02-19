@@ -1,112 +1,120 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+type Section = { label: string; text: string };
+type Journey = { title: string; answer: string; sections: Section[] };
 
-export default function TabTwoScreen() {
+export default function AwakenedCitiesScreen() {
+  const [plate, setPlate] = useState("34");
+  const [journey, setJourney] = useState<Journey | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const fetchJourney = async () => {
+    const p = plate.trim();
+    if (!/^\d{2}$/.test(p)) {
+      setErr("Lütfen 2 haneli plaka yaz. Örnek: 34");
+      return;
+    }
+
+    setErr("");
+    setLoading(true);
+    setJourney(null);
+
+    try {
+      const res = await fetch(`https://api.asksanri.com/awakenmis-sehirler/${p}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(data?.detail || `HTTP ${res.status}`);
+        setLoading(false);
+        return;
+      }
+      setJourney(data);
+    } catch (e: any) {
+      setErr(String(e?.message || e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={{ flex: 1, backgroundColor: "#07080d" }}>
+      <View style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.08)" }}>
+        <Text style={{ color: "white", fontSize: 18, fontWeight: "800" }}>Uyanmış Şehirler</Text>
+        <Text style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+          Plakanı yaz. Harita açılır. Sanrı sormaz—şehir konuşur.
+        </Text>
+      </View>
+
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+        <View style={{ flexDirection: "row", gap: 10, alignItems: "center", marginBottom: 14 }}>
+          <TextInput
+            value={plate}
+            onChangeText={setPlate}
+            keyboardType="number-pad"
+            placeholder="34"
+            placeholderTextColor="#777"
+            style={{
+              flex: 1,
+              backgroundColor: "#111",
+              color: "white",
+              paddingHorizontal: 12,
+              paddingVertical: 12,
+              borderRadius: 12,
+              fontSize: 16,
+            }}
+          />
+
+          <TouchableOpacity
+            onPress={fetchJourney}
+            disabled={loading}
+            style={{
+              backgroundColor: "#5e3bff",
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 12,
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "800" }}>{loading ? "…" : "Oku"}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {err ? (
+          <View style={{ backgroundColor: "rgba(255,80,120,0.12)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+            <Text style={{ color: "#ffd7e1" }}>{err}</Text>
+          </View>
+        ) : null}
+
+        {journey ? (
+          <>
+            <Text style={{ color: "white", fontSize: 20, fontWeight: "800", marginBottom: 10 }}>
+              {journey.title}
+            </Text>
+
+            {journey.sections?.map((s, idx) => (
+              <View
+                key={idx}
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.12)",
+                  borderRadius: 14,
+                  padding: 14,
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={{ color: "white", fontWeight: "800", marginBottom: 6 }}>{s.label}</Text>
+                <Text style={{ color: "rgba(255,255,255,0.85)", lineHeight: 20 }}>{s.text}</Text>
+              </View>
+            ))}
+          </>
+        ) : (
+          <Text style={{ color: "rgba(255,255,255,0.45)", marginTop: 10 }}>
+            Örnek: 34, 06, 35, 42…
+          </Text>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-});
