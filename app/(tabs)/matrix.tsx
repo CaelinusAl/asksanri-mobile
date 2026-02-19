@@ -252,24 +252,59 @@ export default function MatrixScreen() {
         />
 
         {/* Buttons */}
-        <TouchableOpacity
-          onPress={fetchBase}
-          style={{ backgroundColor: "#5e3bff", padding: 12, borderRadius: 12, alignItems: "center", marginBottom: 10 }}
-        >
-          <Text style={{ color: "white", fontWeight: "800" }}>
-            {loading ? "…" : "Hesapla"}
-          </Text>
-        </TouchableOpacity>
+<TouchableOpacity
+  onPress={fetchBase}
+  style={{
+    backgroundColor: "#5e3bff",
+    padding: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 10,
+  }}
+>
+  <Text style={{ color: "white", fontWeight: "800" }}>
+    {loading ? "…" : "Hesapla"}
+  </Text>
+</TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={fetchYorum}
-          disabled={!canDeep}
-          style={{ backgroundColor: canDeep ? "#222" : "#111", padding: 12, borderRadius: 12, alignItems: "center", marginBottom: 10 }}
-        >
-          <Text style={{ color: "white", fontWeight: "800" }}>
-            Derin Analiz
-          </Text>
-        </TouchableOpacity>
+<TouchableOpacity
+  onPress={fetchYorum}
+  disabled={!canDeep}
+  style={{
+    backgroundColor: canDeep ? "#222" : "#111",
+    padding: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  }}
+>
+  <Text style={{ color: "white", fontWeight: "800" }}>
+    Derin Analiz (Inner Circle)
+  </Text>
+</TouchableOpacity>
+
+{/* Premium CTA */}
+<TouchableOpacity
+  onPress={() => {
+    // TODO: RevenueCat purchase flow bağlanacak
+    alert("SANRI INNER CIRCLE'e katıl");
+  }}
+  style={{
+    backgroundColor: "rgba(94,59,255,0.18)",
+    padding: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(94,59,255,0.35)",
+  }}
+>
+  <Text style={{ color: "white", fontWeight: "800" }}>
+    SANRI INNER CIRCLE’e Katıl
+  </Text>
+</TouchableOpacity>
 
         {err ? (
           <Text style={{ color: "#ff6b8a", marginTop: 6 }}>{err}</Text>
