@@ -1,12 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getPremiumStatus, matrixBase, matrixDeep } from "../../lib/api"; // yolunu klasörüne göre düzelt
 
 type Base = {
   name_normalized: string;
@@ -16,10 +11,9 @@ type Base = {
   life_path_archetype?: string;
   matrix_role: string;
   note?: string;
-  teaser?: string; // ✅ backend eklediğimiz kişisel teaser
+  teaser?: string;
 };
 
-const API = "https://api.asksanri.com";
 const USER_ID_KEY = "sanri_user_id_v1";
 
 export default function MatrixScreen() {
@@ -42,37 +36,26 @@ export default function MatrixScreen() {
   // ✅ USER ID üret
   useEffect(() => {
     (async () => {
-      try {
-        const stored = await AsyncStorage.getItem(USER_ID_KEY);
-        if (stored) {
-          setUserId(stored);
-          return;
-        }
-        const fresh =
-          "u_" +
-          Math.random().toString(16).slice(2) +
-          Date.now().toString(16);
-        await AsyncStorage.setItem(USER_ID_KEY, fresh);
-        setUserId(fresh);
-      } catch {}
+      const stored = await AsyncStorage.getItem(USER_ID_KEY);
+      if (stored) return setUserId(stored);
+
+      const fresh = "u_" + Math.random().toString(16).slice(2) + Date.now().toString(16);
+      await AsyncStorage.setItem(USER_ID_KEY, fresh);
+      setUserId(fresh);
     })();
   }, []);
 
-  // ✅ Premium status çek
-  const refreshPremiumStatus = async () => {
+  const refreshPremium = async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`${API}/premium/status`, {
-        headers: { "X-User-Id": userId },
-      });
-      const data = await res.json().catch(() => ({}));
+      const data = await getPremiumStatus(userId);
       setIsPremium(Boolean(data?.is_premium));
       setDaysLeft(data?.days_left ?? null);
     } catch {}
   };
 
   useEffect(() => {
-    refreshPremiumStatus();
+    refreshPremium();
   }, [userId]);
 
   // ✅ BASE (Free)
@@ -83,19 +66,8 @@ export default function MatrixScreen() {
     setBase(null);
 
     try {
-      const res = await fetch(`${API}/matrix-rol`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, birth_date: birthDate }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setErr(data?.detail || `HTTP ${res.status}`);
-        return;
-      }
-
-      setBase(data);
+      const data = await matrixBase({ name, birth_date: birthDate });
+      setBase(data as Base);
     } catch (e: any) {
       setErr(String(e?.message || e));
     } finally {
@@ -112,52 +84,33 @@ export default function MatrixScreen() {
     setYorum("");
 
     try {
-      const res = await fetch(`${API}/matrix-rol/yorum`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-User-Id": userId,
-        },
-        body: JSON.stringify({
-          name,
-          birth_date: birthDate,
-          context,
-        }),
+      const data = await matrixDeep({
+        userId,
+        name,
+        birth_date: birthDate,
+        context,
       });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (res.status === 403) {
-        const msg = String(data?.detail || "SANRI INNER CIRCLE gerekli.");
-        setErr(msg);
-        const match = msg.match(/Days left:\s*(\d+)/i);
-        if (match) setDaysLeft(parseInt(match[1], 10));
-        return;
-      }
-
-      if (!res.ok) {
-        setErr(data?.detail || `HTTP ${res.status}`);
-        return;
-      }
-
-      setYorum(String(data?.yorum || ""));
-      refreshPremiumStatus();
+      setYorum(String((data as any)?.yorum || ""));
+      refreshPremium();
     } catch (e: any) {
+      if (e?.status === 403) {
+        setErr(String(e?.message || "SANRI INNER CIRCLE gerekli."));
+        if (typeof e?.days_left === "number") setDaysLeft(e.days_left);
+        return;
+      }
       setErr(String(e?.message || e));
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Premium CTA (şimdilik)
   const onJoinInnerCircle = () => {
-    // TODO: RevenueCat purchase flow buraya bağlanacak
     setErr("Store doğrulaması tamamlanınca satın alma aktif olacak.");
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: "#07080d" }}>
-      {/* HEADER */}
       <View style={{ padding: 18 }}>
         <Text style={{ color: "white", fontSize: 18, fontWeight: "800" }}>
           Matrix Rol Okuma
@@ -173,14 +126,7 @@ export default function MatrixScreen() {
             borderColor: "rgba(94,59,255,0.30)",
           }}
         >
-          <Text
-            style={{
-              color: "white",
-              textAlign: "center",
-              fontWeight: "900",
-              letterSpacing: 0.3,
-            }}
-          >
+          <Text style={{ color: "white", textAlign: "center", fontWeight: "900" }}>
             SANRI INNER CIRCLE
           </Text>
 
@@ -195,19 +141,12 @@ export default function MatrixScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        {/* Inputs */}
         <TextInput
           value={name}
           onChangeText={setName}
           placeholder="Ad Soyad"
           placeholderTextColor="#777"
-          style={{
-            backgroundColor: "#111",
-            color: "white",
-            padding: 12,
-            borderRadius: 12,
-            marginBottom: 10,
-          }}
+          style={{ backgroundColor: "#111", color: "white", padding: 12, borderRadius: 12, marginBottom: 10 }}
         />
 
         <TextInput
@@ -215,13 +154,7 @@ export default function MatrixScreen() {
           onChangeText={setBirthDate}
           placeholder="GG.AA.YYYY"
           placeholderTextColor="#777"
-          style={{
-            backgroundColor: "#111",
-            color: "white",
-            padding: 12,
-            borderRadius: 12,
-            marginBottom: 10,
-          }}
+          style={{ backgroundColor: "#111", color: "white", padding: 12, borderRadius: 12, marginBottom: 10 }}
         />
 
         <TextInput
@@ -230,26 +163,12 @@ export default function MatrixScreen() {
           placeholder="(Opsiyonel) Konu"
           placeholderTextColor="#777"
           multiline
-          style={{
-            backgroundColor: "#111",
-            color: "white",
-            padding: 12,
-            borderRadius: 12,
-            minHeight: 70,
-            marginBottom: 12,
-          }}
+          style={{ backgroundColor: "#111", color: "white", padding: 12, borderRadius: 12, minHeight: 70, marginBottom: 12 }}
         />
 
-        {/* Buttons */}
         <TouchableOpacity
           onPress={fetchBase}
-          style={{
-            backgroundColor: "#5e3bff",
-            padding: 12,
-            borderRadius: 12,
-            alignItems: "center",
-            marginBottom: 10,
-          }}
+          style={{ backgroundColor: "#5e3bff", padding: 12, borderRadius: 12, alignItems: "center", marginBottom: 10 }}
         >
           <Text style={{ color: "white", fontWeight: "900" }}>
             {loading ? "…" : "Hesapla"}
@@ -295,7 +214,6 @@ export default function MatrixScreen() {
 
         {err ? <Text style={{ color: "#ff6b8a", marginTop: 6 }}>{err}</Text> : null}
 
-        {/* Base card + teaser */}
         {base && (
           <View
             style={{
@@ -345,7 +263,6 @@ export default function MatrixScreen() {
           </View>
         )}
 
-        {/* Deep card */}
         {yorum ? (
           <View
             style={{
