@@ -1,5 +1,6 @@
-import { Tabs } from "expo-router";
 import React from "react";
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TabLayout() {
   return (
@@ -18,21 +19,31 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Sanrı",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name="chatbubble-ellipses" size={focused ? 24 : 20} color={color} />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="explore"
         options={{
           title: "Şehirler",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name="map" size={focused ? 24 : 20} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="matrix"
+        options={{
+          title: "Matrix",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name="sparkles" size={focused ? 24 : 20} color={color} />
+          ),
         }}
       />
     </Tabs>
   );
 }
- <Tabs.Screen
-  name="matrix"
-  options={{
-    title: "Matrix",
-    tabBarIcon: ({ color }) => <IconSymbol size={28} name="sparkles" color={color} />,
-  }}
-/>

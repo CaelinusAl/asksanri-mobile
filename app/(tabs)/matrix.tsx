@@ -1,26 +1,25 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Base = {
   name_normalized: string;
   name_number: number;
   life_path: number;
-  name_archetype: string;
-  life_path_archetype: string;
+  name_archetype?: string;
+  life_path_archetype?: string;
   matrix_role: string;
   note?: string;
+  teaser?: string; // ✅ backend eklediğimiz kişisel teaser
 };
 
-type HistoryItem = {
-  ts: number;
-  name: string;
-  birth_date: string;
-  base: Base;
-  yorum?: string;
-};
-
-const HISTORY_KEY = "matrix_history_v1";
+const API = "https://api.asksanri.com";
 const USER_ID_KEY = "sanri_user_id_v1";
 
 export default function MatrixScreen() {
@@ -29,6 +28,7 @@ export default function MatrixScreen() {
   const [context, setContext] = useState("");
 
   const [userId, setUserId] = useState("");
+  const [isPremium, setIsPremium] = useState(false);
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
 
   const [base, setBase] = useState<Base | null>(null);
@@ -37,91 +37,45 @@ export default function MatrixScreen() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
-
-  const API = "https://api.asksanri.com";
-
-  const canSave = useMemo(() => !!base, [base]);
   const canDeep = useMemo(() => !!base && !loading, [base, loading]);
 
-  // 🔹 USER ID üret
+  // ✅ USER ID üret
   useEffect(() => {
     (async () => {
-      const stored = await AsyncStorage.getItem(USER_ID_KEY);
-      if (stored) {
-        setUserId(stored);
-        return;
-      }
-
-      const fresh =
-        "u_" +
-        Math.random().toString(16).slice(2) +
-        Date.now().toString(16);
-
-      await AsyncStorage.setItem(USER_ID_KEY, fresh);
-      setUserId(fresh);
+      try {
+        const stored = await AsyncStorage.getItem(USER_ID_KEY);
+        if (stored) {
+          setUserId(stored);
+          return;
+        }
+        const fresh =
+          "u_" +
+          Math.random().toString(16).slice(2) +
+          Date.now().toString(16);
+        await AsyncStorage.setItem(USER_ID_KEY, fresh);
+        setUserId(fresh);
+      } catch {}
     })();
   }, []);
 
-  // 🔹 Premium status çek
-  useEffect(() => {
+  // ✅ Premium status çek
+  const refreshPremiumStatus = async () => {
     if (!userId) return;
-
-    (async () => {
-      try {
-        const res = await fetch(`${API}/premium/status`, {
-          headers: {
-            "X-User-Id": userId,
-          },
-        });
-
-        const data = await res.json().catch(() => ({}));
-        setDaysLeft(data?.days_left ?? null);
-      } catch {}
-    })();
-  }, [userId]);
-
-  // 🔹 History load
-  useEffect(() => {
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(HISTORY_KEY);
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setHistory(parsed);
-      } catch {}
-    })();
-  }, []);
-
-  const persistHistory = async (items: HistoryItem[]) => {
     try {
-      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+      const res = await fetch(`${API}/premium/status`, {
+        headers: { "X-User-Id": userId },
+      });
+      const data = await res.json().catch(() => ({}));
+      setIsPremium(Boolean(data?.is_premium));
+      setDaysLeft(data?.days_left ?? null);
     } catch {}
   };
 
-  const saveToHistory = async () => {
-    if (!base) return;
+  useEffect(() => {
+    refreshPremiumStatus();
+  }, [userId]);
 
-    const item: HistoryItem = {
-      ts: Date.now(),
-      name,
-      birth_date: birthDate,
-      base,
-      yorum: yorum || undefined,
-    };
-
-    const next = [item, ...history].slice(0, 10);
-    setHistory(next);
-    await persistHistory(next);
-  };
-
-  const clearHistory = async () => {
-    setHistory([]);
-    await AsyncStorage.removeItem(HISTORY_KEY);
-  };
-
-  // 🔹 BASE ANALİZ
+  // ✅ BASE (Free)
   const fetchBase = async () => {
     setErr("");
     setLoading(true);
@@ -149,7 +103,7 @@ export default function MatrixScreen() {
     }
   };
 
-  // 🔹 DERİN ANALİZ
+  // ✅ DEEP (Premium)
   const fetchYorum = async () => {
     if (!base) return;
 
@@ -162,7 +116,7 @@ export default function MatrixScreen() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-User-Id": userId, // ✅ Premium kontrol
+          "X-User-Id": userId,
         },
         body: JSON.stringify({
           name,
@@ -174,12 +128,10 @@ export default function MatrixScreen() {
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 403) {
-        const msg = String(data?.detail || "Premium gerekli.");
+        const msg = String(data?.detail || "SANRI INNER CIRCLE gerekli.");
         setErr(msg);
-
         const match = msg.match(/Days left:\s*(\d+)/i);
         if (match) setDaysLeft(parseInt(match[1], 10));
-
         return;
       }
 
@@ -189,11 +141,18 @@ export default function MatrixScreen() {
       }
 
       setYorum(String(data?.yorum || ""));
+      refreshPremiumStatus();
     } catch (e: any) {
       setErr(String(e?.message || e));
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ Premium CTA (şimdilik)
+  const onJoinInnerCircle = () => {
+    // TODO: RevenueCat purchase flow buraya bağlanacak
+    setErr("Store doğrulaması tamamlanınca satın alma aktif olacak.");
   };
 
   return (
@@ -210,28 +169,45 @@ export default function MatrixScreen() {
             padding: 12,
             borderRadius: 14,
             backgroundColor: "rgba(94,59,255,0.18)",
+            borderWidth: 1,
+            borderColor: "rgba(94,59,255,0.30)",
           }}
         >
-          <Text style={{ color: "white", textAlign: "center", fontWeight: "800" }}>
-            Derin Analiz • Premium
+          <Text
+            style={{
+              color: "white",
+              textAlign: "center",
+              fontWeight: "900",
+              letterSpacing: 0.3,
+            }}
+          >
+            SANRI INNER CIRCLE
           </Text>
 
-          <Text style={{ color: "rgba(255,255,255,0.6)", textAlign: "center" }}>
-            {daysLeft !== null
-              ? `${daysLeft} gün sonra tekrar`
-              : "30 günde 1 erişim"}
+          <Text style={{ color: "rgba(255,255,255,0.65)", textAlign: "center", marginTop: 6 }}>
+            {isPremium
+              ? daysLeft === 0 || daysLeft === null
+                ? "Bugün erişim hakkın var"
+                : `${daysLeft} gün sonra tekrar`
+              : "Premium ile Derin Katmana Geç"}
           </Text>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         {/* Inputs */}
         <TextInput
           value={name}
           onChangeText={setName}
           placeholder="Ad Soyad"
           placeholderTextColor="#777"
-          style={{ backgroundColor: "#111", color: "white", padding: 12, borderRadius: 12, marginBottom: 10 }}
+          style={{
+            backgroundColor: "#111",
+            color: "white",
+            padding: 12,
+            borderRadius: 12,
+            marginBottom: 10,
+          }}
         />
 
         <TextInput
@@ -239,7 +215,13 @@ export default function MatrixScreen() {
           onChangeText={setBirthDate}
           placeholder="GG.AA.YYYY"
           placeholderTextColor="#777"
-          style={{ backgroundColor: "#111", color: "white", padding: 12, borderRadius: 12, marginBottom: 10 }}
+          style={{
+            backgroundColor: "#111",
+            color: "white",
+            padding: 12,
+            borderRadius: 12,
+            marginBottom: 10,
+          }}
         />
 
         <TextInput
@@ -248,82 +230,141 @@ export default function MatrixScreen() {
           placeholder="(Opsiyonel) Konu"
           placeholderTextColor="#777"
           multiline
-          style={{ backgroundColor: "#111", color: "white", padding: 12, borderRadius: 12, minHeight: 70, marginBottom: 12 }}
+          style={{
+            backgroundColor: "#111",
+            color: "white",
+            padding: 12,
+            borderRadius: 12,
+            minHeight: 70,
+            marginBottom: 12,
+          }}
         />
 
         {/* Buttons */}
-<TouchableOpacity
-  onPress={fetchBase}
-  style={{
-    backgroundColor: "#5e3bff",
-    padding: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 10,
-  }}
->
-  <Text style={{ color: "white", fontWeight: "800" }}>
-    {loading ? "…" : "Hesapla"}
-  </Text>
-</TouchableOpacity>
+        <TouchableOpacity
+          onPress={fetchBase}
+          style={{
+            backgroundColor: "#5e3bff",
+            padding: 12,
+            borderRadius: 12,
+            alignItems: "center",
+            marginBottom: 10,
+          }}
+        >
+          <Text style={{ color: "white", fontWeight: "900" }}>
+            {loading ? "…" : "Hesapla"}
+          </Text>
+        </TouchableOpacity>
 
-<TouchableOpacity
-  onPress={fetchYorum}
-  disabled={!canDeep}
-  style={{
-    backgroundColor: canDeep ? "#222" : "#111",
-    padding: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-  }}
->
-  <Text style={{ color: "white", fontWeight: "800" }}>
-    Derin Analiz (Inner Circle)
-  </Text>
-</TouchableOpacity>
+        <TouchableOpacity
+          onPress={fetchYorum}
+          disabled={!canDeep}
+          style={{
+            backgroundColor: canDeep ? "#222" : "#111",
+            padding: 12,
+            borderRadius: 12,
+            alignItems: "center",
+            marginBottom: 10,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.12)",
+          }}
+        >
+          <Text style={{ color: "white", fontWeight: "900" }}>
+            {isPremium ? "Derin Analiz" : "Derin Analiz (Kilitli) 🔒"}
+          </Text>
+        </TouchableOpacity>
 
-{/* Premium CTA */}
-<TouchableOpacity
-  onPress={() => {
-    // TODO: RevenueCat purchase flow bağlanacak
-    alert("SANRI INNER CIRCLE'e katıl");
-  }}
-  style={{
-    backgroundColor: "rgba(94,59,255,0.18)",
-    padding: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "rgba(94,59,255,0.35)",
-  }}
->
-  <Text style={{ color: "white", fontWeight: "800" }}>
-    SANRI INNER CIRCLE’e Katıl
-  </Text>
-</TouchableOpacity>
+        {!isPremium && (
+          <TouchableOpacity
+            onPress={onJoinInnerCircle}
+            style={{
+              backgroundColor: "rgba(94,59,255,0.35)",
+              padding: 12,
+              borderRadius: 12,
+              alignItems: "center",
+              marginBottom: 10,
+              borderWidth: 1,
+              borderColor: "rgba(94,59,255,0.35)",
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "900" }}>
+              SANRI INNER CIRCLE’e Katıl
+            </Text>
+          </TouchableOpacity>
+        )}
 
-        {err ? (
-          <Text style={{ color: "#ff6b8a", marginTop: 6 }}>{err}</Text>
-        ) : null}
+        {err ? <Text style={{ color: "#ff6b8a", marginTop: 6 }}>{err}</Text> : null}
 
+        {/* Base card + teaser */}
         {base && (
-          <View style={{ marginTop: 16 }}>
-            <Text style={{ color: "white", fontWeight: "800" }}>
+          <View
+            style={{
+              marginTop: 16,
+              backgroundColor: "rgba(255,255,255,0.06)",
+              borderRadius: 14,
+              padding: 14,
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.10)",
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "900", fontSize: 16 }}>
               {base.name_normalized}
             </Text>
-            <Text style={{ color: "rgba(255,255,255,0.8)" }}>
+
+            <Text style={{ color: "rgba(255,255,255,0.85)", marginTop: 6 }}>
               İsim: {base.name_number} • Yol: {base.life_path}
             </Text>
+
+            <Text style={{ color: "rgba(255,255,255,0.9)", marginTop: 10 }}>
+              {base.matrix_role}
+            </Text>
+
+            <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)" }}>
+              <Text style={{ color: "rgba(255,255,255,0.8)", fontWeight: "900" }}>
+                Mini Açılım
+              </Text>
+
+              <Text style={{ color: "rgba(255,255,255,0.85)", marginTop: 8, lineHeight: 20 }}>
+                {String(base.teaser || "—")}
+              </Text>
+
+              <Text style={{ color: "rgba(255,255,255,0.55)", marginTop: 12 }}>
+                Derin Analizde açılacaklar:
+              </Text>
+
+              <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 6, lineHeight: 20 }}>
+                • Kişisel Rol (3-6 madde){"\n"}
+                • Kolektif Rol (3-6 madde){"\n"}
+                • Ruh Görevi + Bugün 1 Adım
+              </Text>
+
+              <Text style={{ color: "rgba(255,255,255,0.55)", marginTop: 10 }}>
+                Bu açılımın kökü Derin Analizde açılır.
+              </Text>
+            </View>
           </View>
         )}
 
-        {yorum && (
-          <Text style={{ color: "white", marginTop: 12 }}>{yorum}</Text>
-        )}
+        {/* Deep card */}
+        {yorum ? (
+          <View
+            style={{
+              marginTop: 12,
+              backgroundColor: "rgba(255,255,255,0.06)",
+              borderRadius: 14,
+              padding: 14,
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.10)",
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "900", marginBottom: 8 }}>
+              Derin Analiz
+            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.9)", lineHeight: 20 }}>
+              {yorum}
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
