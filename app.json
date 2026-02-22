@@ -17,12 +17,13 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.caelinusai.asksanri",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000000"
-      }
-    },
+  "package": "com.caelinusai.asksanri",
+  "versionCode": 15,
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/adaptive-icon.png",
+    "backgroundColor": "#000000"
+  }
+},
     "web": {
       "favicon": "./assets/favicon.png"
     },
