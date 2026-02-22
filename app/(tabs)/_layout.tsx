@@ -15,6 +15,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: "rgba(255,255,255,0.5)",
       }}
     >
+      {/* ✅ Visible tabs */}
       <Tabs.Screen
         name="sanri"
         options={{
@@ -25,6 +26,7 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Eğer şehirler dosyan explore.tsx ise bu kalsın */}
       <Tabs.Screen
         name="explore"
         options={{
@@ -44,6 +46,10 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* ✅ Hidden routes (tab’da görünmesin ama route çalışsın) */}
+      <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="sanri_flow" options={{ href: null }} />
     </Tabs>
   );
 }
