@@ -4,7 +4,7 @@ import { Platform } from "react-native";
 
 // ✅ RevenueCat PUBLIC SDK key (secret değil – uygulamanın içine konabilir)
 // iOS ve Android ayrı key olabilir, istersen ikisini de koy.
-const RC_PUBLIC_SDK_KEY = "test_CveiYtwWpfCbhKzLDyFvwdrutcq";
+const RC_PUBLIC_SDK_KEY = "goog_ZkGAqrXfeCvhFDdYDvLPZbBZPwE";
 const RC_IOS_KEY = "REVENUECAT_PUBLIC_KEY_BURAYA";
 
 let configured = false;
