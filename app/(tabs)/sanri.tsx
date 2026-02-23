@@ -137,12 +137,9 @@ Which field do you want to move to?
                 <Text style={styles.gateDesc}>{g.desc}</Text>
               </View>
 
-              {g.tag && (
-                <View style={styles.tagBadge}>
-                  <Text style={styles.tagBadgeText}>{g.tag}</Text>
-                </View>
-               )}
-              )
+              
+  
+            
             </View>
           </Pressable>
         ))}

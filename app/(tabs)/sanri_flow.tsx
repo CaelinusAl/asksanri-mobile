@@ -1,3 +1,4 @@
+// app/(tabs)/sanri_flow.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -17,6 +18,8 @@ import { router } from "expo-router";
 const API = "https://api.asksanri.com";
 
 type Mode = "mirror" | "dream" | "divine" | "shadow" | "light";
+
+// ✅ AUTO should definitely be here (because of the red "auto" problem in you)
 type Domain =
   | "auto"
   | "awakened_cities"
@@ -32,29 +35,31 @@ type Msg = {
 };
 
 function uid() {
-  return "m_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+return "m_" + Math.random().toString(16). slice(2) + "_" + Date.now().toString(16);
 }
 
 const MODE_CHIPS: { id: Mode; label: string }[] = [
   { id: "mirror", label: "Ayna" },
-  { id: "dream", label: "Rüya" },
+{ id: "dream", label: "dream" },
   { id: "shadow", label: "Gölge" },
   { id: "light", label: "Işık" },
   { id: "divine", label: "İlahi" },
 ];
 
 const DOMAIN_CHIPS: { id: Domain; label: string }[] = [
-  { id: "auto", label: "Auto" },
-  { id: "consciousness_field", label: "Bilinç" },
+{ id: "auto", label: "auto" },
+{ id: "consciousness_field", label: "Consciousness" },
   { id: "frequency_field", label: "Frekans" },
   { id: "ritual_space", label: "Ritüel" },
   { id: "library", label: "Kütüphane" },
-  { id: "awakened_cities", label: "Şehirler" },
+{ id: "awakened_cities", label: "Cities" },
 ];
 
 export default function SanriFlowScreen() {
   const bg = useMemo<[string, string, string]>(() => ["#07080d", "#0b0620", "#050610"], []);
-  const scrollRef = useRef<any>(null);
+
+  // ✅ Correct use that finishes ref reds
+  const scrollRef = useRef<ScrollView>(null);
 
   const [mode, setMode] = useState<Mode>("mirror");
   const [domain, setDomain] = useState<Domain>("auto");
@@ -65,15 +70,11 @@ export default function SanriFlowScreen() {
   const [error, setError] = useState("");
 
   const [messages, setMessages] = useState<Msg[]>([
-    {
-      id: uid(),
-      role: "assistant",
-      text: "Hoş geldin. Bir cümle yaz. Ben cevap değil, anlam yansıtacağım.",
-    },
+{ id: uid(), role: "assistant", text: "Welcome. Write a sentence. I will reflect meaning, not answer." },
   ]);
 
   const scrollToEnd = useCallback(() => {
-    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+requestAnimationFrame(() => scrollRef.current?. scrollToEnd({ animated: true }));
   }, []);
 
   useEffect(() => {
@@ -83,16 +84,14 @@ export default function SanriFlowScreen() {
   const typeIn = useCallback(async (fullText: string) => {
     setTyping(true);
     const id = uid();
-    setMessages((prev) => [...prev, { id, role: "assistant", text: "" }]);
+setMessages((prev) => [... prev, { id, role: "assistant", text: "" }]);
 
     let i = 0;
     const step = () => {
       i = Math.min(i + 1, fullText.length);
       const part = fullText.slice(0, i);
 
-      setMessages((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, text: part } : m))
-      );
+setMessages((prev) => prev.map((m) => (m.id === id ? { ... m, text: part } : m)));
 
       const ch = fullText[i - 1] || "";
       const pause = ch === "\n" ? 70 : ch === "." || ch === "!" || ch === "?" ? 90 : 0;
@@ -117,9 +116,12 @@ export default function SanriFlowScreen() {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {}
 
-    setMessages((prev) => [...prev, { id: uid(), role: "user", text }]);
+setMessages((prev) => [... prev, { id: uid(), role: "user", text }]);
 
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+
       const res = await fetch(`${API}/bilinc-alani/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -129,17 +131,19 @@ export default function SanriFlowScreen() {
           domain,
           gate_mode: mode,
           persona: "user",
-          lang: "tr",
         }),
+        signal: controller.signal,
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`);
+      clearTimeout(timer);
 
-      const answer = String(data?.answer || data?.response || "").trim() || "Buradayım.";
+      const data = await res.json().catch(() => ({}));
+if (!res.ok) throw new Error(data?. detail || 'HTTP ${res.status}');
+
+const answer = String(data?. answer || data?. response || "").trim() || " Buradayım.";
       await typeIn(answer);
     } catch (e: any) {
-      setError(String(e?.message || e));
+setError(String(e?. message || e));
     } finally {
       setIsSending(false);
       scrollToEnd();
@@ -154,13 +158,10 @@ export default function SanriFlowScreen() {
       <View style={styles.glowA} />
       <View style={styles.glowB} />
 
-      {/* Top bar */}
       <View style={styles.topbar}>
         <View>
           <Text style={styles.topTitle}>Sanrı</Text>
-          <Text style={styles.topMeta}>
-            Mod: {mode} • Alan: {domain}
-          </Text>
+          <Text style={styles.topMeta}>Mod: {mode} • Alan: {domain}</Text>
         </View>
 
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -168,57 +169,32 @@ export default function SanriFlowScreen() {
         </Pressable>
       </View>
 
-      {/* Mode chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
         {MODE_CHIPS.map((m) => {
           const active = m.id === mode;
           return (
-            <Pressable
-              key={m.id}
-              onPress={() => setMode(m.id)}
-              style={[styles.chip, active && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {m.label}
-              </Text>
+            <Pressable key={m.id} onPress={() => setMode(m.id)} style={[styles.chip, active && styles.chipActive]}>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{m.label}</Text>
             </Pressable>
           );
         })}
       </ScrollView>
 
-      {/* Domain chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
         {DOMAIN_CHIPS.map((d) => {
           const active = d.id === domain;
           return (
-            <Pressable
-              key={d.id}
-              onPress={() => setDomain(d.id)}
-              style={[styles.chip, active && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {d.label}
-              </Text>
+            <Pressable key={d.id} onPress={() => setDomain(d.id)} style={[styles.chip, active && styles.chipActive]}>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{d.label}</Text>
             </Pressable>
           );
         })}
       </ScrollView>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={styles.scroll}
+contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
           {messages.map((m) => {
@@ -233,10 +209,9 @@ export default function SanriFlowScreen() {
           })}
 
           {error ? <Text style={styles.errorText}>Hata: {error}</Text> : null}
-          {isSending || typing ? <Text style={styles.thinking}>…</Text> : null}
+{isSending || typing ? <Text style={styles.thinking}>… </Text> : null}
         </ScrollView>
 
-        {/* Input */}
         <View style={styles.inputBar}>
           <TextInput
             value={input}
@@ -248,18 +223,13 @@ export default function SanriFlowScreen() {
           />
           <Pressable
             onPress={send}
-            style={[
-              styles.sendBtn,
-              (!input.trim() || isSending || typing) && { opacity: 0.5 },
-            ]}
+            style={[styles.sendBtn, (!input.trim() || isSending || typing) && { opacity: 0.5 }]}
           >
             <Text style={styles.sendText}>Gönder</Text>
           </Pressable>
         </View>
 
-        <Text style={styles.hintBottom}>
-          İpucu: Soru yazma; bir cümle yaz. Yansıma sende şekillenir.
-        </Text>
+<Text style={styles.hintBottom}>Tip: Writing a question; Write a sentence. Reflection takes shape in you.</Text>
       </KeyboardAvoidingView>
     </View>
   );
@@ -327,6 +297,7 @@ const styles = StyleSheet.create({
   chipTextActive: { color: "white" },
 
   scroll: { padding: 16, paddingBottom: 18 },
+
   bubbleRow: { marginBottom: 10, flexDirection: "row" },
   rowLeft: { justifyContent: "flex-start" },
   rowRight: { justifyContent: "flex-end" },
@@ -349,7 +320,7 @@ const styles = StyleSheet.create({
   bubbleText: { color: "white", lineHeight: 20 },
 
   errorText: { color: "#ff6b8a", marginTop: 6 },
-  thinking: { color: "rgba(255,255,255,0.55)", marginTop: 8 },
+  thinking: { color: "rgba(255,255,255,0.55)", marginTop: 6 },
 
   inputBar: {
     flexDirection: "row",
@@ -376,16 +347,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(94,59,255,0.80)",
-    borderWidth: 1,
-    borderColor: "rgba(94,59,255,0.55)",
-    minWidth: 86,
+    backgroundColor: "#5e3bff",
   },
   sendText: { color: "white", fontWeight: "900" },
 
   hintBottom: {
-    color: "rgba(255,255,255,0.55)",
-    paddingHorizontal: 12,
+    color: "rgba(255,255,255,0.45)",
+    paddingHorizontal: 14,
     paddingBottom: 10,
   },
 });

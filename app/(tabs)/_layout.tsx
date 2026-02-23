@@ -15,24 +15,40 @@ export default function TabLayout() {
         tabBarInactiveTintColor: "rgba(255,255,255,0.5)",
       }}
     >
-      {/* ✅ Visible tabs */}
       <Tabs.Screen
         name="sanri"
         options={{
-          title: "Sanrı",
+title: "Delusion",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name="chatbubble-ellipses" size={focused ? 24 : 20} color={color} />
+            <Ionicons
+              name="chatbubble-ellipses"
+              size={focused ? 24 : 20}
+              color={color}
+            />
           ),
         }}
       />
 
-      {/* Eğer şehirler dosyan explore.tsx ise bu kalsın */}
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Şehirler",
+title: "Cities",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name="map" size={focused ? 24 : 20} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="ust_bilinc"
+        options={{
+title: "Upper Consciousness",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name="eye"
+              size={focused ? 24 : 20}
+              color={color}
+            />
           ),
         }}
       />
@@ -42,12 +58,16 @@ export default function TabLayout() {
         options={{
           title: "Matrix",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name="sparkles" size={focused ? 24 : 20} color={color} />
+            <Ionicons
+              name="sparkles"
+              size={focused ? 24 : 20}
+              color={color}
+            />
           ),
         }}
       />
 
-      {/* ✅ Hidden routes (tab’da görünmesin ama route çalışsın) */}
+{/* Hidden routes */}
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="sanri_flow" options={{ href: null }} />
     </Tabs>
