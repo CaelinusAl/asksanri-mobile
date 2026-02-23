@@ -1,9 +1,5 @@
-import { View, Text } from "react-native";
+import { Redirect } from "expo-router";
 
-export default function Home() {
-  return (
-    <View style={{flex:1, alignItems:"center", justifyContent:"center", backgroundColor:"#000"}}>
-      <Text style={{color:"#fff", fontSize:18}}>ASKSANRI BUILD TEST ✅</Text>
-    </View>
-  );
+export default function Index() {
+  return <Redirect href="/(tabs)/sanri" />;
 }
