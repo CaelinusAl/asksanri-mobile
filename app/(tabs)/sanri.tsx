@@ -1,15 +1,19 @@
-// app/(tabs)/sanri.tsx
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
+import React, { useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  StyleSheet as RNStyleSheet,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
-
+import { router } from "expo-router";
 import StarTrailOverlay from "../../lib/StarTrailOverlay";
 
 type Gate = {
-  id: "sanri_flow" | "bilinc" | "frekans" | "rituel" | "kutuphane" | "sehirler";
+  id: string;
   title: string;
   desc: string;
   tag?: string;
@@ -17,237 +21,308 @@ type Gate = {
 
 export default function SanriHomeScreen() {
   const bg = useMemo(() => ["#07080d", "#13072e", "#050610"] as const, []);
+
   const [lastTap, setLastTap] = useState<{ x: number; y: number } | null>(null);
 
-  const tapCounterRef = useRef(0);
+  const gates: Gate[] = [
+    {
+      id: "sanri_flow",
+title: "Delusion",
+desc: "Write a sentence. Not an answer — a reflection of meaning.",
+      tag: "Mirror",
+    },
+    {
+      id: "bilinc",
+title: "Field of Consciousness",
+desc: "Deep query. Clarification. One step.",
+      tag: "Deep",
+    },
+    {
+      id: "frekans",
+title: "Frequency Domain",
+desc: "Emotion • body • mind synchronization.",
+      tag: "Hz",
+    },
+  ];
 
-  const gates: Gate[] = useMemo(
-    () => [
-      {
-        id: "sanri_flow",
-        title: "Sanrı",
-        desc: "Bir cümle yaz. Cevap değil — anlam yansıması.",
-        tag: "Mirror",
-      },
-      {
-        id: "bilinc",
-        title: "Bilinç Alanı",
-        desc: "Derin sorgu. Netleşme. Tek adım.",
-        tag: "Deep",
-      },
-      {
-        id: "frekans",
-        title: "Frekans Alanı",
-        desc: "Duygu–beden–zihin senkronu. İnce ayar.",
-        tag: "Hz",
-      },
-      {
-        id: "rituel",
-        title: "Ritüel Alanı",
-        desc: "Niyet + eylem. Küçük bir ritüel taslağı.",
-        tag: "Ritual",
-      },
-      {
-        id: "kutuphane",
-        title: "Kütüphane",
-        desc: "Metinler, kayıtlar, rehberler.",
-        tag: "Library",
-      },
-      {
-        id: "sehirler",
-        title: "Şehirler",
-        desc: "Uyanan şehirler: sembol ve enerji haritası.",
-        tag: "Cities",
-      },
-    ],
-    []
-  );
+  const onTouchStart = (e: any) => {
+const t = e.nativeEvent.touches?. [0];
+    if (!t) return;
+    setLastTap({ x: t.pageX, y: t.pageY });
+  };
 
-  const onTapField = useCallback(async (e: any) => {
-    const { locationX, locationY } = e?.nativeEvent || {};
-    if (typeof locationX !== "number" || typeof locationY !== "number") return;
-
-    // minik haptics (çok sık olmasın)
-    tapCounterRef.current += 1;
-    if (tapCounterRef.current % 2 === 0) {
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } catch {}
-    }
-
-    setLastTap({ x: locationX, y: locationY });
-    // aynı noktayı tekrar spawn etsin diye küçük “jitter”
-    setTimeout(() => setLastTap({ x: locationX + 0.01, y: locationY + 0.01 }), 10);
-  }, []);
-
-  const openGate = useCallback((g: Gate) => {
-    // şimdilik: sanri_flow var. diğerleri sonra route olacak.
-    if (g.id === "sanri_flow") router.push("/(tabs)/sanri_flow");
-    else if (g.id === "sehirler") router.push("/(tabs)/explore"); // sende "Şehirler" explore tabı
-    else if (g.id === "frekans") router.push("/(tabs)/matrix"); // geçici, sonra frekans tabı açarız
-    else router.push("/(tabs)/sanri_flow"); // geçici fallback
-  }, []);
+  const openGate = (id: string) => {
+    if (id === "sanri_flow") router.push("/(tabs)/sanri_flow");
+    else if (id === "bilinc") router.push("/(tabs)/sanri_flow");
+    else if (id === "frekans") router.push("/(tabs)/matrix");
+  };
 
   return (
-    <View style={styles.root}>
-      <LinearGradient colors={bg} style={StyleSheet.absoluteFillObject} />
+    <View style={styles.root} onTouchStart={onTouchStart}>
+      <LinearGradient colors={bg} style={RNStyleSheet.absoluteFillObject} />
 
-      {/* büyük yumuşak glowlar */}
+      {/* Glow */}
       <View style={styles.glowA} />
       <View style={styles.glowB} />
 
-      {/* dokunma alanı: tüm sayfa */}
-      <Pressable onPressIn={onTapField} style={StyleSheet.absoluteFill} />
+      {/* Star effect */}
+      {lastTap && (
+        <StarTrailOverlay
+          x={lastTap.x}
+          y={lastTap.y}
+          active={true}
+        />
+      )}
 
-      {/* yıldız overlay */}
-      {/* lastTap state değiştikçe StarTrailOverlay yeni spark üretir (basit hack): */}
-      {lastTap ? (
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          {/* StarTrailOverlay kendi içinde spark üretmiyor; ama biz spawn tetikleyecek şekilde bir “reset” kullanıyoruz:
-              En pratik yöntem: overlay’ı key ile re-mount etmek. */}
-          <StarTrailOverlay key={`${lastTap.x}_${lastTap.y}`} />
-        </View>
-      ) : null}
-
-      {/* içerik */}
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header Card */}
         <View style={styles.headerCardWrap}>
           <BlurView intensity={22} tint="dark" style={styles.headerCard}>
-            <Text style={styles.kicker}>CAELINUS AI • CONSCIOUSNESS MIRROR</Text>
-            <Text style={styles.title}>Sanrı</Text>
-            <Text style={styles.subtitle}>
-              Hoş geldin. Bir cümle yaz. Ben cevap değil,{"\n"}anlam yansıtacağım.
+            <Text style={styles.kicker}>
+              CAELINUS AI • CONSCIOUSNESS MIRROR
             </Text>
 
-            <Pressable onPress={() => router.push("/(tabs)/sanri_flow")} style={styles.primaryBtn}>
-              <Text style={styles.primaryBtnText}>Bilinç Akışına Gir</Text>
-              <Text style={styles.primaryBtnSub}>Yansıt • Derinleş • Tek soru</Text>
+            <Text style={styles.title}>Sanrı</Text>
+
+            <Text style={styles.subtitle}>
+Welcome. Write a sentence. {"\n"}
+I will reflect meaning, not answer.
+            </Text>
+
+            <Pressable
+              onPress={() => router.push("/(tabs)/sanri_flow")}
+              style={styles.primaryBtn}
+            >
+              <Text style={styles.primaryBtnText}>
+Enter the Stream of Consciousness
+              </Text>
+              <Text style={styles.primaryBtnSub}>
+Reflect • Deepen • Single question
+              </Text>
             </Pressable>
 
             <View style={styles.hintCard}>
               <Text style={styles.hintTitle}>İpucu</Text>
-              <Text style={styles.hintText}>“Soru yazma.”{"\n"}“Bir cümle yaz.”{"\n"}“Yansıma sende şekillenir.”</Text>
+              <Text style={styles.hintText}>
+"Don't write questions." {"\n"}
+"Write a sentence." {"\n"}
+"Reflection takes shape in you."
+              </Text>
             </View>
 
-            <Text style={styles.footerNote}>Bu alan bir “cevap makinesi” değil. Bir fark ediş alanı.</Text>
+            <Text style={styles.footerNote}>
+This area is not an answer machine. An area of realization.
+            </Text>
           </BlurView>
         </View>
 
-        <View style={{ height: 14 }} />
-
+        {/* Gates */}
         <Text style={styles.sectionTitle}>Kapılar</Text>
-        <Text style={styles.sectionSub}>Hangi alana geçmek istiyorsun?</Text>
-
-        <View style={{ height: 10 }} />
+        <Text style={styles.sectionSub}>
+Which field do you want to move to?
+        </Text>
 
         {gates.map((g) => (
-          <Pressable key={g.id} onPress={() => openGate(g)} style={styles.gatePress}>
-            <BlurView intensity={18} tint="dark" style={styles.gateCard}>
-              <View style={styles.gateTopRow}>
+          <Pressable
+            key={g.id}
+            onPress={() => openGate(g.id)}
+            style={styles.gateCard}
+          >
+            <View style={styles.gateRow}>
+              <View>
                 <Text style={styles.gateTitle}>{g.title}</Text>
-                {g.tag ? <Text style={styles.gateTag}>{g.tag}</Text> : null}
+                <Text style={styles.gateDesc}>{g.desc}</Text>
               </View>
-              <Text style={styles.gateDesc}>{g.desc}</Text>
-            </BlurView>
+
+              {g.tag && (
+                <View style={styles.tagBadge}>
+                  <Text style={styles.tagBadgeText}>{g.tag}</Text>
+                </View>
+               )}
+              )
+            </View>
           </Pressable>
         ))}
 
-        <View style={{ height: 28 }} />
+        <View style={{ height: 60 }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
+  tag: {
+  paddingHorizontal: 10,
+  paddingVertical: 6,
+  borderRadius: 999,
+  backgroundColor: "rgba(94,59,255,0.25)",
+  borderWidth: 1,
+  borderColor: "rgba(94,59,255,0.45)",
+},
 
-  glowA: {
-    position: "absolute",
-    width: 560,
-    height: 560,
-    borderRadius: 560,
-    left: -220,
-    top: 20,
-    backgroundColor: "rgba(94,59,255,0.18)",
-  },
-  glowB: {
-    position: "absolute",
-    width: 620,
-    height: 620,
-    borderRadius: 620,
-    right: -260,
-    bottom: -120,
-    backgroundColor: "rgba(160,120,255,0.12)",
+tagText: {
+  color: "#ffffff",
+  fontWeight: "700",
+  fontSize: 12,
+},
+
+  root: {
+    flex: 1,
+    backgroundColor: "#07080d",
   },
 
   container: {
-    padding: 16,
-    paddingBottom: 26,
+    padding: 20,
   },
 
-  headerCardWrap: { marginTop: 8 },
+  glowA: {
+    position: "absolute",
+    width: 420,
+    height: 420,
+    borderRadius: 420,
+    left: -140,
+    top: 60,
+    backgroundColor: "rgba(94,59,255,0.18)",
+  },
+
+  glowB: {
+    position: "absolute",
+    width: 500,
+    height: 500,
+    borderRadius: 500,
+    right: -180,
+    bottom: -100,
+    backgroundColor: "rgba(140,100,255,0.12)",
+  },
+
+  headerCardWrap: {
+    marginBottom: 30,
+  },
+
   headerCard: {
-    borderRadius: 26,
-    padding: 18,
+    borderRadius: 22,
+    padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    backgroundColor: "rgba(10,12,18,0.35)",
-    overflow: "hidden",
+    borderColor: "rgba(255,255,255,0.1)",
   },
 
-  kicker: { color: "rgba(255,255,255,0.65)", letterSpacing: 3, fontSize: 12, fontWeight: "800" },
-  title: { color: "white", fontSize: 44, fontWeight: "900", marginTop: 10, letterSpacing: -0.5 },
-  subtitle: { color: "rgba(255,255,255,0.82)", marginTop: 10, lineHeight: 22 },
+  kicker: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+
+  title: {
+    fontSize: 38,
+    fontWeight: "900",
+    color: "white",
+    marginBottom: 12,
+  },
+
+  subtitle: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 18,
+  },
 
   primaryBtn: {
-    marginTop: 16,
+    backgroundColor: "rgba(94,59,255,0.7)",
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 18,
-    backgroundColor: "rgba(94,59,255,0.28)",
-    borderWidth: 1,
-    borderColor: "rgba(94,59,255,0.40)",
+    borderRadius: 16,
     alignItems: "center",
+    marginBottom: 18,
   },
-  primaryBtnText: { color: "white", fontWeight: "900", fontSize: 18 },
-  primaryBtnSub: { color: "rgba(255,255,255,0.70)", marginTop: 6, fontWeight: "700" },
+
+  primaryBtnText: {
+    color: "white",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+
+  primaryBtnSub: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 12,
+    marginTop: 4,
+  },
 
   hintCard: {
-    marginTop: 14,
-    padding: 14,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
-  hintTitle: { color: "rgba(255,255,255,0.85)", fontWeight: "900", marginBottom: 8 },
-  hintText: { color: "rgba(255,255,255,0.78)", lineHeight: 20 },
-
-  footerNote: { marginTop: 12, color: "rgba(255,255,255,0.55)", textAlign: "center" },
-
-  sectionTitle: { color: "white", fontWeight: "900", fontSize: 18, marginTop: 6 },
-  sectionSub: { color: "rgba(255,255,255,0.65)", marginTop: 4 },
-
-  gatePress: { marginTop: 10 },
-  gateCard: {
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    backgroundColor: "rgba(0,0,0,0.25)",
-  },
-  gateTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  gateTitle: { color: "white", fontWeight: "900", fontSize: 16 },
-  gateTag: {
-    color: "rgba(255,255,255,0.85)",
-    fontWeight: "900",
-    fontSize: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 12,
   },
-  gateDesc: { color: "rgba(255,255,255,0.72)", marginTop: 8, lineHeight: 20 },
+
+  hintTitle: {
+    color: "white",
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+
+  hintText: {
+    color: "rgba(255,255,255,0.75)",
+    lineHeight: 20,
+  },
+
+  footerNote: {
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+    marginTop: 6,
+  },
+
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "white",
+  },
+
+  sectionSub: {
+    color: "rgba(255,255,255,0.6)",
+    marginBottom: 16,
+  },
+
+  gateCard: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    padding: 16,
+    borderRadius: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+
+  gateRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  gateTitle: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+
+  gateDesc: {
+    color: "rgba(255,255,255,0.7)",
+    marginTop: 4,
+  },
+
+  tagBadge: {
+  backgroundColor: "rgba(94,59,255,0.25)",
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 999,
+  borderWidth: 1,
+  borderColor: "rgba(94,59,255,0.45)",
+},
+
+tagBadgeText: {
+  color: "white",
+  fontSize: 12,
+  fontWeight: "700",
+},
 });

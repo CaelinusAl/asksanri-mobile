@@ -1,139 +1,111 @@
 // lib/StarTrailOverlay.tsx
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { View, StyleSheet, Dimensions } from "react-native";
 
-type Spark = {
-  id: string;
-  x: number;
-  y: number;
-  dx: number;
-  dy: number;
-  size: number;
-  rotate: number;
-  opacity: Animated.Value;
-  scale: Animated.Value;
-};
+type Spark = { id: string; x: number; y: number; t: number; life: number; s: number };
+
+const { width, height } = Dimensions.get("window");
 
 function uid() {
   return "s_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
 }
 
-type Props = {
-  trigger?: { x: number; y: number } | null;
-};
-
-export default function StarTrailOverlay({ trigger }: Props) {
+export default function StarTrailOverlay({
+  x,
+  y,
+  active = true,
+}: {
+  x: number | null;
+  y: number | null;
+  active?: boolean;
+}) {
   const [sparks, setSparks] = useState<Spark[]>([]);
-  const mountedRef = useRef(true);
+  const lastRef = useRef<{ x: number; y: number; at: number } | null>(null);
+
+  const spawn = (sx: number, sy: number) => {
+    const now = Date.now();
+    const base: Spark[] = Array.from({ length: 10 }).map(() => ({
+      id: uid(),
+      x: sx + (Math.random() - 0.5) * 18,
+      y: sy + (Math.random() - 0.5) * 18,
+      t: now,
+      life: 650 + Math.random() * 350,
+      s: 2 + Math.random() * 3.5,
+    }));
+    setSparks((prev) => [...prev, ...base].slice(-90));
+  };
 
   useEffect(() => {
-    return () => {
-      mountedRef.current = false;
+    if (!active) return;
+    if (x == null || y == null) return;
+
+    const now = Date.now();
+    const last = lastRef.current;
+
+    // aynı yere 30ms içinde spamleme
+    if (last && Math.abs(last.x - x) < 6 && Math.abs(last.y - y) < 6 && now - last.at < 30) return;
+
+    lastRef.current = { x, y, at: now };
+    spawn(x, y);
+  }, [x, y, active]);
+
+  // animasyon döngüsü
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const now = Date.now();
+      setSparks((prev) => prev.filter((s) => now - s.t < s.life));
+      raf = requestAnimationFrame(tick);
     };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
-  const spawn = useCallback((x: number, y: number) => {
-    const count = 7 + Math.floor(Math.random() * 5); // 7-11
+  const now = Date.now();
+  const dots = useMemo(() => {
+    return sparks.map((s) => {
+      const age = now - s.t;
+      const p = Math.min(1, age / s.life);
+      const a = 1 - p;
+      const scale = 1 - p * 0.4;
 
-    const created: Spark[] = Array.from({ length: count }).map(() => {
-      const id = uid();
-      const size = 12 + Math.floor(Math.random() * 14); // 12-25
-      const opacity = new Animated.Value(0);
-      const scale = new Animated.Value(0.6);
-
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 10 + Math.random() * 42;
-      const dx = Math.cos(angle) * dist;
-      const dy = Math.sin(angle) * dist;
-      const rotate = Math.floor(Math.random() * 80) - 40;
-
-      return { id, x, y, dx, dy, size, rotate, opacity, scale };
-    });
-
-    setSparks((prev) => [...prev, ...created]);
-
-    created.forEach((s) => {
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(s.opacity, {
-            toValue: 1,
-            duration: 90,
-            useNativeDriver: true,
-            easing: Easing.out(Easing.quad),
-          }),
-          Animated.timing(s.scale, {
-            toValue: 1.15,
-            duration: 220,
-            useNativeDriver: true,
-            easing: Easing.out(Easing.quad),
-          }),
-        ]),
-        Animated.parallel([
-          Animated.timing(s.opacity, {
-            toValue: 0,
-            duration: 520,
-            useNativeDriver: true,
-            easing: Easing.in(Easing.quad),
-          }),
-          Animated.timing(s.scale, {
-            toValue: 0.85,
-            duration: 520,
-            useNativeDriver: true,
-            easing: Easing.in(Easing.quad),
-          }),
-        ]),
-      ]).start(() => {
-        if (!mountedRef.current) return;
-        setSparks((prev) => prev.filter((p) => p.id !== s.id));
-      });
-    });
-  }, []);
-
-  // trigger gelince spawn et
-  useEffect(() => {
-    if (!trigger) return;
-    spawn(trigger.x, trigger.y);
-  }, [trigger, spawn]);
-
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {sparks.map((s) => (
-        <Animated.View
+      return (
+        <View
           key={s.id}
+          pointerEvents="none"
           style={[
-            styles.sparkWrap,
+            styles.dot,
             {
-              left: s.x + s.dx,
-              top: s.y + s.dy,
-              opacity: s.opacity,
-              transform: [{ scale: s.scale }, { rotate: `${s.rotate}deg` }],
+              left: s.x,
+              top: s.y,
+              opacity: a,
+              transform: [{ scale }],
+              width: s.s,
+              height: s.s,
+              borderRadius: 999,
             },
           ]}
-        >
-          <Text
-            style={[
-              styles.spark,
-              {
-                fontSize: s.size,
-              },
-            ]}
-          >
-            ✦
-          </Text>
-        </Animated.View>
-      ))}
-    </View>
-  );
+        />
+      );
+    });
+  }, [sparks, now]);
+
+  return <View pointerEvents="none" style={styles.overlay}>{dots}</View>;
 }
 
 const styles = StyleSheet.create({
-  sparkWrap: {
+  overlay: {
     position: "absolute",
+    left: 0,
+    top: 0,
+    width,
+    height,
   },
-  spark: {
-    color: "rgba(255,255,255,0.92)",
-    textShadowColor: "rgba(124,77,255,0.55)",
-    textShadowRadius: 18,
-    textShadowOffset: { width: 0, height: 0 },
+  dot: {
+    position: "absolute",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    shadowColor: "#7c5cff",
+    shadowOpacity: 0.7,
+    shadowRadius: 10,
   },
 });
