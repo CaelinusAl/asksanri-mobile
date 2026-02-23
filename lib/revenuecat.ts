@@ -1,28 +1,33 @@
+"react-native-purchases"ten satın almaları ithal eder;
+"react-native"den { Platform } içe aktarmak;
 
-import Purchases from "react-native-purchases";
-import { Platform } from "react-native";
+let configured = yanlış;
 
-// ✅ RevenueCat PUBLIC SDK key (secret değil – uygulamanın içine konabilir)
-// iOS ve Android ayrı key olabilir, istersen ikisini de koy.
-const RC_PUBLIC_SDK_KEY = "goog_ZkGAqrXfeCvhFDdYDvLPZbBZPwE";
-const RC_IOS_KEY = "REVENUECAT_PUBLIC_KEY_BURAYA";
+function getApiKey(): string {
+Expo public env vars
+  const iosKey = process.env.EXPO_PUBLIC_RC_IOS_API_KEY ?? "";
+  const androidKey = process.env.EXPO_PUBLIC_RC_ANDROID_API_KEY ?? "";
 
-let configured = false;
+  return Platform.OS === "ios" ? iosKey : androidKey;
+}
 
 export function initRevenueCatOnce() {
-  if (configured) return;
-  configured = true;
+RevenueCat web'de çalışmaz (browser crash önlemek için)
+if (Platform.OS === "web") döner;
+eğer (yapılandırılmış) dönüş;
 
-  const apiKey = Platform.OS === "ios" ? RC_IOS_KEY : RC_PUBLIC_SDK_KEY;
-  if (!apiKey || apiKey.includes("BURAYA")) return; // key eklenmediyse sessiz geç
+  const apiKey = getApiKey();
+eğer (!apiKey) geri dönerse; key yoksa sessiz geç
 
+configure = doğru;
   Purchases.configure({ apiKey });
 }
 
 export async function getCustomerInfoSafe() {
-  try {
-    return await Purchases.getCustomerInfo();
-  } catch {
+if (Platform.OS === "web") null döndürür;
+Try {
+geri dönüşü bekleyin Purchases.getCustomerInfo();
+} yakalamak {
     return null;
   }
 }
