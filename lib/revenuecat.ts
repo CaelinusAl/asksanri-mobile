@@ -1,33 +1,30 @@
-"react-native-purchases"ten satın almaları ithal eder;
-"react-native"den { Platform } içe aktarmak;
+import Purchases from "react-native-purchases";
+import { Platform } from "react-native";
 
-let configured = yanlış;
-
-function getApiKey(): string {
-Expo public env vars
-  const iosKey = process.env.EXPO_PUBLIC_RC_IOS_API_KEY ?? "";
-  const androidKey = process.env.EXPO_PUBLIC_RC_ANDROID_API_KEY ?? "";
-
-  return Platform.OS === "ios" ? iosKey : androidKey;
-}
+let configured = false;
 
 export function initRevenueCatOnce() {
-RevenueCat web'de çalışmaz (browser crash önlemek için)
-if (Platform.OS === "web") döner;
-eğer (yapılandırılmış) dönüş;
+  if (configured) return;
+  configured = true;
 
-  const apiKey = getApiKey();
-eğer (!apiKey) geri dönerse; key yoksa sessiz geç
+  if (Platform.OS === "web") return;
 
-configure = doğru;
+  const apiKey =
+    Platform.OS === "ios"
+      ? process.env.EXPO_PUBLIC_RC_IOS_API_KEY ?? ""
+      : process.env.EXPO_PUBLIC_RC_ANDROID_API_KEY ?? "";
+
+  if (!apiKey) return;
+
   Purchases.configure({ apiKey });
 }
 
 export async function getCustomerInfoSafe() {
-if (Platform.OS === "web") null döndürür;
-Try {
-geri dönüşü bekleyin Purchases.getCustomerInfo();
-} yakalamak {
+  if (Platform.OS === "web") return null;
+
+  try {
+    return await Purchases.getCustomerInfo();
+  } catch {
     return null;
   }
 }
