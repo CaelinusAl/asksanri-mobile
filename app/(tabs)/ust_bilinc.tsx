@@ -39,7 +39,7 @@ type Level = {
 };
 
 const API_BASE = "https://api.asksanri.com";
-const AY_CICEGI = require("../../assets/ay_cicegi.png");
+const AY_CICEGI = require("../../assets/ay_cicegi.jpg");
 
 // fallback vitrin (pinned yoksa)
 const FALLBACK = {

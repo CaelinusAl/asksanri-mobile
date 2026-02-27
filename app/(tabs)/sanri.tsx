@@ -27,7 +27,7 @@ type Gate = {
   tag?: string;
 };
 
-const BG_SANRI = require("../../assets/sanri_glass_bg.png"); // kendi görselin
+const BG_SANRI = require("../../assets/sanri_glass_bg.jpg"); // kendi görselin
 
 const T = {
   tr: {
