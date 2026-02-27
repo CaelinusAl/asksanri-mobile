@@ -1,5 +1,5 @@
 // app/city/[code].tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo,useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { logEvent } from "../../lib/LogEvent";
 import { useLangStore } from "@/data/langStore";
 import { CITY_NAMES, type CityCode } from "@/data/awakenedCities";
 import { getCityContent, type Layer } from "@/data/awakenedContent";
+import { hasVipEntitlement } from "../../lib/premium";
 
 export default function CityCodeScreen() {
   const router = useRouter();
@@ -25,6 +26,19 @@ export default function CityCodeScreen() {
 
   const [layer, setLayer] = useState<Layer>("base");
   const [isPremium, setIsPremium] = useState(false);
+  const [isVip, setIsVip] = useState(false);
+
+useEffect(() => {
+  (async () => {
+    try {
+      const ok = await hasVipEntitlement(); // lib/premium
+      setIsVip(Boolean(ok));
+    } catch {
+      setIsVip(false);
+    }
+  })();
+}, []);
+
 
   const cityName = CITY_NAMES?.[cityCode] ?? "Unknown";
 
@@ -66,6 +80,16 @@ export default function CityCodeScreen() {
       ? '"wake up" is not a command — it is a remembrance.'
       : '"wake up" bir komut değil — bir hatırlayış.';
 
+  const handleDeepen = useCallback(() => {
+  if (!isVip) {
+    router.push({ pathname: "/(tabs)/vip", params: { lang: appLang } } as any);
+    return;
+  }
+
+  setLayer("deepC");
+}, [isVip, appLang]);
+
+
   return (
     <View style={styles.root}>
       {/* TOP BAR sabit */}
@@ -80,7 +104,9 @@ export default function CityCodeScreen() {
           <View style={styles.layerChip}>
             <Text style={styles.layerChipTxt}>{layer.toUpperCase()}</Text>
           </View>
-
+         <Pressable onPress={handleDeepen}>
+          <Text>{deepenLabel}</Text>
+        </Pressable>
           <Pressable onPress={toggleLang} style={styles.langChip}>
             <Text style={styles.langChipTxt}>{appLang.toUpperCase()}</Text>
           </Pressable>
@@ -107,7 +133,7 @@ export default function CityCodeScreen() {
 
         <View style={styles.actions}>
   <Pressable
-    onPress={() => setLayer((p) => (p === "base" ? "deep" : "base"))}
+    onPress={() => setLayer((p) => (p === "base" ? "deepC" : "base"))}
     style={styles.deepBtn}
   >
     <Text style={styles.deepTitle}>{deepenLabel}</Text>

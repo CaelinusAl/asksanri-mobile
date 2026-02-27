@@ -7,33 +7,42 @@
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "dark",
+
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
+
     "ios": {
       "bundleIdentifier": "com.caelinusai.asksanri",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Sanrı voice input için mikrofon kullanır."
+      }
     },
+
     "android": {
       "package": "com.caelinusai.asksanri",
       "versionCode": 15,
+      "usesCleartextTraffic": true,
+      "permissions": ["RECORD_AUDIO"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       }
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
+
+    "plugins": ["expo-font"],
+
     "extra": {
       "eas": {
         "projectId": "f2d81bef-b1a5-4de7-b0cb-22747bfae469"
       }
-    },
-    "plugins": [
-      "expo-font"
-    ]
+    }
   }
 }

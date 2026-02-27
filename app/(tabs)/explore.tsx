@@ -1,8 +1,6 @@
+
 // app/(tabs)/explore.tsx
-import React, { useMemo, useState } from "react";
-import TopMenu from "../../components/TopMenu";
-import { useEffect } from "react";
-import { logEvent } from "../../lib/LogEvent";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,9 +8,12 @@ import {
   StyleSheet,
   ScrollView,
   ImageBackground,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
+import TopMenu from "../../components/TopMenu";
 import { CODES, type CityCode } from "../../data/awakenedCities";
+import { logEvent } from "../../lib/LogEvent";
 
 const TURKEY_BG = require("../../assets/turkiye_hologram.jpg");
 
@@ -36,13 +37,14 @@ export default function ExploreScreen() {
   const codes = useMemo(() => CODES, []);
 
   useEffect(() => {
-  logEvent("screen_view", "awakened_cities", { screen: "explore" });
-}, []);
+    logEvent("screen_view", "awakened_cities", { screen: "explore" });
+  }, []);
 
   return (
     <View style={styles.root} pointerEvents="box-none">
       <TopMenu />
-      {/* ✅ Background katmanları dokunma yakalamaz (tabbar sorununu çözer) */}
+
+      {/* Background layer (touch yakalamaz) */}
       <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
         <ImageBackground
           source={TURKEY_BG}
@@ -60,107 +62,86 @@ export default function ExploreScreen() {
         <Text style={styles.h1}>AWAKENED{"\n"}CITIES</Text>
         <Text style={styles.sub}>Choose your code. The city speaks.</Text>
 
-        {/* SYSTEM HEADER */}
-  <View style={styles.systemBox}>
-  <Text style={styles.systemLine}>$ field.ready</Text>
-  <Text style={styles.systemLine}>$ region: TR</Text>
-  <Text style={styles.systemLineAccent}>$ gate_status: open</Text>
-</View>
+        <View style={styles.systemBox}>
+          <Text style={styles.systemLine}>$ field.ready</Text>
+          <Text style={styles.systemLine}>$ region: TR</Text>
+          <Text style={styles.systemLineAccent}>$ gate_status: open</Text>
+        </View>
 
         <View style={styles.grid}>
           {codes.map((code) => {
             const active = code === selected;
+            const tag = miniTag(code);
             return (
               <Pressable
                 key={code}
                 onPress={() => {
                   setSelected(code);
-                  router.push("/city/" + code); // ✅ backtick yok
+                  router.push('/city/${code}' as any);
                 }}
                 style={[styles.cell, active && styles.cellActive]}
                 hitSlop={10}
               >
                 <Text style={styles.num}>{code}</Text>
                 <Text style={styles.nano}>{noise(code)}</Text>
-                {miniTag(code) ? <Text style={styles.tag}>{miniTag(code)}</Text> : null}
+                {tag ? <Text style={styles.tag}>{tag}</Text> : null}
               </Pressable>
             );
           })}
         </View>
 
-        {/* ✅ tabbar/gesture güvenli boşluk */}
-        <View style={{ height: 180 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#05060a" },
+  root: { flex: 1, backgroundColor: "#07080d" },
 
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
 
-  container: { paddingTop: 18, paddingHorizontal: 18 },
-  systemBox: {
-  marginTop: 18,
-  marginBottom: 22,
-  padding: 16,
-  borderRadius: 16,
-  backgroundColor: "rgba(124,247,216,0.05)",
-  borderWidth: 1,
-  borderColor: "rgba(124,247,216,0.18)",
-},
-
-systemLine: {
-  color: "rgba(124,247,216,0.65)",
-  fontFamily: "monospace",
-  fontSize: 13,
-  letterSpacing: 1.5,
-  marginBottom: 6,
-},
-
-systemLineAccent: {
-  color: "#7cf7d8",
-  fontFamily: "monospace",
-  fontSize: 13,
-  letterSpacing: 1.5,
-},
+  container: { paddingTop: 22, paddingHorizontal: 18, paddingBottom: 24 },
 
   h1: {
     color: "white",
     fontSize: 44,
     fontWeight: "900",
     letterSpacing: 1,
-    marginTop: 6,
+    lineHeight: 46,
   },
+
   sub: {
-    color: "rgba(255,255,255,0.65)",
-    marginTop: 8,
-    marginBottom: 14,
+    color: "rgba(255,255,255,0.70)",
+    marginTop: 10,
+    marginBottom: 18,
     fontSize: 16,
   },
 
-  terminal: {
-    marginTop: 8,
-    borderRadius: 16,
+  systemBox: {
+    borderRadius: 18,
     padding: 14,
+    backgroundColor: "rgba(0,0,0,0.35)",
     borderWidth: 1,
-    borderColor: "rgba(120,255,240,0.18)",
-    backgroundColor: "rgba(0,0,0,0.40)",
+    borderColor: "rgba(255,255,255,0.12)",
+    marginBottom: 18,
   },
-  termLine: {
-    color: "rgba(120,255,240,0.9)",
-    fontFamily: "monospace",
-    fontSize: 14,
-    marginBottom: 4,
+
+  systemLine: {
+    color: "rgba(124,247,216,0.75)",
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    marginBottom: 6,
   },
-  termHint: { color: "rgba(255,255,255,0.6)", marginTop: 6 },
+
+  systemLineAccent: {
+    color: "rgba(124,247,216,0.95)",
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  },
 
   grid: {
-    paddingTop: 18,
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
@@ -168,36 +149,40 @@ systemLineAccent: {
   },
 
   cell: {
-    width: "30%",
+    width: "30.5%",
     aspectRatio: 1,
     borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.28)",
     borderWidth: 1,
-    borderColor: "rgba(120,255,220,0.22)",
-    backgroundColor: "rgba(0,0,0,0.22)",
+    borderColor: "rgba(255,255,255,0.10)",
     alignItems: "center",
     justifyContent: "center",
   },
+
   cellActive: {
-    borderColor: "rgba(120,255,220,0.55)",
-    backgroundColor: "rgba(0,0,0,0.30)",
+    borderColor: "rgba(124,247,216,0.45)",
+    backgroundColor: "rgba(124,247,216,0.08)",
   },
 
   num: {
-    color: "rgba(120,255,220,0.95)",
+    color: "#7cf7d8",
     fontSize: 34,
     fontWeight: "900",
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
+
   nano: {
-    marginTop: 4,
-    color: "rgba(255,255,255,0.30)",
-    fontFamily: "monospace",
-    fontSize: 11,
+    marginTop: 6,
+    color: "rgba(255,255,255,0.35)",
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    fontSize: 12,
   },
+
   tag: {
     marginTop: 6,
-    color: "rgba(120,255,220,0.55)",
-    fontFamily: "monospace",
+    color: "rgba(255,255,255,0.60)",
     fontSize: 11,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
 });

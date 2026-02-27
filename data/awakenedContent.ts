@@ -1,8 +1,9 @@
 // data/awakenedContent.ts
 import { CITY_NAMES, type CityCode } from "@/data/awakenedCities";
 
+
 export type Lang = "tr" | "en";
-export type Layer = "base" | "deep" | "lab";
+export type Layer = "base" | "deepC" | "lab" ;
 
 export type CityBlock = {
   title: string;
@@ -16106,7 +16107,7 @@ export function getCityContent(code: CityCode, lang: Lang, layer: Layer = "base"
     };
   }
 
-  if (layer === "deep") {
+  if (layer === "deepC") {
     const blocks = [
       entry.deepC[lang],
       entry.history[lang],

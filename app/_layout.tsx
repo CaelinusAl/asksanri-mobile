@@ -1,8 +1,16 @@
 // app/_layout.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import { Stack } from "expo-router";
+import { initRevenueCat } from "../lib/revenuecat"; // ✅ yol: app/_layout.tsx -> lib/revenuecat.ts
 
 export default function RootLayout() {
+  useEffect(() => {
+    // ✅ RevenueCat init (app açılışında 1 kez)
+    initRevenueCat().catch((e) => {
+      console.log("RevenueCat init error:", e);
+    });
+  }, []);
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       {/* Tabs ana uygulama */}

@@ -1,9 +1,10 @@
-import { getCustomerInfo } from "./revenuecat";
+import Purchases from "react-native-purchases";
 
-export async function isPremiumUser(): Promise<boolean> {
-  const info = await getCustomerInfo();
-
-  if (!info) return false;
-
-  return !!info.entitlements.active["premium"];
+export async function hasVipEntitlement(): Promise<boolean> {
+  try {
+    const customerInfo = await Purchases.getCustomerInfo();
+    return !!customerInfo.entitlements.active["vip"];
+  } catch {
+    return false;
+  }
 }

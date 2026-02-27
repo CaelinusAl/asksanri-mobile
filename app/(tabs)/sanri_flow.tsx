@@ -10,22 +10,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  ImageBackground,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { ImageBackground } from "react-native";
+import { Audio } from "expo-av";
 
-
-const API = "https://api.asksanri.com";
+const API = "http://192.168.1.181:8000";
+const TRANSCRIBE_URL = API + "/api/voice/transcribe";
 
 type Lang = "tr" | "en";
-
-type Msg = {
-  id: string;
-  role: "user" | "assistant";
-  text: string;
-};
+type Msg = { id: string; role: "user" | "assistant"; text: string };
 
 function uid() {
   return "m_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
@@ -55,7 +50,6 @@ const T = {
 } as const;
 
 export default function SanriFlowScreen() {
-  const bg = useMemo<[string, string, string]>(() => ["#07080d", "#0b0620", "#050610"], []);
   const scrollRef = useRef<ScrollView>(null);
 
   // Params from Cities OR Upper Consciousness
@@ -93,29 +87,11 @@ export default function SanriFlowScreen() {
     setLang(initialLang);
   }, [initialLang]);
 
-  const [input, setInput] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [typing, setTyping] = useState(false);
-  const [error, setError] = useState("");
-
-  // If opened from showcase (seed), prefill a starter line ONCE
-  useEffect(() => {
-    if (!hasCityContext && hasIntentContext && seed) {
-      const starter =
-        initialLang === "tr"
-          ? "Sembol: " + seed + "\nÜst bilinç okumasını başlat."
-          : "Symbol: " + seed + "\nStart a system-view reading.";
-      setInput(starter);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const headerTitle = T[lang].title;
-
   const headerMeta = hasCityContext
     ? T[lang].gatePrefix + " " + cityCode + (cityName ? " · " + cityName : "")
     : hasIntentContext
-      ? (flowTitle || source || "Context")
+      ? flowTitle || source || "Context"
       : T[lang].personal;
 
   const [messages, setMessages] = useState<Msg[]>([
@@ -131,6 +107,27 @@ export default function SanriFlowScreen() {
       return prev;
     });
   }, [lang]);
+
+  const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const [error, setError] = useState("");
+
+  // 🎙 mic
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+
+  // If opened from showcase (seed), prefill a starter line ONCE
+  useEffect(() => {
+    if (!hasCityContext && hasIntentContext && seed) {
+      const starter =
+        initialLang === "tr"
+          ? "Sembol: " + seed + "\nÜst bilinç okumasını başlat."
+          : "Symbol: " + seed + "\nStart a system-view reading.";
+      setInput(starter);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
@@ -150,9 +147,7 @@ export default function SanriFlowScreen() {
       i = Math.min(i + 1, fullText.length);
       const part = fullText.slice(0, i);
 
-      setMessages((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, text: part } : m)),
-      );
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text: part } : m)));
 
       const ch = fullText[i - 1] || "";
       const pause = ch === "\n" ? 70 : ch === "." || ch === "!" || ch === "?" ? 90 : 0;
@@ -181,15 +176,15 @@ export default function SanriFlowScreen() {
 
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 12000);
+      const timer = setTimeout(() => controller.abort(), 20000);
 
       const payload: any = {
         message: text,
         session_id: "mobile-default",
-        domain: hasCityContext ? "awakened_cities" : (hasIntentContext ? "ust_bilinc" : "auto"),
+        domain: hasCityContext ? "awakened_cities" : hasIntentContext ? "ust_bilinc" : "auto",
         gate_mode: "mirror",
         persona: "user",
-        lang: lang,
+        lang,
 
         context: hasCityContext
           ? {
@@ -197,14 +192,14 @@ export default function SanriFlowScreen() {
               city_code: cityCode,
               city_name: cityName || undefined,
               layer: fromLayer || undefined,
-              lang: lang,
+              lang,
             }
           : {
               source: source || "personal_field",
               intent: intent || "chat",
               title: flowTitle || undefined,
               seed: seed || undefined,
-              lang: lang,
+              lang,
             },
       };
 
@@ -235,36 +230,120 @@ export default function SanriFlowScreen() {
       scrollToEnd();
     }
   }, [
+    input,
+    isSending,
+    typing,
+    lang,
+    hasCityContext,
+    hasIntentContext,
     cityCode,
     cityName,
     fromLayer,
-    hasCityContext,
-    hasIntentContext,
-    input,
     intent,
-    isSending,
-    lang,
-    scrollToEnd,
-    seed,
     source,
     flowTitle,
+    seed,
     typeIn,
-    typing,
+    scrollToEnd,
   ]);
+
+  const startRec = useCallback(async () => {
+    if (isSending || typing || isRecording) return;
+
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) return;
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const rec = new Audio.Recording();
+      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await rec.startAsync();
+
+      setRecording(rec);
+      setIsRecording(true);
+
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch {}
+    } catch (e) {
+      console.log("startRec error", e);
+      setIsRecording(false);
+      setRecording(null);
+    }
+  }, [isSending, typing, isRecording]);
+
+  const stopRec = useCallback(async () => {
+    if (!recording) return;
+
+    try {
+      setIsRecording(false);
+
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+
+      if (!uri) return;
+
+      const form = new FormData();
+      form.append("lang", lang);
+      form.append(
+        "file",
+        {
+          uri: String(uri),
+          name: "voice.m4a",
+          type: "audio/mp4", // m4a için güvenli
+        } as any
+      );
+
+      setIsSending(true);
+
+      const res = await fetch(TRANSCRIBE_URL, { method: "POST", body: form });
+const raw = await res.text(); // json değilse bile gör
+if (!res.ok) {
+  throw new Error('Transcribe HTTP ${res.status}: ${raw.slice(0,200)}');
+}
+
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(String(data?.detail || "HTTP " + res.status));
+
+      const text = String(data?.text || "").trim();
+      if (text) {
+        setInput((prev) => (prev ? prev + " " : "") + text);
+        try {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {}
+      }
+    } catch (e) {
+      console.log("stopRec error", e);
+    } finally {
+      setIsSending(false);
+    }
+  }, [recording, lang]);
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
+
+      {/* ✅ Background */}
       <ImageBackground
-source={require("../../assets/sanri_bg.jpg")}
-style={StyleSheet.absoluteFillObject}
-resizeMode="cover"
-/>
+        source={require("../../assets/sanri_bg.jpg")}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
 
-<View pointerEvents="none" style={styles.chatOverlay} />
-      <View style={styles.glowA} />
-      <View style={styles.glowB} />
+      {/* ✅ Overlay & glows (touch yakalamasın) */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <View style={styles.chatOverlay} />
+        <View style={styles.glowA} />
+        <View style={styles.glowB} />
+      </View>
 
+      {/* Topbar */}
       <View style={styles.topbar}>
         <View style={{ flex: 1 }}>
           <Text style={styles.topTitle}>{headerTitle}</Text>
@@ -295,35 +374,33 @@ resizeMode="cover"
         </Pressable>
       </View>
 
-     <KeyboardAvoidingView
-  style={{ flex: 1 }}
-  behavior={Platform.OS === "ios" ? "padding" : "height"}
-  keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
->
-          <ScrollView
-  ref={scrollRef}
-  keyboardShouldPersistTaps="handled"
-  contentContainerStyle={[styles.scroll, { paddingBottom: 100 }]}
->
-  {messages.map((m) => {
-    const isUser = m.role === "user";
-    return (
-      <View
-        key={m.id}
-        style={[styles.bubbleRow, isUser ? styles.rowRight : styles.rowLeft]}
+      {/* Body */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
       >
-        <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
-          <Text style={styles.bubbleText}>{m.text}</Text>
-        </View>
-      </View>
-    );
-  })}
+        <ScrollView
+          ref={scrollRef}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[styles.scroll, { paddingBottom: 110 }]}
+        >
+          {messages.map((m) => {
+            const isUser = m.role === "user";
+            return (
+              <View key={m.id} style={[styles.bubbleRow, isUser ? styles.rowRight : styles.rowLeft]}>
+                <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
+                  <Text style={styles.bubbleText}>{m.text}</Text>
+                </View>
+              </View>
+            );
+          })}
 
-  {error ? <Text style={styles.errorText}>{T[lang].err + error}</Text> : null}
-  {isSending || typing ? <Text style={styles.thinking}>…</Text> : null}
-</ScrollView>
-        
+          {error ? <Text style={styles.errorText}>{T[lang].err + error}</Text> : null}
+          {isSending || typing ? <Text style={styles.thinking}>…</Text> : null}
+        </ScrollView>
 
+        {/* Input bar */}
         <View style={styles.inputBar}>
           <TextInput
             value={input}
@@ -333,10 +410,24 @@ resizeMode="cover"
             style={styles.input}
             multiline
           />
+
+          {/* 🎙 HOLD TO TALK */}
+          <Pressable
+            onPressIn={startRec}
+            onPressOut={stopRec}
+            style={[styles.micBtn, isRecording && styles.micBtnActive, (isSending || typing) && { opacity: 0.55 }]}
+            hitSlop={10}
+            disabled={isSending || typing}
+          >
+         
+          </Pressable>
+
+          {/* SEND */}
           <Pressable
             onPress={send}
             style={[styles.sendBtn, (!input.trim() || isSending || typing) && { opacity: 0.5 }]}
             hitSlop={10}
+            disabled={!input.trim() || isSending || typing}
           >
             <Text style={styles.sendText}>{T[lang].send}</Text>
           </Pressable>
@@ -352,9 +443,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
 
   chatOverlay: {
-  ...StyleSheet.absoluteFillObject,
-  backgroundColor: "rgba(5,8,20,0.45)", // premium veil
-},
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(5,8,20,0.45)", // premium veil
+  },
 
   glowA: {
     position: "absolute",
@@ -414,7 +505,7 @@ const styles = StyleSheet.create({
   },
   backBtnText: { color: "white", fontWeight: "900", fontSize: 18 },
 
-  scroll: { padding: 16, paddingBottom: 18 },
+  scroll: { padding: 16 },
 
   bubbleRow: { marginBottom: 10, flexDirection: "row" },
   rowLeft: { justifyContent: "flex-start" },
@@ -427,14 +518,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
   },
-  bubbleAI: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderColor: "rgba(255,255,255,0.12)",
-  },
-  bubbleUser: {
-    backgroundColor: "rgba(94,59,255,0.70)",
-    borderColor: "rgba(94,59,255,0.55)",
-  },
+  bubbleAI: { backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.12)" },
+  bubbleUser: { backgroundColor: "rgba(94,59,255,0.70)", borderColor: "rgba(94,59,255,0.55)" },
   bubbleText: { color: "white", lineHeight: 20 },
 
   errorText: { color: "#ff6b8a", marginTop: 6 },
@@ -460,18 +545,32 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.10)",
     color: "white",
   },
+
+  micBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  micBtnActive: {
+    backgroundColor: "rgba(255,80,120,0.20)",
+    borderColor: "rgba(255,80,120,0.35)",
+  },
+  micTxt: { color: "white", fontWeight: "900", fontSize: 16 },
+
   sendBtn: {
     paddingHorizontal: 16,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#5e3bff",
+    height: 46,
   },
   sendText: { color: "white", fontWeight: "900" },
 
-  hintBottom: {
-    color: "rgba(255,255,255,0.45)",
-    paddingHorizontal: 14,
-    paddingBottom: 10,
-  },
+  hintBottom: { color: "rgba(255,255,255,0.45)", paddingHorizontal: 14, paddingBottom: 10 },
 });
