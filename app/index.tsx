@@ -18,7 +18,7 @@ import StarTrailOverlay from "../lib/StarTrailOverlay";
 import { useFonts, Inter_700Bold, Inter_900Black } from "@expo-google-fonts/inter";
 import { CormorantGaramond_600SemiBold } from "@expo-google-fonts/cormorant-garamond"
 
-const RABBIT = require("../assets/rabbit.png");
+const RABBIT = require("../assets/rabbit.jpg");
 
 export default function HomeScreen() {
   // Entrance / exit

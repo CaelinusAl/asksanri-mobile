@@ -8,7 +8,7 @@ import MatrixRain from "../../lib/MatrixRain";
 
 type Lang = "tr" | "en";
 
-const RABBIT = require("../../assets/rabbit.png");
+const RABBIT = require("../../assets/rabbit.jpg");
 
 const T = {
   tr: {

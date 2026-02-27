@@ -256,14 +256,9 @@ export default function SanriFlowScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
       <ImageBackground
-source={require("../../assets/sanri_chat_bg.png")}
+source={require("../../assets/sanri_bg.jpg")}
 style={StyleSheet.absoluteFillObject}
 resizeMode="cover"
-/>
-      <ImageBackground
-  source={require("../../assets/sanri_chat_bg.png")}
-  style={StyleSheet.absoluteFillObject}
-  resizeMode="cover"
 />
 
 <View pointerEvents="none" style={styles.chatOverlay} />
