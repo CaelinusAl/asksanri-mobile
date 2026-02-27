@@ -14,7 +14,7 @@ import {
 import { router } from "expo-router";
 import { CODES, type CityCode } from "../../data/awakenedCities";
 
-const TURKEY_BG = require("../../assets/turkiye_hologram.png");
+const TURKEY_BG = require("../../assets/turkiye_hologram.jpg");
 
 function miniTag(code: CityCode) {
   if (code === "34") return "wake up";
