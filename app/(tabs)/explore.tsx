@@ -1,120 +1,203 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
+// app/(tabs)/explore.tsx
+import React, { useMemo, useState } from "react";
+import TopMenu from "../../components/TopMenu";
+import { useEffect } from "react";
+import { logEvent } from "../../lib/LogEvent";
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  ImageBackground,
+} from "react-native";
+import { router } from "expo-router";
+import { CODES, type CityCode } from "../../data/awakenedCities";
 
-type Section = { label: string; text: string };
-type Journey = { title: string; answer: string; sections: Section[] };
+const TURKEY_BG = require("../../assets/turkiye_hologram.png");
 
-export default function AwakenedCitiesScreen() {
-  const [plate, setPlate] = useState("34");
-  const [journey, setJourney] = useState<Journey | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+function miniTag(code: CityCode) {
+  if (code === "34") return "wake up";
+  if (code === "47") return "layer";
+  if (code === "81") return "create";
+  return "";
+}
 
-  const fetchJourney = async () => {
-    const p = plate.trim();
-    if (!/^\d{2}$/.test(p)) {
-      setErr("Lütfen 2 haneli plaka yaz. Örnek: 34");
-      return;
-    }
+function noise(code: string) {
+  const a = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const seed = Number(code);
+  let out = "";
+  for (let i = 0; i < 6; i++) out += a[(seed * 17 + i * 13) % a.length];
+  return out;
+}
 
-    setErr("");
-    setLoading(true);
-    setJourney(null);
+export default function ExploreScreen() {
+  const [selected, setSelected] = useState<CityCode | null>(null);
+  const codes = useMemo(() => CODES, []);
 
-    try {
-      const res = await fetch(`https://api.asksanri.com/awakenmis-sehirler/${p}`);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setErr(data?.detail || `HTTP ${res.status}`);
-        setLoading(false);
-        return;
-      }
-      setJourney(data);
-    } catch (e: any) {
-      setErr(String(e?.message || e));
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+  logEvent("screen_view", "awakened_cities", { screen: "explore" });
+}, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#07080d" }}>
-      <View style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.08)" }}>
-        <Text style={{ color: "white", fontSize: 18, fontWeight: "800" }}>Uyanmış Şehirler</Text>
-        <Text style={{ color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
-          Plakanı yaz. Harita açılır. Sanrı sormaz—şehir konuşur.
-        </Text>
+    <View style={styles.root} pointerEvents="box-none">
+      <TopMenu />
+      {/* ✅ Background katmanları dokunma yakalamaz (tabbar sorununu çözer) */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <ImageBackground
+          source={TURKEY_BG}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+        />
+        <View style={styles.overlay} />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
-        <View style={{ flexDirection: "row", gap: 10, alignItems: "center", marginBottom: 14 }}>
-          <TextInput
-            value={plate}
-            onChangeText={setPlate}
-            keyboardType="number-pad"
-            placeholder="34"
-            placeholderTextColor="#777"
-            style={{
-              flex: 1,
-              backgroundColor: "#111",
-              color: "white",
-              paddingHorizontal: 12,
-              paddingVertical: 12,
-              borderRadius: 12,
-              fontSize: 16,
-            }}
-          />
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.h1}>AWAKENED{"\n"}CITIES</Text>
+        <Text style={styles.sub}>Choose your code. The city speaks.</Text>
 
-          <TouchableOpacity
-            onPress={fetchJourney}
-            disabled={loading}
-            style={{
-              backgroundColor: "#5e3bff",
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              borderRadius: 12,
-            }}
-          >
-            <Text style={{ color: "white", fontWeight: "800" }}>{loading ? "…" : "Oku"}</Text>
-          </TouchableOpacity>
+        {/* SYSTEM HEADER */}
+  <View style={styles.systemBox}>
+  <Text style={styles.systemLine}>$ field.ready</Text>
+  <Text style={styles.systemLine}>$ region: TR</Text>
+  <Text style={styles.systemLineAccent}>$ gate_status: open</Text>
+</View>
+
+        <View style={styles.grid}>
+          {codes.map((code) => {
+            const active = code === selected;
+            return (
+              <Pressable
+                key={code}
+                onPress={() => {
+                  setSelected(code);
+                  router.push("/city/" + code); // ✅ backtick yok
+                }}
+                style={[styles.cell, active && styles.cellActive]}
+                hitSlop={10}
+              >
+                <Text style={styles.num}>{code}</Text>
+                <Text style={styles.nano}>{noise(code)}</Text>
+                {miniTag(code) ? <Text style={styles.tag}>{miniTag(code)}</Text> : null}
+              </Pressable>
+            );
+          })}
         </View>
 
-        {err ? (
-          <View style={{ backgroundColor: "rgba(255,80,120,0.12)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
-            <Text style={{ color: "#ffd7e1" }}>{err}</Text>
-          </View>
-        ) : null}
-
-        {journey ? (
-          <>
-            <Text style={{ color: "white", fontSize: 20, fontWeight: "800", marginBottom: 10 }}>
-              {journey.title}
-            </Text>
-
-            {journey.sections?.map((s, idx) => (
-              <View
-                key={idx}
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.08)",
-                  borderWidth: 1,
-                  borderColor: "rgba(255,255,255,0.12)",
-                  borderRadius: 14,
-                  padding: 14,
-                  marginBottom: 10,
-                }}
-              >
-                <Text style={{ color: "white", fontWeight: "800", marginBottom: 6 }}>{s.label}</Text>
-                <Text style={{ color: "rgba(255,255,255,0.85)", lineHeight: 20 }}>{s.text}</Text>
-              </View>
-            ))}
-          </>
-        ) : (
-          <Text style={{ color: "rgba(255,255,255,0.45)", marginTop: 10 }}>
-            Örnek: 34, 06, 35, 42…
-          </Text>
-        )}
+        {/* ✅ tabbar/gesture güvenli boşluk */}
+        <View style={{ height: 180 }} />
       </ScrollView>
     </View>
   );
 }
 
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#05060a" },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+
+  container: { paddingTop: 18, paddingHorizontal: 18 },
+  systemBox: {
+  marginTop: 18,
+  marginBottom: 22,
+  padding: 16,
+  borderRadius: 16,
+  backgroundColor: "rgba(124,247,216,0.05)",
+  borderWidth: 1,
+  borderColor: "rgba(124,247,216,0.18)",
+},
+
+systemLine: {
+  color: "rgba(124,247,216,0.65)",
+  fontFamily: "monospace",
+  fontSize: 13,
+  letterSpacing: 1.5,
+  marginBottom: 6,
+},
+
+systemLineAccent: {
+  color: "#7cf7d8",
+  fontFamily: "monospace",
+  fontSize: 13,
+  letterSpacing: 1.5,
+},
+
+  h1: {
+    color: "white",
+    fontSize: 44,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginTop: 6,
+  },
+  sub: {
+    color: "rgba(255,255,255,0.65)",
+    marginTop: 8,
+    marginBottom: 14,
+    fontSize: 16,
+  },
+
+  terminal: {
+    marginTop: 8,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(120,255,240,0.18)",
+    backgroundColor: "rgba(0,0,0,0.40)",
+  },
+  termLine: {
+    color: "rgba(120,255,240,0.9)",
+    fontFamily: "monospace",
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  termHint: { color: "rgba(255,255,255,0.6)", marginTop: 6 },
+
+  grid: {
+    paddingTop: 18,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  cell: {
+    width: "30%",
+    aspectRatio: 1,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(120,255,220,0.22)",
+    backgroundColor: "rgba(0,0,0,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cellActive: {
+    borderColor: "rgba(120,255,220,0.55)",
+    backgroundColor: "rgba(0,0,0,0.30)",
+  },
+
+  num: {
+    color: "rgba(120,255,220,0.95)",
+    fontSize: 34,
+    fontWeight: "900",
+    letterSpacing: 2,
+  },
+  nano: {
+    marginTop: 4,
+    color: "rgba(255,255,255,0.30)",
+    fontFamily: "monospace",
+    fontSize: 11,
+  },
+  tag: {
+    marginTop: 6,
+    color: "rgba(120,255,220,0.55)",
+    fontFamily: "monospace",
+    fontSize: 11,
+  },
+});

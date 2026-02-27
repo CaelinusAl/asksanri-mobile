@@ -14,11 +14,39 @@ export type Gate = {
 };
 
 export const GATES = [
-  { id: "sanri", title: "Sanrı", subtitle: "Yansıma Akışı", mode: "mirror", domain: "auto", prefill: "" },
+  {
+    id: "sanri",
+    title: "Sanrı",
+    subtitle: "Yansıma Akışı",
+    mode: "mirror",
+    domain: "auto",
+    prefill: "",
+  },
 
-  { id: "cities", title: "Uyanmış Şehirler", subtitle: "Plaka ile Harita", mode: "mirror", domain: "awakened_cities", prefill: "34" },
+  {
+    id: "cities",
+    title: "Uyanmış Şehirler",
+    subtitle: "Plaka ile Harita",
+    mode: "mirror",
+    domain: "awakened_cities",
+    prefill: "34",
+  },
 
-  { id: "dream", title: "Rüya", subtitle: "Sembol Çözümü", mode: "dream", domain: "auto", prefill: "" },
+  {
+    id: "dream",
+    title: "Rüya",
+    subtitle: "Sembol Çözümü",
+    mode: "dream",
+    domain: "auto",
+    prefill: "",
+  },
 
-  { id: "shadow", title: "Gölge", subtitle: "Yüzleşme", mode: "shadow", domain: "auto", prefill: "" }
+  {
+    id: "shadow",
+    title: "Gölge",
+    subtitle: "Yüzleşme",
+    mode: "shadow",
+    domain: "auto",
+    prefill: "",
+  },
 ];

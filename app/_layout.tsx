@@ -1,12 +1,18 @@
-import "react-native-reanimated";
+// app/_layout.tsx
+import React from "react";
 import { Stack } from "expo-router";
-import { useEffect } from "react";
-import { initRevenueCatOnce } from "../lib/revenuecat";
 
 export default function RootLayout() {
-  useEffect(() => {
-    initRevenueCatOnce();
-  }, []);
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* Tabs ana uygulama */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+      {/* City detail: app/city/[code].tsx */}
+      <Stack.Screen
+        name="city/[code]"
+        options={{ headerShown: false, presentation: "card" }}
+      />
+    </Stack>
+  );
 }

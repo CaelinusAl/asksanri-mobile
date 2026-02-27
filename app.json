@@ -17,13 +17,13 @@
       "supportsTablet": true
     },
     "android": {
-  "package": "com.caelinusai.asksanri",
-  "versionCode": 15,
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/adaptive-icon.png",
-    "backgroundColor": "#000000"
-  }
-},
+      "package": "com.caelinusai.asksanri",
+      "versionCode": 15,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      }
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
@@ -31,7 +31,9 @@
       "eas": {
         "projectId": "f2d81bef-b1a5-4de7-b0cb-22747bfae469"
       }
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
-

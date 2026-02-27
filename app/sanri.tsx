@@ -82,7 +82,9 @@ export default function SanriScreen() {
       if (!res.ok) {
         const detail = data?.detail || data?.message || `HTTP ${res.status}`;
         setMessages((prev) =>
-          prev.map((m) => (m.id === sanriId ? { ...m, text: `Hata: ${detail}` } : m))
+          prev.map((m) =>
+            m.id === sanriId ? { ...m, text: `Hata: ${detail}` } : m,
+          ),
         );
         setActiveTypingId(null);
         setIsSending(false);
@@ -96,7 +98,7 @@ export default function SanriScreen() {
             data?.text ??
             data?.message ??
             data?.result ??
-            ""
+            "",
         ).trim() || "Cevap boş döndü.";
 
       // start typewriter
@@ -111,7 +113,7 @@ export default function SanriScreen() {
 
         const chunk = full.slice(0, i);
         setMessages((prev) =>
-          prev.map((m) => (m.id === sanriId ? { ...m, text: chunk } : m))
+          prev.map((m) => (m.id === sanriId ? { ...m, text: chunk } : m)),
         );
 
         const ch = full[i - 1] || "";
@@ -119,10 +121,10 @@ export default function SanriScreen() {
           ch === "\n"
             ? 140
             : ch === "." || ch === "!" || ch === "?"
-            ? 170
-            : ch === "," || ch === ";" || ch === ":"
-            ? 90
-            : 0;
+              ? 170
+              : ch === "," || ch === ";" || ch === ":"
+                ? 90
+                : 0;
 
         const base = 14;
         const jitter = Math.floor(Math.random() * 18);
@@ -141,8 +143,8 @@ export default function SanriScreen() {
         prev.map((m) =>
           m.id === sanriId
             ? { ...m, text: `Bağlantı hatası: ${String(err?.message || err)}` }
-            : m
-        )
+            : m,
+        ),
       );
       setActiveTypingId(null);
       setIsSending(false);
@@ -159,7 +161,7 @@ export default function SanriScreen() {
 
   const canSend = useMemo(
     () => String(input || "").trim().length > 0 && !isSending,
-    [input, isSending]
+    [input, isSending],
   );
 
   return (
@@ -190,7 +192,9 @@ export default function SanriScreen() {
         {messages.map((m) => {
           const isUser = m.role === "user";
           const bubbleBg = isUser ? "#5e3bff" : "rgba(255,255,255,0.08)";
-          const align: "flex-start" | "flex-end" = isUser ? "flex-end" : "flex-start";
+          const align: "flex-start" | "flex-end" = isUser
+            ? "flex-end"
+            : "flex-start";
           const border = isUser ? "transparent" : "rgba(255,255,255,0.12)";
 
           return (
@@ -259,7 +263,13 @@ export default function SanriScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={{ color: "rgba(255,255,255,0.45)", marginTop: 8, fontSize: 12 }}>
+        <Text
+          style={{
+            color: "rgba(255,255,255,0.45)",
+            marginTop: 8,
+            fontSize: 12,
+          }}
+        >
           İpucu: Soru yazma; bir cümle yaz. Yansıma sende şekillenir.
         </Text>
       </View>

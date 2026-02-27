@@ -2,12 +2,21 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
 
-type Spark = { id: string; x: number; y: number; t: number; life: number; s: number };
+type Spark = {
+  id: string;
+  x: number;
+  y: number;
+  t: number;
+  life: number;
+  s: number;
+};
 
 const { width, height } = Dimensions.get("window");
 
 function uid() {
-  return "s_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+  return (
+    "s_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16)
+  );
 }
 
 export default function StarTrailOverlay({
@@ -43,7 +52,13 @@ export default function StarTrailOverlay({
     const last = lastRef.current;
 
     // aynı yere 30ms içinde spamleme
-    if (last && Math.abs(last.x - x) < 6 && Math.abs(last.y - y) < 6 && now - last.at < 30) return;
+    if (
+      last &&
+      Math.abs(last.x - x) < 6 &&
+      Math.abs(last.y - y) < 6 &&
+      now - last.at < 30
+    )
+      return;
 
     lastRef.current = { x, y, at: now };
     spawn(x, y);
@@ -90,7 +105,11 @@ export default function StarTrailOverlay({
     });
   }, [sparks, now]);
 
-  return <View pointerEvents="none" style={styles.overlay}>{dots}</View>;
+  return (
+    <View pointerEvents="none" style={styles.overlay}>
+      {dots}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

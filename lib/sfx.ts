@@ -17,11 +17,15 @@ export async function unlockAudioOnce() {
 }
 
 export async function playTap() {
-  try { await Haptics.selectionAsync(); } catch {}
+  try {
+    await Haptics.selectionAsync();
+  } catch {}
 }
 
 export async function playPulse() {
-  try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+  try {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  } catch {}
 }
 
 export async function playSoundAsync(asset: any, volume = 0.7) {

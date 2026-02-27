@@ -19,6 +19,7 @@ export async function askSanri(payload: {
     }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(String((data as any)?.detail || `HTTP ${res.status}`));
+  if (!res.ok)
+    throw new Error(String((data as any)?.detail || `HTTP ${res.status}`));
   return data;
 }
