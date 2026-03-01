@@ -6,7 +6,7 @@ type Props = {
   speedMs?: number;
 };
 
-export default function MatrixRain({ opacity = 0.22, speedMs = 8000 }: Props) {
+export default function MatrixRain({ opacity = 0.9, speedMs = 9000 }: Props) {
   const { width, height } = Dimensions.get("window");
   const cols = Math.max(10, Math.floor(width / 18));
 

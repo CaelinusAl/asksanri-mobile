@@ -13,8 +13,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
-import TopMenu from "../../components/TopMenu";
 import { hasVipEntitlement } from "../../lib/premium";
+import { WORLD_EVENTS_PINNED_URL } from "../../lib/config";
 
 type Lang = "tr" | "en";
 
@@ -40,7 +40,6 @@ type Level = {
   intent: string;
 };
 
-const API_BASE = "https://api.asksanri.com";
 const AY_CICEGI = require("../../assets/ay_cicegi.jpg");
 
 const FALLBACK = {
@@ -162,7 +161,7 @@ export default function UstBilincScreen() {
     let alive = true;
     setLoadingPinned(true);
 
-    fetch(API_BASE + "/world-events/pinned")
+    fetch(WORLD_EVENTS_PINNED_URL)
       .then((r) => r.json())
       .then((data) => {
         if (!alive) return;
@@ -220,7 +219,7 @@ export default function UstBilincScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient colors={theme.bg} style={StyleSheet.absoluteFillObject} />
-      <TopMenu />
+      
 
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.h1}>{T[lang].title}</Text>

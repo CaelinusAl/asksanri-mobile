@@ -1,306 +1,205 @@
 // app/(tabs)/gates.tsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
-  Platform,
-  Animated,
+  ImageBackground,
+  ActivityIndicator,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import MatrixRain from "../../lib/MatrixRain"; // sende farklı klasördeyse path’i düzelt
+import { LinearGradient } from "expo-linear-gradient";
+import MatrixRain from "../../lib/MatrixRain";
+import { useAuth } from "../../context/AuthContext";
 
-type Lang = "tr" | "en";
-
-const COPY = {
-  tr: {
-    title: "Kapılar",
-    sub: "Hangi alana geçmek istiyorsun?",
-    back: "Geri",
-    locked: "LOCKED",
-    items: [
-      { key: "sanri", title: "SANRI", sub: "Kişisel yansıma alanı", route: "/(tabs)/sanri_flow", premium: false, icon: "◉" },
-      { key: "cities", title: "AWAKENED CITIES", sub: "Şehrin kodunu seç", route: "/(tabs)/explore", premium: false, icon: "▣" },
-      { key: "matrix", title: "MATRIX", sub: "Akışı decode et", route: "/(tabs)/matrix", premium: false, icon: "⬡" },
-      { key: "ust", title: "ÜST BİLİNÇ", sub: "Seviye 1–5 katmanları", route: "/(tabs)/ust_bilinc", premium: true, icon: "✶" },
-      { key: "world", title: "DÜNYA OLAYLARI", sub: "Haber → mesaj okuması", route: "/(tabs)/world_events", premium: true, icon: "⌁" },
-    ],
-  },
-  en: {
-    title: "Gates",
-    sub: "Choose your door.",
-    back: "Back",
-    locked: "LOCKED",
-    items: [
-      { key: "sanri", title: "SANRI", sub: "Personal reflection field", route: "/(tabs)/sanri_flow", premium: false, icon: "◉" },
-      { key: "cities", title: "AWAKENED CITIES", sub: "Choose a city code", route: "/(tabs)/explore", premium: false, icon: "▣" },
-      { key: "matrix", title: "MATRIX", sub: "Decode the stream", route: "/(tabs)/matrix", premium: false, icon: "⬡" },
-      { key: "ust", title: "HIGHER MIND", sub: "Levels 1–5 layers", route: "/(tabs)/ust_bilinc", premium: true, icon: "✶" },
-      { key: "world", title: "WORLD EVENTS", sub: "News → meaning", route: "/(tabs)/world_events", premium: true, icon: "⌁" },
-    ],
-  },
-} as const;
+const BG = require("../../assets/hologram_gate_bg.jpg");
 
 export default function GatesScreen() {
-  const [lang, setLang] = useState<Lang>("tr");
+  const { user, isLoading } = useAuth();
+  const [lang, setLang] = useState<"tr" | "en">("tr");
 
-  // Demo: VIP false. Sonra RevenueCat ile isVip bağlarız.
-  const [isVip] = useState(false);
-
-  // hologram pulse anim
-  const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1400, useNativeDriver: true }),
-      ])
+  if (isLoading) return;
+  if (!user) router.replace("/(auth)/login");
+}, [user, isLoading]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#7cf7d8" />
+      </View>
     );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
+  }
 
-  const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.18, 0.34] });
-  const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] });
+  if (!user) return null;
 
-  const theme = useMemo(
-    () => ({
-      bg: ["#07080d", "#12082a", "#050610"] as [string, string, string],
-      card: "rgba(255,255,255,0.06)",
-      stroke: "rgba(255,255,255,0.10)",
-      accent: "#7cf7d8",
-      primaryA: "rgba(94,59,255,0.85)",
-      primaryB: "rgba(124,247,216,0.18)",
-    }),
-    []
-  );
-
-  const t = COPY[lang];
+  const t =
+    lang === "tr"
+      ? {
+          title: "Kapılar",
+          sub: "Hangi alana geçmek istiyorsun?",
+          sanri: "Kişisel yansıma alanı",
+          cities: "Şehrin kodunu seç",
+          matrix: "Akışı decode et",
+          ust: "Seviye 1–5 katmanları",
+          world: "Haber → mesaj okuması",
+        }
+      : {
+          title: "Gates",
+          sub: "Choose your door.",
+          sanri: "Personal reflection field",
+          cities: "Choose a city code",
+          matrix: "Decode the stream",
+          ust: "Level 1–5 layers",
+          world: "News → meaning",
+        };
 
   return (
-    <View style={styles.root}>
-      {/* Base gradient */}
-      <LinearGradient colors={theme.bg} style={StyleSheet.absoluteFillObject} />
+    <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
+      <LinearGradient
+        colors={["#07080d", "#12082a", "#050610"]}
+        style={StyleSheet.absoluteFillObject}
+      />
 
-      {/* Matrix rain: CANLI */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.22} speedMs={9000} />
-      </View>
+      <MatrixRain opacity={0.15} />
 
-      {/* Readability veil */}
-      <View pointerEvents="none" style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.28)" }]} />
+      {/* TR EN */}
+      <View style={styles.langRow}>
+        <Pressable
+          style={[styles.langBtn, lang === "tr" && styles.langActive]}
+          onPress={() => setLang("tr")}
+        >
+          <Text style={styles.langTxt}>TR</Text>
+        </Pressable>
 
-      {/* Soft corner glows */}
-      <View pointerEvents="none" style={styles.glowTL} />
-      <View pointerEvents="none" style={styles.glowBR} />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.h1}>{t.title}</Text>
-          <Text style={styles.sub}>{t.sub}</Text>
-
-          <View style={styles.langRow}>
-            <Pressable
-              onPress={() => setLang("tr")}
-              style={[styles.langChip, lang === "tr" && styles.langChipActive]}
-              hitSlop={10}
-            >
-              <Text style={[styles.langText, lang === "tr" && { color: theme.accent }]}>TR</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setLang("en")}
-              style={[styles.langChip, lang === "en" && styles.langChipActive]}
-              hitSlop={10}
-            >
-              <Text style={[styles.langText, lang === "en" && { color: theme.accent }]}>EN</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Back */}
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
-          <Text style={styles.backTxt}>←</Text>
+        <Pressable
+          style={[styles.langBtn, lang === "en" && styles.langActive]}
+          onPress={() => setLang("en")}
+        >
+          <Text style={styles.langTxt}>EN</Text>
         </Pressable>
       </View>
 
-      {/* Cards */}
-      <View style={styles.list}>
-        {t.items.map((it) => {
-          const locked = it.premium && !isVip;
+      <View style={styles.container}>
+        <Text style={styles.title}>{t.title}</Text>
+        <Text style={styles.sub}>{t.sub}</Text>
 
-          return (
-            <Pressable
-              key={it.key}
-              onPress={() => {
-                if (locked) {
-                  router.push({ pathname: "/(tabs)/vip", params: { lang } } as any);
-                  return;
-                }
-                router.push(it.route as any);
-              }}
-              style={[styles.cardWrap]}
-            >
-              {/* glow ring */}
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.cardGlow,
-                  {
-                    opacity: glowOpacity,
-                    transform: [{ scale: glowScale }],
-                  },
-                ]}
-              >
-                <LinearGradient
-                  colors={["rgba(94,59,255,0.55)", "rgba(124,247,216,0.18)", "rgba(94,59,255,0.35)"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
-                />
-              </Animated.View>
+        <GateItem
+          title="SANRI"
+          sub={t.sanri}
+          onPress={() => router.push("/(tabs)/sanri_flow")}
+        />
 
-              {/* main card */}
-              <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.stroke }]}>
-                <View style={styles.iconBox}>
-                  <Text style={styles.iconTxt}>{it.icon}</Text>
-                </View>
+        <GateItem
+          title="AWAKENED CITIES"
+          sub={t.cities}
+          onPress={() => router.push("/(tabs)/cities")}
+        />
 
-                <View style={{ flex: 1 }}>
-                  <View style={styles.row}>
-                    <Text style={styles.cardTitle}>{it.title}</Text>
+        <GateItem
+          title="MATRIX"
+          sub={t.matrix}
+          onPress={() => router.push("/(tabs)/matrix")}
+        />
 
-                    {it.premium ? (
-                      <View style={[styles.badge, locked ? styles.badgeLocked : styles.badgeVip]}>
-                        <Text style={styles.badgeTxt}>{locked ? t.locked : "VIP"}</Text>
-                      </View>
-                    ) : null}
-                  </View>
+        <GateItem
+          title="ÜST BİLİNÇ"
+          sub={t.ust}
+          onPress={() => router.push("/(tabs)/ust")}
+        />
 
-                  <Text style={styles.cardSub}>{it.sub}</Text>
-                </View>
-
-                <Text style={styles.chev}>{locked ? "🔒" : "›"}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
+        <GateItem
+          title="DÜNYA OLAYLARI"
+          sub={t.world}
+          onPress={() => router.push("/(tabs)/world")}
+        />
       </View>
+    </ImageBackground>
+  );
+}
 
-      {/* Bottom */}
-      <View style={{ height: Platform.OS === "ios" ? 26 : 18 }} />
-    </View>
+function GateItem({
+  title,
+  sub,
+  onPress,
+}: {
+  title: string;
+  sub: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.card}>
+      <LinearGradient
+        colors={["rgba(124,247,216,0.18)", "rgba(94,59,255,0.18)"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cardInner}
+      >
+        <Text style={styles.cardTitle}>{title}</Text>
+        <Text style={styles.cardSub}>{sub}</Text>
+      </LinearGradient>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-
-  glowTL: {
-    position: "absolute",
-    left: -120,
-    top: -80,
-    width: 420,
-    height: 420,
-    borderRadius: 420,
-    backgroundColor: "rgba(94,59,255,0.14)",
-  },
-  glowBR: {
-    position: "absolute",
-    right: -140,
-    bottom: -120,
-    width: 480,
-    height: 480,
-    borderRadius: 480,
-    backgroundColor: "rgba(124,247,216,0.08)",
-  },
-
-  header: {
-    paddingTop: 22,
-    paddingHorizontal: 18,
-    paddingBottom: 10,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-
-  h1: { color: "white", fontSize: 44, fontWeight: "900", letterSpacing: 1 },
-  sub: { color: "rgba(255,255,255,0.70)", marginTop: 10, lineHeight: 20 },
-
-  langRow: { flexDirection: "row", gap: 10, marginTop: 14 },
-  langChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
-  langChipActive: { backgroundColor: "rgba(124,247,216,0.12)", borderColor: "rgba(124,247,216,0.25)" },
-  langText: { color: "rgba(255,255,255,0.75)", fontWeight: "900" },
-
-  backBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
+  loader: {
+    flex: 1,
+    backgroundColor: "#07080d",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.45)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
   },
-  backTxt: { color: "white", fontWeight: "900", fontSize: 18 },
-
-  list: { paddingHorizontal: 18, paddingTop: 10, gap: 14 },
-
-  cardWrap: { borderRadius: 22 },
-  cardGlow: {
+  langRow: {
     position: "absolute",
-    left: -6,
-    right: -6,
-    top: -6,
-    bottom: -6,
-    borderRadius: 26,
+    top: 60,
+    right: 20,
+    flexDirection: "row",
+    gap: 10,
+  },
+  langBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  langActive: {
+    backgroundColor: "rgba(124,247,216,0.25)",
+  },
+  langTxt: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  title: {
+    fontSize: 28,
+    color: "white",
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  sub: {
+    color: "rgba(255,255,255,0.6)",
+    marginBottom: 30,
+  },
+  card: {
+    marginBottom: 14,
+    borderRadius: 16,
     overflow: "hidden",
   },
-
-  card: {
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+  cardInner: {
+    padding: 18,
   },
-
-  iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(94,59,255,0.16)",
-    borderWidth: 1,
-    borderColor: "rgba(94,59,255,0.22)",
+  cardTitle: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
-  iconTxt: { color: "white", fontWeight: "900", fontSize: 16 },
-
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  cardTitle: { color: "white", fontWeight: "900", letterSpacing: 1, fontSize: 20 },
-  cardSub: { color: "rgba(255,255,255,0.62)", marginTop: 6 },
-
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
+  cardSub: {
+    color: "rgba(255,255,255,0.6)",
+    marginTop: 4,
   },
-  badgeVip: { backgroundColor: "rgba(124,247,216,0.14)", borderColor: "rgba(124,247,216,0.25)" },
-  badgeLocked: { backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.10)" },
-  badgeTxt: { color: "white", fontWeight: "900", fontSize: 11, letterSpacing: 1 },
-
-  chev: { color: "rgba(255,255,255,0.65)", fontSize: 22, fontWeight: "900" },
 });

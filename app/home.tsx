@@ -1,13 +1,16 @@
 // app/(tabs)/home.tsx
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Image, Platform, StatusBar } from "react-native";
+import { View, Text, StyleSheet, Pressable, Image, Platform, StatusBar, ImageBackground } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import MatrixRain from "../lib/MatrixRain";
 
 type Lang = "tr" | "en";
 
-const RABBIT = require("../../assets/rabbit.jpg");
+// ✅ doğru path: app/(tabs) -> assets
+const RABBIT = require("../assets/rabbit.jpg");
+const MATRIX_BG = require("../assets/matrix_rain.jpg");
 
 console.log("HOME_TEST_777");
 
@@ -45,22 +48,37 @@ const COPY = {
 export default function HomeScreen() {
   const [lang, setLang] = useState<Lang>("tr");
 
-  const bg = useMemo<[string, string, string]>(
-    () => ["#05060a", "#0b0620", "#050610"],
-    []
-  );
+  const bg = useMemo<[string, string, string]>(() => ["#05060a", "#0b0620", "#050610"], []);
 
+  // ✅ doğru enter: haptics -> push
   const enter = async () => {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {}
-    const enter = () => router.push("/(tabs)/gates");
+    router.push("/(tabs)/gates");
   };
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
+
+      {/* 0) Background gradient */}
       <LinearGradient colors={bg} style={StyleSheet.absoluteFillObject} />
+
+      {/* 0.5) Matrix rain background image */}
+<     ImageBackground
+      source={MATRIX_BG}
+      style={StyleSheet.absoluteFillObject}
+      resizeMode="cover"
+/>
+
+      {/* 1) Akan MatrixRain */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <MatrixRain opacity={0.47} speedMs={9000} />
+      </View>
+
+      {/* 2) Okunabilirlik perdesi */}
+      <View pointerEvents="none" style={styles.overlay} />
 
       {/* soft premium glows */}
       <View pointerEvents="none" style={styles.glowTop} />
@@ -89,43 +107,53 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.center}>
-        <View style={styles.rabbitCard}>
-          <Image source={RABBIT} style={styles.rabbitImg} resizeMode="cover" />
-          <Text style={styles.follow}>{COPY[lang].follow}</Text>
-          <Text style={styles.gateSub}>{COPY[lang].gateSub}</Text>
+      {/* içerik */}
+      <View style={styles.content}>
+        <View style={styles.center}>
+          <View style={styles.rabbitCard}>
+            <Image source={RABBIT} style={styles.rabbitImg} resizeMode="cover" />
+            <Text style={styles.follow}>{COPY[lang].follow}</Text>
+            <Text style={styles.gateSub}>{COPY[lang].gateSub}</Text>
+          </View>
+
+          <Text style={styles.brand}>{COPY[lang].brand}</Text>
+          <Text style={styles.brandSub}>{COPY[lang].brandSub}</Text>
+
+          <View style={{ height: 18 }} />
+
+          <Text style={styles.bigLine}>{COPY[lang].line1}</Text>
+          <Text style={styles.bigLine}>{COPY[lang].line2}</Text>
+
+          <View style={{ height: 14 }} />
+
+          <Text style={styles.smallLine}>{COPY[lang].line3}</Text>
+          <Text style={styles.smallLine}>{COPY[lang].line4}</Text>
+
+          <View style={{ height: 22 }} />
+
+          <Pressable style={styles.cta} onPress={enter} hitSlop={12}>
+            <Text style={styles.ctaTitle}>{COPY[lang].ctaTitle}</Text>
+            <Text style={styles.ctaSub}>{COPY[lang].ctaSub}</Text>
+          </Pressable>
+
+          <Text style={styles.hint}>{COPY[lang].hint}</Text>
         </View>
 
-        <Text style={styles.brand}>{COPY[lang].brand}</Text>
-        <Text style={styles.brandSub}>{COPY[lang].brandSub}</Text>
-
-        <View style={{ height: 18 }} />
-
-        <Text style={styles.bigLine}>{COPY[lang].line1}</Text>
-        <Text style={styles.bigLine}>{COPY[lang].line2}</Text>
-
-        <View style={{ height: 14 }} />
-
-        <Text style={styles.smallLine}>{COPY[lang].line3}</Text>
-        <Text style={styles.smallLine}>{COPY[lang].line4}</Text>
-
-        <View style={{ height: 22 }} />
-
-        <Pressable style={styles.cta} onPress={enter} hitSlop={12}>
-          <Text style={styles.ctaTitle}>{COPY[lang].ctaTitle}</Text>
-          <Text style={styles.ctaSub}>{COPY[lang].ctaSub}</Text>
-        </Pressable>
-
-        <Text style={styles.hint}>{COPY[lang].hint}</Text>
+        <Text style={styles.footer}>CAELINUS AI • CONSCIOUSNESS MIRROR</Text>
       </View>
-
-      <Text style={styles.footer}>CAELINUS AI • CONSCIOUSNESS MIRROR</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#05060a" },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(5,8,20,0.55)",
+  },
+
+  content: { flex: 1 },
 
   glowTop: {
     position: "absolute",

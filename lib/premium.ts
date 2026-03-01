@@ -1,9 +1,11 @@
+// lib/premium.ts
 import Purchases from "react-native-purchases";
 
 export async function hasVipEntitlement(): Promise<boolean> {
   try {
-    const customerInfo = await Purchases.getCustomerInfo();
-    return !!customerInfo.entitlements.active["vip"];
+    const info = await Purchases.getCustomerInfo();
+    // RevenueCat entitlement identifier: "vip_access"
+    return Boolean(info.entitlements.active["vip_access"]);
   } catch {
     return false;
   }

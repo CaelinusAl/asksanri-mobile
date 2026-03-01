@@ -11,7 +11,6 @@ import {
   Platform,
 } from "react-native";
 import { router } from "expo-router";
-import TopMenu from "../../components/TopMenu";
 import { CODES, type CityCode } from "../../data/awakenedCities";
 import { logEvent } from "../../lib/LogEvent";
 
@@ -42,7 +41,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.root} pointerEvents="box-none">
-      <TopMenu />
+      
 
       {/* Background layer (touch yakalamaz) */}
       <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
@@ -76,9 +75,9 @@ export default function ExploreScreen() {
               <Pressable
                 key={code}
                 onPress={() => {
-                  setSelected(code);
-                  router.push('/city/${code}' as any);
-                }}
+  const c = String(code).padStart(2, "0");
+  router.push({ pathname: "/city/[code]" as any, params: { code: c } } as any);
+}}
                 style={[styles.cell, active && styles.cellActive]}
                 hitSlop={10}
               >

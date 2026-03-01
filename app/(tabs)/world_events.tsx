@@ -13,9 +13,8 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import TopMenu from "../../components/TopMenu";
+import { WORLD_EVENTS_CREATE_URL } from "../../lib/config";
 
-const API = "https://api.asksanri.com";
 const STORE_KEY = "world_events_items_v1";
 
 type Lang = "tr" | "en";
@@ -219,16 +218,16 @@ export default function WorldEventsScreen() {
         },
       };
 
-      const res = await fetch(API + "/bilinc-alani/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(WORLD_EVENTS_CREATE_URL, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload),
+});
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(String(data?.detail || "HTTP " + res.status));
+const data = await res.json().catch(() => ({} as any));
+if (!res.ok) throw new Error(String((data as any)?.detail || "HTTP " + res.status));
 
-      const reading = String(data?.answer || data?.response || "").trim() || "—";
+const reading = String((data as any)?.answer || (data as any)?.response || "").trim() || "-";
 
       const item: Item = {
         id: uid(),
@@ -280,7 +279,7 @@ export default function WorldEventsScreen() {
     <View style={styles.root}>
       <LinearGradient colors={theme.bg} style={StyleSheet.absoluteFillObject} />
 
-      <TopMenu />
+      
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>

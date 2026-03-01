@@ -1,5 +1,11 @@
-import { Redirect } from "expo-router";
+// app/(tabs)/index.tsx
+import { useEffect } from "react";
+import { router } from "expo-router";
 
 export default function TabsIndex() {
-  return <Redirect href="/(tabs)/home" />;
+  useEffect(() => {
+    router.replace("/(tabs)/home");
+  }, []);
+
+  return null;
 }

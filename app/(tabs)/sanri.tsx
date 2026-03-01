@@ -1,6 +1,5 @@
 // app/(tabs)/sanri.tsx
 import React, { useMemo, useState } from "react";
-import TopMenu from "../../components/TopMenu";
 import {
   View,
   Text,
@@ -126,7 +125,7 @@ export default function SanriHomeScreen() {
 
   return (
     <View style={styles.root} pointerEvents="box-none">
-      <TopMenu />
+      
       {/* BG görsel dokunma yakalamaz */}
       <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
   <ImageBackground

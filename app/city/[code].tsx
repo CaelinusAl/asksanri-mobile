@@ -15,6 +15,8 @@ import { useLangStore } from "@/data/langStore";
 import { CITY_NAMES, type CityCode } from "@/data/awakenedCities";
 import { getCityContent, type Layer } from "@/data/awakenedContent";
 import { hasVipEntitlement } from "../../lib/premium";
+import { router } from "expo-router";
+
 
 export default function CityCodeScreen() {
   const router = useRouter();
@@ -22,7 +24,8 @@ export default function CityCodeScreen() {
   const toggleLang = useLangStore((s) => s.toggle);
 
   const { code } = useLocalSearchParams<{ code?: string }>();
-  const cityCode = (String(code || "01").padStart(2, "0")) as CityCode;
+  const cityCode = String(code || "01").padStart(2, "0") as CityCode;
+  const cityName = CITY_NAMES?.[cityCode] ?? "Unknown";
 
   const [layer, setLayer] = useState<Layer>("base");
   const [isPremium, setIsPremium] = useState(false);
@@ -39,8 +42,6 @@ useEffect(() => {
   })();
 }, []);
 
-
-  const cityName = CITY_NAMES?.[cityCode] ?? "Unknown";
 
   useEffect(() => {
   logEvent("screen_view", "awakened_cities", { screen: "city", code: cityCode });
@@ -89,7 +90,19 @@ useEffect(() => {
   setLayer("deepC");
 }, [isVip, appLang]);
 
+ const onPressDeepen = async () => {
+  const isVip = await hasVipEntitlement();
+  if (!isVip) {
+    router.push("/(tabs)/vip");
+    return;
+  }
 
+  // VIP ise derin katmana geç
+  router.push({
+    pathname: "/city/[code]/deep",   // sende derin sayfa neredeyse orası
+    params: { code },               // code değişkenin nasıl ise
+  } as any);
+};
   return (
     <View style={styles.root}>
       {/* TOP BAR sabit */}
@@ -104,14 +117,22 @@ useEffect(() => {
           <View style={styles.layerChip}>
             <Text style={styles.layerChipTxt}>{layer.toUpperCase()}</Text>
           </View>
-         <Pressable onPress={handleDeepen}>
-          <Text>{deepenLabel}</Text>
-        </Pressable>
+        
           <Pressable onPress={toggleLang} style={styles.langChip}>
             <Text style={styles.langChipTxt}>{appLang.toUpperCase()}</Text>
           </Pressable>
         </View>
       </View>
+      <Pressable onPress={handleDeepen} style={styles.deepBtn}>
+  <Text style={styles.deepTitle}>
+  {layer === "base" ? "Derinleş" : "VIP ile daha derine"}
+</Text>
+<Text style={styles.deepSub}>
+  {layer === "base"
+    ? "Alt katmana in. Kapı daha fazlasını söylüyor."
+    : "Tam erişim için VIP kapısını aç."}
+</Text>
+</Pressable>
 
       {/* ✅ SCROLL alanı */}
       <ScrollView
@@ -132,13 +153,6 @@ useEffect(() => {
         </View>
 
         <View style={styles.actions}>
-  <Pressable
-    onPress={() => setLayer((p) => (p === "base" ? "deepC" : "base"))}
-    style={styles.deepBtn}
-  >
-    <Text style={styles.deepTitle}>{deepenLabel}</Text>
-    <Text style={styles.deepSub}>{deepenSub}</Text>
-  </Pressable>
 
   <Pressable
     onPress={() =>
