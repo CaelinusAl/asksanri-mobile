@@ -71,13 +71,14 @@ function Column({
   }, [delay, height, speedMs, y]);
 
   const lineCount = 28;
-  const chars = "0123456789abcdefxyzqwerty";
+  const PLATES = Array.from({ length: 81 }, (_, i) => String(i + 1).padStart(2, "0"));
+  const CHARS = PLATES.join("");
   const text = Array.from({ length: lineCount })
     .map(() => {
       const len = 10 + Math.floor(Math.random() * 8);
       let out = "";
       for (let i = 0; i < len; i++)
-        out += chars[Math.floor(Math.random() * chars.length)];
+        out += CHARS[Math.floor(Math.random() * CHARS.length)];
       return out;
     })
     .join("\n");

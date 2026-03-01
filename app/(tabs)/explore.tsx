@@ -74,10 +74,7 @@ export default function ExploreScreen() {
             return (
               <Pressable
                 key={code}
-                onPress={() => {
-  const c = String(code).padStart(2, "0");
-  router.push({ pathname: "/city/[code]" as any, params: { code: c } } as any);
-}}
+                onPress={() => router.push("/(tabs)/cities")}
                 style={[styles.cell, active && styles.cellActive]}
                 hitSlop={10}
               >

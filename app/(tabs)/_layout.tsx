@@ -1,21 +1,14 @@
+// app/(tabs)/_layout.tsx
 import React from "react";
 import { Tabs } from "expo-router";
 
-export default function TabLayout() {
+export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-      }}
-      // ✅ tabbar'ı tamamen kaldırır
-      tabBar={() => null}
-    >
-      <Tabs.Screen name="explore" />
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="sanri" />
-      <Tabs.Screen name="matrix" />
-      <Tabs.Screen name="ust_bilinc" />
-      <Tabs.Screen name="sanri_flow" options={{ href: null }} />
+    <Tabs screenOptions={{ headerShown: false }}>
+      <Tabs.Screen name="gates" options={{ title: "Gates" }} />
+      <Tabs.Screen name="awakenedCities" options={{ title: "Cities" }} />
+      <Tabs.Screen name="sanri_flow" options={{ title: "Sanri" }} />
+      <Tabs.Screen name="vip" options={{ title: "VIP" }} />
     </Tabs>
   );
 }
