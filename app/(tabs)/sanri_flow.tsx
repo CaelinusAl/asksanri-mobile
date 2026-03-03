@@ -233,7 +233,7 @@ export default function SanriFlowScreen() {
         },
       };
 
-      const data: any = await apiPostJson(API.ask, payload, 20000);
+      const data: any = await apiPostJson(API.ask, payload, 60000);
 
       const answer =
         safeStr(data?.answer || data?.response).trim() ||
@@ -249,9 +249,18 @@ export default function SanriFlowScreen() {
 
       if (msg === "TIMEOUT" || msg.toLowerCase().includes("abort")) {
         setError(t.timeout);
-      } else if (msg === "INVALID_JSON") {
-        setError(t.invalidJson);
-      } else if (msg.toLowerCase().includes("network request failed")) {
+      } else if (msg === "INVALID_JSON" || msg === "NON_JSON_RESPONSE") {
+  const st = String(e?.status || "");
+  const ct = String(e?.contentType || "");
+  const raw = String(e?.raw || "");
+
+  setError(
+    (lang === "tr" ? "API JSON dönmedi. " : "API did not return JSON. ") +
+    "status=" + st +
+    " ct=" + ct +
+    " raw=" + raw
+  );
+}else if (msg.toLowerCase().includes("network request failed")) {
         setError(t.netfail);
       } else if (msg.startsWith("HTTP_")) {
         const detail = e?.detail;

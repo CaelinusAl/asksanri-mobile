@@ -45,7 +45,7 @@ function isJsonResponse(contentType: string | null) {
   return ct.includes("application/json") || ct.includes("application/problem+json");
 }
 
-export async function apiPostJson<T = any>(url: string, body: any, timeoutMs = 20000): Promise<T> {
+export async function apiPostJson<T = any>(url: string, body: any, timeoutMs = 60000): Promise<T> {
   const t = timeoutController(timeoutMs);
   try {
     const headers = await buildHeaders({ "Content-Type": "application/json" });
