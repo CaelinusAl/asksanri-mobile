@@ -123,6 +123,8 @@ export default function SanriHomeScreen() {
     else router.push("/(tabs)/sanri_flow");
   };
 
+  const goBackToGates = () => router.replace("/(tabs)/gates");
+
   return (
     <View style={styles.root} pointerEvents="box-none">
       

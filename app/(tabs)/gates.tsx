@@ -1,60 +1,104 @@
-import React from "react";
+// app/(tabs)/gates.tsx
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
   ImageBackground,
+  ScrollView,
+  StatusBar,
 } from "react-native";
 import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+
 import MatrixRain from "../../lib/MatrixRain";
+
+type Lang = "tr" | "en";
 
 const BG = require("../../assets/hologram_gate_bg.jpg");
 
+const COPY = {
+  tr: {
+    title: "Kapılar",
+    sub: "Hangi alana geçmek istiyorsun?",
+    items: [
+      { title: "SANRI", sub: "Kişisel yansıma alanı", route: "/(tabs)/sanri_flow" },
+      { title: "AWAKENED CITIES", sub: "Şehrin kodunu seç", route: "/(tabs)/awakenedCities" },
+      { title: "MATRIX", sub: "Akışı decode et", route: "/(tabs)/matrix" },
+      { title: "ÜST BİLİNÇ", sub: "Seviye 1–5 katmanları", route: "/(tabs)/ust_bilinc" },
+      { title: "DÜNYA OLAYLARI", sub: "Haber → mesaj okuması", route: "/(tabs)/world" },
+    ],
+    back: "Geri",
+  },
+  en: {
+    title: "Gates",
+    sub: "Which field do you want to enter?",
+    items: [
+      { title: "SANRI", sub: "Personal reflection field", route: "/(tabs)/sanri_flow" },
+      { title: "AWAKENED CITIES", sub: "Choose a city code", route: "/(tabs)/awakenedCities" },
+      { title: "MATRIX", sub: "Decode the stream", route: "/(tabs)/matrix" },
+      { title: "HIGHER MIND", sub: "Levels 1–5 layers", route: "/(tabs)/ust" },
+      { title: "WORLD EVENTS", sub: "News → meaning reading", route: "/(tabs)/world" },
+    ],
+    back: "Back",
+  },
+} as const;
+
 export default function GatesScreen() {
+  const [lang, setLang] = useState<Lang>("tr");
+  const t = useMemo(() => COPY[lang], [lang]);
+
+  const toggleLang = () => setLang((p) => (p === "tr" ? "en" : "tr"));
+
   return (
-    <ImageBackground source={BG} style={styles.root} resizeMode="cover">
-      
-      {/* Matrix katmanı */}
-      <MatrixRain opacity={0.18} />
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <StatusBar barStyle="light-content" translucent={false} />
 
-      <View style={styles.overlay} />
+      <ImageBackground source={BG} style={styles.bg} resizeMode="cover">
+        {/* Matrix layer */}
+        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+          <MatrixRain opacity={0.18} />
+        </View>
 
-      <View style={styles.container}>
-        <Text style={styles.title}>Kapılar</Text>
-        <Text style={styles.sub}>Hangi alana geçmek istiyorsun?</Text>
+        {/* Dark overlay */}
+        <View pointerEvents="none" style={styles.overlay} />
 
-        <GateItem
-          title="SANRI"
-          sub="Kişisel yansıma alanı"
-          onPress={() => router.push("/(tabs)/sanri_flow")}
-        />
+        {/* Top bar */}
+        <View style={styles.topbar}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+            <Text style={styles.backTxt}>←</Text>
+          </Pressable>
 
-        <GateItem
-          title="AWAKENED CITIES"
-          sub="Şehrin kodunu seç"
-          onPress={() => router.push("/(tabs)/awakenedCities")}
-        />
+          <View style={{ flex: 1 }} />
 
-        <GateItem
-          title="MATRIX"
-          sub="Akışı decode et"
-          onPress={() => router.push("/(tabs)/matrix")}
-        />
+          <Pressable onPress={toggleLang} style={styles.langChip} hitSlop={10}>
+            <Text style={styles.langTxt}>{lang.toUpperCase()}</Text>
+          </Pressable>
+        </View>
 
-        <GateItem
-          title="ÜST BİLİNÇ"
-          sub="Seviye 1–5 katmanları"
-          onPress={() => router.push("/(tabs)/ust")}
-        />
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>{t.title}</Text>
+          <Text style={styles.sub}>{t.sub}</Text>
 
-        <GateItem
-          title="DÜNYA OLAYLARI"
-          sub="Haber → mesaj okuması"
-          onPress={() => router.push("/(tabs)/world")}
-        />
-      </View>
-    </ImageBackground>
+          <View style={{ height: 14 }} />
+
+          {t.items.map((it) => (
+            <GateItem
+              key={it.route}
+              title={it.title}
+              sub={it.sub}
+              onPress={() => router.push(it.route as any)}
+            />
+          ))}
+        </ScrollView>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
@@ -68,57 +112,101 @@ function GateItem({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={styles.card}>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={styles.cardSub}>{sub}</Text>
+    <Pressable onPress={onPress} style={styles.card} hitSlop={10}>
+      <LinearGradient
+        colors={[
+          "rgba(255,255,255,0.10)",
+          "rgba(255,255,255,0.06)",
+          "rgba(124,247,216,0.06)",
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cardGlass}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          <Text style={styles.cardSub}>{sub}</Text>
+        </View>
+
+        <View style={styles.chevWrap}>
+          <Text style={styles.chev}>›</Text>
+        </View>
+      </LinearGradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  safe: { flex: 1, backgroundColor: "#07080d" },
+  bg: { flex: 1 },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
 
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)",
+  topbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 6,
   },
-
-  container: {
-    flex: 1,
-    padding: 24,
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  backTxt: { color: "#7cf7d8", fontSize: 18, fontWeight: "900" },
+
+  langChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(94,59,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(94,59,255,0.35)",
+  },
+  langTxt: { color: "#cbbcff", fontWeight: "900", letterSpacing: 1 },
+
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 140, // ✅ alt tabbar + gesture alanı çakışmasın
   },
 
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "white",
-    marginBottom: 8,
-  },
-
-  sub: {
-    color: "#aaa",
-    marginBottom: 24,
-  },
+  title: { color: "white", fontSize: 40, fontWeight: "900", marginTop: 6 },
+  sub: { color: "rgba(255,255,255,0.70)", marginTop: 6, fontSize: 16 },
 
   card: {
-    padding: 18,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    marginBottom: 16,
+    borderRadius: 26,
+    overflow: "hidden",
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.04)",
   },
+  cardGlass: {
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  cardTitle: { color: "white", fontSize: 22, fontWeight: "900" },
+  cardSub: { color: "rgba(255,255,255,0.68)", marginTop: 6, fontSize: 14 },
 
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "white",
+  chevWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
-
-  cardSub: {
-    fontSize: 14,
-    color: "#bbb",
-    marginTop: 4,
-  },
+  chev: { color: "rgba(255,255,255,0.85)", fontSize: 26, fontWeight: "900" },
 });

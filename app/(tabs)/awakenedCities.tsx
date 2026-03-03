@@ -1,28 +1,27 @@
-// app/(tabs)/gates.tsx
-import React, { useEffect, useMemo, useState } from "react";
+// app/(tabs)/awakenedCities.tsx
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   Pressable,
   StyleSheet,
-  ImageBackground,
-  TextInput,
   ScrollView,
-  StatusBar,
-  Platform,
+  ImageBackground,
 } from "react-native";
-import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import MatrixRain from "../../lib/MatrixRain";
-import { useAuth } from "../../context/AuthContext";
 
 type Lang = "tr" | "en";
 
 const HOLOGRAM_BG = require("../../assets/hologram_gate_bg.jpg");
 
-// 81 il (plaka sırasına göre)
-const TR_CITIES_81 = [
+const goBackToGates = () => router.replace("/(tabs)/gates");
+
+// 01-81 Türkiye il listesi (plaka sırasına göre)
+const CITIES_TR: string[] = [
   "Adana","Adıyaman","Afyonkarahisar","Ağrı","Amasya","Ankara","Antalya","Artvin","Aydın","Balıkesir",
   "Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli",
   "Diyarbakır","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkâri",
@@ -30,135 +29,161 @@ const TR_CITIES_81 = [
   "Kocaeli","Konya","Kütahya","Malatya","Manisa","Kahramanmaraş","Mardin","Muğla","Muş","Nevşehir",
   "Niğde","Ordu","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Tekirdağ","Tokat",
   "Trabzon","Tunceli","Şanlıurfa","Uşak","Van","Yozgat","Zonguldak","Aksaray","Bayburt","Karaman",
-  "Kırıkkale","Batman","Şırnak","Bartın","Ardahan","Iğdır","Yalova","Karabük","Kilis","Osmaniye",
-  "Düzce",
+  "Kırıkkale","Batman","Şırnak","Bartın","Ardahan","Iğdır","Yalova","Karabük","Kilis","Osmaniye","Düzce"
 ];
 
-function codeToCity(code: string) {
-  const n = Number(code);
-  if (!Number.isFinite(n) || n < 1 || n > 81) return "";
-  return TR_CITIES_81[n - 1] || "";
-}
-
-// “Yaşayan kapı” hissi için 12’li döngü (81’e otomatik yayılır)
-const ARCHETYPES_TR = [
-  { name: "Ateş Kapısı", line: "Erteleme yanar." },
-  { name: "Su Kapısı", line: "Akışın yön verir." },
-  { name: "Rüzgâr Kapısı", line: "Söz titreşimdir." },
-  { name: "Toprak Kapısı", line: "Köklen ve tamamla." },
-  { name: "Güneş Kapısı", line: "Görün ve parılda." },
-  { name: "Ay Kapısı", line: "Sezgi konuşur." },
-  { name: "Ayna Kapısı", line: "Ne isen onu görürsün." },
-  { name: "Kod Kapısı", line: "Deseni fark et." },
-  { name: "Eşik Kapısı", line: "Bir adım, bir dünya." },
-  { name: "Sır Kapısı", line: "Saklı olan açılır." },
-  { name: "Kader Kapısı", line: "Seçim çizgiyi değiştirir." },
-  { name: "Birlik Kapısı", line: "Birlik hatırlanınca oyun biter." },
+// 81 Kapı Kanonu (başlık + mühür cümlesi)
+// Not: EN seçiliyken de TR gösteriyoruz (istersen sonra EN çevirisini de eklerim)
+const GATES_TR: { title: string; seal: string }[] = [
+  { title:"Rahim Kapısı", seal:"Boşluk hatırlar." },
+  { title:"Dualite Kapısı", seal:"Ayna iki yüz gösterir." },
+  { title:"Yaratım Kapısı", seal:"Söz kaderi diker." },
+  { title:"Düzen Kapısı", seal:"Sınır inşadır." },
+  { title:"Eşik Kapısı", seal:"Geçmeyen kalır." },
+  { title:"Aşk Kapısı", seal:"Uyum güçtür." },
+  { title:"Sır Kapısı", seal:"Sessizlik sınar." },
+  { title:"Kudret Kapısı", seal:"Sorumluluk yükseltir." },
+  { title:"Arınma Kapısı", seal:"Biten temizler." },
+  { title:"Niyet Kapısı", seal:"Başlangıç geri döner." },
+  { title:"Çift Ateş Kapısı", seal:"İki irade çarpışır." },
+  { title:"Seçim Kapısı", seal:"Yol ayrımı öğretir." },
+  { title:"Kırılım Kapısı", seal:"Eski yapı çatlar." },
+  { title:"Sabır Kapısı", seal:"Zemin bekler." },
+  { title:"Cesaret Kapısı", seal:"Adım kaderi açar." },
+  { title:"Kalp Kapısı", seal:"Sevgi sınavdır." },
+  { title:"İçgörü Kapısı", seal:"Görmeyen düşer." },
+  { title:"Güç Dengesi Kapısı", seal:"Hüküm aynadır." },
+  { title:"Tamamlanış Eşiği", seal:"Döngü kapanır." },
+  { title:"Aynalı Rahim", seal:"İç ve dış birleşir." },
+  { title:"Bilinç Kapısı", seal:"İrade yön seçer." },
+  { title:"Çatallanma Kapısı", seal:"İki yol tek sonuçtur." },
+  { title:"Doğum Kapısı", seal:"Yeni form belirir." },
+  { title:"Taş Kapısı", seal:"Sabır beden olur." },
+  { title:"Değişim Rüzgârı", seal:"Yer değişir." },
+  { title:"Uyum Testi", seal:"Aşk ya kalır ya gider." },
+  { title:"Derin Sır", seal:"Gizli olan açılır." },
+  { title:"Güç Sınavı", seal:"Yetki ağırdır." },
+  { title:"Arınma Çarpanı", seal:"Fazla yük düşer." },
+  { title:"Üçlü Nefes", seal:"Yaratım genişler." },
+  { title:"İrade & Söz", seal:"Başlatan konuşur." },
+  { title:"İkili Yaratım", seal:"Ayna doğurur." },
+  { title:"Usta Kapısı", seal:"Bilgelik öğretir." },
+  { title:"Yapı İnşası", seal:"Hayal somutlaşır." },
+  { title:"Sınırdan Geçiş", seal:"Risk büyütür." },
+  { title:"Kalbin Kararı", seal:"Sevgi seçilir." },
+  { title:"Derin Test", seal:"İç hesap başlar." },
+  { title:"Kudret & Sorumluluk", seal:"Güç bedel ister." },
+  { title:"Son Çözülme", seal:"Eski bağ çözülür." },
+  { title:"Kutsal Dört", seal:"Temel atılır." },
+  { title:"Yeni Başlangıç", seal:"İrade tazelenir." },
+  { title:"Denge Alanı", seal:"İki kutup sakinleşir." },
+  { title:"İnşa Süreci", seal:"Plan görünür." },
+  { title:"Taşın Ağırlığı", seal:"Yük taşıyan güçlenir." },
+  { title:"Eşiğin İkinci Katı", seal:"Geri dönüş yok." },
+  { title:"Kalp Dengesi", seal:"Sevgi korunur." },
+  { title:"Sır & Yapı", seal:"Görünmeyen temeldir." },
+  { title:"Kudret Dengesi", seal:"Yetki sabitlenir." },
+  { title:"Arınma Yükselişi", seal:"Yük hafifler." },
+  { title:"Büyük Değişim", seal:"Rüzgâr yön değiştirir." },
+  { title:"Ani Ateş", seal:"Şok uyandırır." },
+  { title:"İkili Sınav", seal:"Seçim netleşir." },
+  { title:"Üretim Alanı", seal:"Yeni form büyür." },
+  { title:"Kader İnşası", seal:"Yapı sabitlenir." },
+  { title:"Çifte Eşik", seal:"Radikal karar." },
+  { title:"Aşkın Dönüşümü", seal:"Uyum değişir." },
+  { title:"Derinleşme", seal:"İç kapı açılır." },
+  { title:"Güçle Yüzleşme", seal:"Otorite test edilir." },
+  { title:"Büyük Arınma", seal:"Temizlik derinleşir." },
+  { title:"Kalbin Altıncı Katı", seal:"Sevgi sabitlenir." },
+  { title:"Tek Sevgi", seal:"Birlik doğar." },
+  { title:"Denge & Aşk", seal:"Uyum öğrenilir." },
+  { title:"Yaratım & Sevgi", seal:"Ürün verir." },
+  { title:"Yapı & Kalp", seal:"İnşa sevgiyle olur." },
+  { title:"Eşik & Aşk", seal:"Cesur kalp geçer." },
+  { title:"Çifte Sevgi", seal:"Uyum zirve yapar." },
+  { title:"Sır & Kalp", seal:"İç sevgi görünür." },
+  { title:"Güç & Sevgi", seal:"Otorite yumuşar." },
+  { title:"Tam Aşk", seal:"Birlik kapanır." },
+  { title:"Büyük Sır", seal:"Sessizlik konuşur." },
+  { title:"Ateşli İçgörü", seal:"Hakikat yakar." },
+  { title:"Çifte Test", seal:"Ayna derinleşir." },
+  { title:"Bilgeliğin Doğumu", seal:"Usta ortaya çıkar." },
+  { title:"Yapı & Sır", seal:"Gizli plan açılır." },
+  { title:"Eşik & Gizem", seal:"Risk ruhsaldır." },
+  { title:"Sevgi & Sır", seal:"Kalp içe döner." },
+  { title:"Çifte Derinlik", seal:"Sır ikiye katlanır." },
+  { title:"Güç & Bilgelik", seal:"Hüküm bilinçli olur." },
+  { title:"Arınmış Bilgelik", seal:"Gölge çözülür." },
+  { title:"Kudret Alanı", seal:"Yönetim başlar." },
+  { title:"Birlik Kapısı", seal:"Başlangıç geri döner." },
 ];
 
-const ARCHETYPES_EN = [
-  { name: "Fire Gate", line: "Delay burns." },
-  { name: "Water Gate", line: "Flow gives direction." },
-  { name: "Wind Gate", line: "Words are vibration." },
-  { name: "Earth Gate", line: "Root and complete." },
-  { name: "Sun Gate", line: "Be seen. Shine." },
-  { name: "Moon Gate", line: "Intuition speaks." },
-  { name: "Mirror Gate", line: "You see what you are." },
-  { name: "Code Gate", line: "Notice the pattern." },
-  { name: "Threshold Gate", line: "One step, a new world." },
-  { name: "Secret Gate", line: "What’s hidden opens." },
-  { name: "Fate Gate", line: "Choice changes the line." },
-  { name: "Unity Gate", line: "When unity is remembered, the game ends." },
-];
-
-function gateForCode(code: string, lang: Lang) {
-  const n = Number(code);
-  const idx = Number.isFinite(n) ? (n - 1) % 12 : 0;
-  const arr = lang === "tr" ? ARCHETYPES_TR : ARCHETYPES_EN;
-  return arr[idx] || arr[0];
-}
-
-const COPY = {
+const UI = {
   tr: {
     title: "Awakened Cities",
     sub: "01–81 | Şehrin kodunu seç. Kapı “plaka” ile açılır.",
     search: "Plaka ara… (örn 34) / şehir adı",
     back: "Geri",
-    locked: "KİLİTLİ",
-    hint: "Tap → City Detail",
-    open: "Aç",
-    needLoginTitle: "Frekansın kilitli.",
-    needLoginSub: "Devam etmek için Frekansını Aç.",
-    openFreq: "Frekansını Aç",
+    tap: "Tap → City Detail",
   },
   en: {
     title: "Awakened Cities",
-    sub: "01–81 | Choose a city code. The gate opens with the plate.",
-    search: "Search… (e.g. 34) / city name",
+    sub: "01–81 | Choose the city code. The gate opens with the plate.",
+    search: "Search plate… (e.g. 34) / city name",
     back: "Back",
-    locked: "LOCKED",
-    hint: "Tap → City Detail",
-    open: "Open",
-    needLoginTitle: "Your frequency is locked.",
-    needLoginSub: "To continue, activate your frequency.",
-    openFreq: "Activate Frequency",
+    tap: "Tap → City Detail",
   },
 } as const;
 
-export default function GatesScreen() {
-  const { user } = useAuth();
-  const [lang, setLang] = useState<Lang>("tr");
-  const t = COPY[lang];
+function plateOf(i: number) {
+  const n = i + 1;
+  return String(n).padStart(2, "0");
+}
 
+export default function AwakenedCitiesScreen() {
+  const [lang, setLang] = useState<Lang>("tr");
   const [q, setQ] = useState("");
 
-  // ✅ Login yoksa login’e gönder (RootLayout mount sonrası)
-  useEffect(() => {
-    if (user) return;
-    const id = setTimeout(() => {
-      router.replace({
-        pathname: "/(auth)/login",
-        params: { next: "/(tabs)/gates" },
-      } as any);
-    }, 0);
-    return () => clearTimeout(id);
-  }, [user]);
+  const t = UI[lang];
 
   const items = useMemo(() => {
-    const all = Array.from({ length: 81 }, (_, i) => String(i + 1).padStart(2, "0"));
-    const query = q.trim().toLowerCase();
+    const list = Array.from({ length: 81 }).map((_, i) => {
+      const plate = plateOf(i);
+      const city = CITIES_TR[i] || "";
+      const gate = GATES_TR[i] || { title: "Kapı", seal: "" };
+      return { plate, city, gateTitle: gate.title, gateSeal: gate.seal };
+    });
 
-    if (!query) return all;
+    const needle = q.trim().toLowerCase();
+    if (!needle) return list;
 
-    return all.filter((code) => {
-      const city = codeToCity(code).toLowerCase();
-      return code.includes(query) || city.includes(query);
+    return list.filter((x) => {
+      return (
+        x.plate.includes(needle) ||
+        x.city.toLowerCase().includes(needle) ||
+        x.gateTitle.toLowerCase().includes(needle)
+      );
     });
   }, [q]);
 
-  const onPressCity = (code: string) => {
-    // City detail route: app/city/[code].tsx (Stack)
-    router.push({ pathname: "/city/[code]", params: { code } } as any);
+  const goCity = (plate: string) => {
+    router.push({ pathname: "/city/[code]", params: { code: plate } } as any);
   };
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
-
       <ImageBackground source={HOLOGRAM_BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
       <View pointerEvents="none" style={styles.veil} />
-
-      {/* Matrix Rain */}
       <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.16}  />
+        <MatrixRain opacity={0.16} />
       </View>
 
       {/* Top bar */}
       <View style={styles.topbar}>
         <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/home"))}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/gates" as any))}
           style={styles.backBtn}
-          hitSlop={12}
+          hitSlop={10}
         >
           <Ionicons name="chevron-back" size={18} color="#7cf7d8" />
           <Text style={styles.backTxt}>{t.back}</Text>
@@ -167,93 +192,65 @@ export default function GatesScreen() {
         <View style={{ flex: 1 }} />
 
         <View style={styles.langRow}>
-          <Pressable
-            onPress={() => setLang("tr")}
-            style={[styles.langChip, lang === "tr" && styles.langChipActive]}
-            hitSlop={10}
-          >
+          <Pressable onPress={() => setLang("tr")} style={[styles.langChip, lang === "tr" && styles.langChipActive]} hitSlop={10}>
             <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
           </Pressable>
-
-          <Pressable
-            onPress={() => setLang("en")}
-            style={[styles.langChip, lang === "en" && styles.langChipActive]}
-            hitSlop={10}
-          >
+          <Pressable onPress={() => setLang("en")} style={[styles.langChip, lang === "en" && styles.langChipActive]} hitSlop={10}>
             <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>EN</Text>
           </Pressable>
         </View>
       </View>
 
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.h1}>{t.title}</Text>
-        <Text style={styles.h2}>{t.sub}</Text>
+        <Text style={styles.sub}>{t.sub}</Text>
+
+        <View style={styles.searchWrap}>
+          <Ionicons name="search" size={18} color="rgba(124,247,216,0.8)" />
+          <TextInput
+            value={q}
+            onChangeText={setQ}
+            placeholder={t.search}
+            placeholderTextColor="rgba(255,255,255,0.35)"
+            style={styles.search}
+          />
+        </View>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchWrap}>
-        <Ionicons name="search" size={18} color="rgba(124,247,216,0.9)" />
-        <TextInput
-          value={q}
-          onChangeText={setQ}
-          placeholder={t.search}
-          placeholderTextColor="rgba(255,255,255,0.35)"
-          style={styles.search}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
-
-      {/* List */}
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {items.map((code) => {
-          const city = codeToCity(code) || code;
-          const gate = gateForCode(code, lang);
-
-          return (
-            <Pressable key={code} style={styles.card} onPress={() => onPressCity(code)} hitSlop={8}>
-              <LinearGradient
-                colors={["rgba(124,247,216,0.10)", "rgba(94,59,255,0.10)", "rgba(0,0,0,0.00)"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cardGlow}
-              />
-
+        {items.map((it) => (
+          <Pressable key={it.plate} onPress={() => goCity(it.plate)} style={styles.card} hitSlop={10}>
+            <LinearGradient
+              colors={["rgba(255,255,255,0.10)", "rgba(124,247,216,0.05)", "rgba(94,59,255,0.08)"] as any}
+              start={{ x: 0, y: 0 } as any}
+              end={{ x: 1, y: 1 } as any}
+              style={styles.cardGlass}
+            >
               <View style={styles.row}>
-                {/* Plate (hologram) */}
-                <View style={styles.plateBox}>
-                  <Text style={[styles.plate, styles.platePurpleGlow]}>{code}</Text>
-                </View>
+                <Text style={styles.plate}>{it.plate}</Text>
 
-                {/* Text */}
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.city}>{city}</Text>
+                  <Text style={styles.city}>{it.city}</Text>
 
-                  <View style={styles.gateLineRow}>
+                  <View style={styles.gateLine}>
                     <View style={styles.keyPill}>
                       <Ionicons name="key" size={14} color="#7cf7d8" />
                     </View>
-                    <Text style={styles.gateTitle}>{gate.name}</Text>
+                    <Text style={styles.gateTitle}>{it.gateTitle}</Text>
                   </View>
 
-                  <Text style={styles.gateHint} numberOfLines={1}>
-                    {gate.line}
-                  </Text>
-
-                  <Text style={styles.tap}>{t.hint}</Text>
+                  <Text style={styles.seal}>{it.gateSeal}</Text>
+                  <Text style={styles.tap}>{t.tap}</Text>
                 </View>
 
-                {/* Arrow */}
-                <View style={styles.arrow}>
+                <View style={styles.chevPill}>
                   <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.75)" />
                 </View>
               </View>
-            </Pressable>
-          );
-        })}
-
-        <View style={{ height: 40 }} />
+            </LinearGradient>
+          </Pressable>
+        ))}
+        <View style={{ height: 24 }} />
       </ScrollView>
     </View>
   );
@@ -261,123 +258,52 @@ export default function GatesScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
-  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,8,20,0.58)" },
+  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(6,10,22,0.45)" },
 
-  topbar: {
-    paddingTop: Platform.OS === "ios" ? 52 : 18,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-
-  backBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
+  topbar: { paddingTop: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 },
+  backBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },
   backTxt: { color: "#7cf7d8", fontWeight: "800" },
 
   langRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  langChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
+  langChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },
   langChipActive: { backgroundColor: "rgba(124,247,216,0.12)", borderColor: "rgba(124,247,216,0.28)" },
-  langTxt: { color: "rgba(255,255,255,0.72)", fontWeight: "900", letterSpacing: 1 },
+  langTxt: { color: "rgba(255,255,255,0.75)", fontWeight: "900", letterSpacing: 1 },
   langTxtActive: { color: "#7cf7d8" },
 
-  header: { paddingHorizontal: 16, paddingBottom: 12 },
-  h1: { color: "white", fontSize: 30, fontWeight: "900", letterSpacing: 0.3 },
-  h2: { marginTop: 8, color: "rgba(255,255,255,0.70)" },
+  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10 },
+  h1: { color: "white", fontSize: 36, fontWeight: "900", letterSpacing: 0.4 },
+  sub: { color: "rgba(255,255,255,0.70)", marginTop: 6, lineHeight: 20 },
 
   searchWrap: {
-    marginHorizontal: 16,
-    marginBottom: 12,
+    marginTop: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    height: 52,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
-    borderColor: "rgba(124,247,216,0.16)",
+    borderColor: "rgba(255,255,255,0.12)",
   },
-  search: { flex: 1, color: "white" },
+  search: { flex: 1, color: "white", fontSize: 15 },
 
-  list: { paddingHorizontal: 16, paddingBottom: 20 },
+  list: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 20 },
 
-  card: {
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(124,247,216,0.16)",
-    overflow: "hidden",
-  },
-  cardGlow: { ...StyleSheet.absoluteFillObject },
+  card: { marginBottom: 12, borderRadius: 22, overflow: "hidden" },
+  cardGlass: { borderRadius: 22, padding: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.12)" },
 
-  row: { flexDirection: "row", gap: 14, alignItems: "center" },
+  row: { flexDirection: "row", gap: 12, alignItems: "center" },
+  plate: { width: 56, textAlign: "center", color: "#7cf7d8", fontWeight: "900", fontSize: 34, letterSpacing: 1 },
 
-  plateBox: { width: 58, alignItems: "center", justifyContent: "center" },
-  plate: {
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: 1,
-    color: "#7cf7d8",
-    textShadowColor: "rgba(124,247,216,0.55)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 18,
-  },
-  platePurpleGlow: {
-    textShadowColor: "rgba(94,59,255,0.55)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 16,
-  },
+  city: { color: "white", fontSize: 24, fontWeight: "900", marginBottom: 6 },
 
-  city: { color: "white", fontSize: 18, fontWeight: "900" },
+  gateLine: { flexDirection: "row", alignItems: "center", gap: 10 },
+  keyPill: { width: 26, height: 26, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(124,247,216,0.12)", borderWidth: 1, borderColor: "rgba(124,247,216,0.22)" },
+  gateTitle: { color: "white", fontSize: 18, fontWeight: "900" },
 
-  gateLineRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
-  keyPill: {
-    width: 26,
-    height: 26,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(124,247,216,0.10)",
-    borderWidth: 1,
-    borderColor: "rgba(124,247,216,0.22)",
-    shadowColor: "#7cf7d8",
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 6,
-  },
-  gateTitle: { color: "rgba(255,255,255,0.92)", fontWeight: "800" },
-  gateHint: { marginTop: 6, color: "rgba(255,255,255,0.65)" },
-  tap: { marginTop: 10, color: "rgba(124,247,216,0.90)", fontWeight: "800" },
+  seal: { color: "rgba(255,255,255,0.78)", marginTop: 6, fontSize: 15 },
+  tap: { color: "#7cf7d8", marginTop: 8, fontWeight: "800" },
 
-  arrow: {
-    width: 34,
-    height: 34,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
+  chevPill: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },
 });

@@ -1,5 +1,5 @@
 // app/city/[code].tsx
-import React, { useMemo,useCallback, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,16 +7,24 @@ import {
   StyleSheet,
   Platform,
   ScrollView,
+  Image,
+  ImageBackground,
+  Animated,
+  Easing,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect } from "react";
+
 import { logEvent } from "../../lib/LogEvent";
 import { useLangStore } from "@/data/langStore";
 import { CITY_NAMES, type CityCode } from "@/data/awakenedCities";
 import { getCityContent, type Layer } from "@/data/awakenedContent";
 import { hasVipEntitlement } from "../../lib/premium";
-import { router } from "expo-router";
 
+import MatrixRain from "../../lib/MatrixRain";
+import VipSheet from "../../components/VipSheet";
+import { consumeVipJustActivated } from "@/lib/vipPulse";
+
+const KEY_BG = require("../../assets/key_holo.png");
 
 export default function CityCodeScreen() {
   const router = useRouter();
@@ -28,86 +36,124 @@ export default function CityCodeScreen() {
   const cityName = CITY_NAMES?.[cityCode] ?? "Unknown";
 
   const [layer, setLayer] = useState<Layer>("base");
-  const [isPremium, setIsPremium] = useState(false);
   const [isVip, setIsVip] = useState(false);
+  const [vipOpen, setVipOpen] = useState(false);
+  const [vipRain, setVipRain] = useState(false);
 
-useEffect(() => {
-  (async () => {
-    try {
-      const ok = await hasVipEntitlement(); // lib/premium
-      setIsVip(Boolean(ok));
-    } catch {
-      setIsVip(false);
-    }
-  })();
-}, []);
-
+  // "nefes" animasyonu (key background)
+  const breathe = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-  logEvent("screen_view", "awakened_cities", { screen: "city", code: cityCode });
-}, [cityCode]);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathe, {
+          toValue: 1,
+          duration: 1600,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(breathe, {
+          toValue: 0,
+          duration: 1600,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [breathe]);
 
-  // ✅ backtick yok
+  const keyScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
+  const keyOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.26] });
+
+  // VIP check
+  useEffect(() => {
+    (async () => {
+      try {
+        const ok = await hasVipEntitlement();
+        setIsVip(Boolean(ok));
+      } catch {
+        setIsVip(false);
+      }
+    })();
+  }, []);
+
+  // VIP satın alma sonrası "yağmur patlaması"
+  useEffect(() => {
+    if (consumeVipJustActivated && consumeVipJustActivated()) {
+      setVipRain(true);
+      const t = setTimeout(() => setVipRain(false), 9000);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  useEffect(() => {
+    logEvent("screen_view", "awakened_cities", { screen: "city", code: cityCode });
+  }, [cityCode]);
+
   const headerTitle = useMemo(() => {
     return String(cityCode) + " · " + String(cityName);
   }, [cityCode, cityName]);
 
   const content = getCityContent(cityCode, appLang, layer);
 
-  const deepenLabel = appLang === "en" ? "Deepen" : "Derinleş";
+  const deepenTitle = appLang === "en" ? "Deepen" : "Derinleş";
   const deepenSub =
     appLang === "en"
       ? "Go down one layer. The gate tells more."
-      : "Alt katmana in. Kapi daha fazlasini soyluyor.";
-
-  const labTitle = isPremium ? "LAB (Premium)" : "LAB (Locked)";
-  const labSub =
-    appLang === "en"
-      ? isPremium
-        ? "Code eye: symbol → role → system."
-        : "Unlock Premium to activate code eye."
-      : isPremium
-      ? "Kod gözü: sembol → rol → sistem."
-      : "Premium açılınca: kod gözü aktif olur.";
-
-  const goTitle = "Ask Sanri Go";
-  const goSub =
-    appLang === "en"
-      ? "Write one sentence. The system reflects meaning, not answers."
-      : "Bir cümle yaz. Sistem cevap değil, anlam yansıtır.";
+      : "Alt katmana in. Kapı daha fazlasını söylüyor.";
 
   const hint =
     appLang === "en"
       ? '"wake up" is not a command — it is a remembrance.'
       : '"wake up" bir komut değil — bir hatırlayış.';
 
-  const handleDeepen = useCallback(() => {
-  if (!isVip) {
-    router.push({ pathname: "/(tabs)/vip", params: { lang: appLang } } as any);
-    return;
-  }
+  const onPressDeepen = useCallback(async () => {
+    try {
+      const ok = await hasVipEntitlement();
+      if (!ok) {
+        setVipOpen(true);
+        return;
+      }
+      setIsVip(true);
+      setLayer("deepC");
+    } catch {
+      setVipOpen(true);
+    }
+  }, []);
 
-  setLayer("deepC");
-}, [isVip, appLang]);
+  const onPressAsk = useCallback(() => {
+    router.push({
+      pathname: "/(tabs)/sanri_flow",
+      params: {
+        lang: appLang,
+        city_code: cityCode,
+        city_name: cityName,
+        source: "city_detail",
+        layer: layer,
+      },
+    } as any);
+  }, [router, appLang, cityCode, cityName, layer]);
 
- const onPressDeepen = async () => {
-  const isVip = await hasVipEntitlement();
-  if (!isVip) {
-    router.push("/(tabs)/vip");
-    return;
-  }
-
-  // VIP ise derin katmana geç
-  router.push({
-    pathname: "/city/[code]/deep",   // sende derin sayfa neredeyse orası
-    params: { code },               // code değişkenin nasıl ise
-  } as any);
-};
   return (
     <View style={styles.root}>
-      {/* TOP BAR sabit */}
+      {/* Key hologram background */}
+      <Animated.View pointerEvents="none" style={[styles.keyBgWrap, { opacity: keyOpacity, transform: [{ scale: keyScale }] }]}>
+        <Image source={KEY_BG} style={styles.keyBg} resizeMode="cover" />
+      </Animated.View>
+
+      {/* VIP rain burst */}
+      {vipRain ? (
+        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+          <MatrixRain opacity={0.18} />
+        </View>
+      ) : null}
+
+      {/* Soft veil */}
+      <View pointerEvents="none" style={styles.veil} />
+
+      {/* TOP BAR */}
       <View style={styles.top}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
           <Text style={styles.backTxt}>←</Text>
         </Pressable>
 
@@ -115,64 +161,71 @@ useEffect(() => {
 
         <View style={styles.layerRow}>
           <View style={styles.layerChip}>
-            <Text style={styles.layerChipTxt}>{layer.toUpperCase()}</Text>
+            <Text style={styles.layerChipTxt}>{String(layer).toUpperCase()}</Text>
           </View>
-        
-          <Pressable onPress={toggleLang} style={styles.langChip}>
-            <Text style={styles.langChipTxt}>{appLang.toUpperCase()}</Text>
+
+          <Pressable onPress={toggleLang} style={styles.langChip} hitSlop={10}>
+            <Text style={styles.langChipTxt}>{String(appLang).toUpperCase()}</Text>
           </Pressable>
         </View>
       </View>
-      <Pressable onPress={handleDeepen} style={styles.deepBtn}>
-  <Text style={styles.deepTitle}>
-  {layer === "base" ? "Derinleş" : "VIP ile daha derine"}
-</Text>
-<Text style={styles.deepSub}>
-  {layer === "base"
-    ? "Alt katmana in. Kapı daha fazlasını söylüyor."
-    : "Tam erişim için VIP kapısını aç."}
-</Text>
-</Pressable>
 
-      {/* ✅ SCROLL alanı */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      {/* VIP Sheet */}
+      <VipSheet
+        open={vipOpen}
+        lang={appLang as any}
+        priceTry="693 TL / ay"
+        priceUsd="39 USD / mo"
+        onClose={() => setVipOpen(false)}
+        onSubscribe={async () => {
+          // Şimdilik “başarılı” varsayımı (RevenueCat/IAP bağlanınca gerçek satın almayı buraya koyacaksın)
+          setIsVip(true);
+          setLayer("deepC");
+          setVipOpen(false);
+
+          // küçük "yağmur" patlaması
+          setVipRain(true);
+          setTimeout(() => setVipRain(false), 3500);
+        }}
+      />
+
+      {/* SCROLL */}
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.h1}>{headerTitle}</Text>
 
+        {/* BİLİNÇ KAPISI */}
+        <Pressable onPress={onPressDeepen} style={styles.vipGlass} hitSlop={10}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.vipTitle}>BİLİNÇ KAPISI</Text>
+            <Text style={styles.vipSub}>{isVip ? deepenSub : (appLang === "en" ? "Deep layer is VIP. Open the gate." : "Derin katman VIP. Kapıyı aç.")}</Text>
+          </View>
+          <Text style={styles.vipArrow}>›</Text>
+        </Pressable>
+
+        {/* CONTENT */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{content.title}</Text>
           <Text style={styles.story}>
-  {content.story
-    .split("\n")
-    .filter((line) => !line.trim().startsWith("$"))
-    .join("\n")}
-</Text>
+            {String(content.story || "")
+              .split("\n")
+              .filter((line) => !line.trim().startsWith("$"))
+              .join("\n")}
+          </Text>
         </View>
 
-        <View style={styles.actions}>
+        {/* ASK SANRI GO */}
+        <Pressable onPress={onPressAsk} style={styles.askGlass} hitSlop={10}>
+          <Text style={styles.askTitle}>ASK SANRI GO</Text>
+          <Text style={styles.askSub}>
+            {appLang === "en"
+              ? "Write one sentence. The system reflects meaning, not answers."
+              : "Bir cümle yaz. Sistem cevap değil, anlam yansıtır."}
+          </Text>
+        </Pressable>
 
-  <Pressable
-    onPress={() =>
-      router.push({
-        pathname: "/(tabs)/sanri_flow",
-        params: {
-          code: cityCode,
-          city: cityName,
-          layer: layer,
-          lang: appLang,
-        },
-      })
-    }
-    style={styles.flowBtn}
-  >
-    <Text style={styles.flowTitle}>{goTitle}</Text>
-    <Text style={styles.flowSub}>{goSub}</Text>
-  </Pressable>
-</View>
         <Text style={styles.hint}>{hint}</Text>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -185,8 +238,17 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 14 : 0,
   },
 
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 48 },
+  keyBgWrap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  keyBg: {
+    width: "100%",
+    height: "100%",
+  },
+  veil: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.48)",
+  },
 
   top: {
     flexDirection: "row",
@@ -206,12 +268,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  backTxt: { color: "#7cf7d8", fontSize: 18, fontWeight: "800" },
+  backTxt: { color: "#7cf7d8", fontSize: 18, fontWeight: "900" },
+
   topKicker: {
     color: "rgba(255,255,255,0.55)",
     letterSpacing: 2,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     flex: 1,
   },
 
@@ -224,7 +287,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.15)",
   },
-  layerChipTxt: { color: "#7ef9d6", fontWeight: "800", fontSize: 12, letterSpacing: 1 },
+  layerChipTxt: { color: "#7ef9d6", fontWeight: "900", fontSize: 12, letterSpacing: 1 },
 
   langChip: {
     paddingHorizontal: 10,
@@ -234,7 +297,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(94,59,255,0.4)",
   },
-  langChipTxt: { color: "#bda8ff", fontWeight: "800", fontSize: 12, letterSpacing: 1 },
+  langChipTxt: { color: "#cbbcff", fontWeight: "900", fontSize: 12, letterSpacing: 1 },
+
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 56 },
 
   h1: {
     color: "white",
@@ -245,8 +311,29 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
+  // Bilinç Kapısı (VIP glass)
+  vipGlass: {
+    marginHorizontal: 18,
+    borderRadius: 22,
+    padding: 18,
+    backgroundColor: "rgba(94,59,255,0.26)",
+    borderWidth: 1,
+    borderColor: "rgba(140,100,255,0.35)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+
+    shadowColor: "#7cf7d8",
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+  },
+  vipTitle: { color: "#cbbcff", fontSize: 24, fontWeight: "900", letterSpacing: 1 },
+  vipSub: { color: "rgba(255,255,255,0.82)", marginTop: 6, fontSize: 14, lineHeight: 20 },
+  vipArrow: { color: "rgba(255,255,255,0.85)", fontSize: 26, fontWeight: "900" },
+
   card: {
     marginHorizontal: 18,
+    marginTop: 14,
     borderRadius: 22,
     padding: 18,
     backgroundColor: "rgba(255,255,255,0.06)",
@@ -255,41 +342,22 @@ const styles = StyleSheet.create({
   },
   cardTitle: { color: "#7cf7d8", fontSize: 20, fontWeight: "900", marginBottom: 12 },
   story: { color: "rgba(255,255,255,0.88)", fontSize: 16, lineHeight: 24 },
-  reflection: { marginTop: 16, color: "white", fontSize: 18, fontWeight: "800", lineHeight: 26 },
 
-  actions: { marginTop: 14, paddingHorizontal: 18, gap: 12 },
-
-  deepBtn: {
+  // Ask Sanri Go glass
+  askGlass: {
+    marginHorizontal: 18,
+    marginTop: 14,
     borderRadius: 22,
     padding: 18,
-    backgroundColor: "rgba(94,59,255,0.55)",
-  },
-  deepTitle: { color: "white", fontSize: 26, fontWeight: "900" },
-  deepSub: { color: "rgba(255,255,255,0.85)", marginTop: 6, fontSize: 14 },
-
-  labBtn: {
-    borderRadius: 22,
-    padding: 18,
-    backgroundColor: "rgba(124,247,216,0.10)",
+    backgroundColor: "rgba(94,59,255,0.14)",
     borderWidth: 1,
-    borderColor: "rgba(124,247,216,0.18)",
+    borderColor: "rgba(140,100,255,0.28)",
   },
-  labBtnLocked: { opacity: 0.55 },
-  labTitle: { color: "#7cf7d8", fontSize: 20, fontWeight: "900" },
-  labSub: { color: "rgba(255,255,255,0.70)", marginTop: 6, fontSize: 14 },
-
-  flowBtn: {
-    borderRadius: 22,
-    padding: 18,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
-  flowTitle: { color: "white", fontSize: 20, fontWeight: "900" },
-  flowSub: { color: "rgba(255,255,255,0.70)", marginTop: 6, fontSize: 14 },
+  askTitle: { color: "#bda8ff", fontSize: 22, fontWeight: "900", letterSpacing: 2 },
+  askSub: { color: "rgba(255,255,255,0.75)", marginTop: 8, fontSize: 14, lineHeight: 20 },
 
   hint: {
-    color: "rgba(180,255,230,0.6)",
+    color: "rgba(180,255,230,0.55)",
     fontSize: 12,
     textAlign: "center",
     marginTop: 12,

@@ -1,13 +1,53 @@
 // app/(auth)/login.tsx
-import React, { useMemo, useState, useCallback } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, StatusBar } from "react-native";
+import React, { useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  ImageBackground,
+  StatusBar,
+  Platform,
+  KeyboardAvoidingView,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../context/AuthContext";
-import MatrixRain from "../../lib/MatrixRain";
 
 type Lang = "tr" | "en";
+type Mode = "email" | "phone";
+
+const BG = require("../../assets/sanri_glass_bg.jpg");
+
+const COPY = {
+  tr: {
+    title: "Bilinç Ve Anlam\nZekası",
+    sub: "SANRI cevap üretmez.\nAlan açar. Anlam sende şekillenir.",
+    email: "E-posta",
+    phone: "Telefon",
+    emailPh: "E-posta",
+    phonePh: "Telefon",
+    passPh: "Şifre",
+    cta: "Frekansını Aç",
+    hint: "Hesabın yoksa devam ettiğinde oluşturulur.",
+    back: "Geri",
+  },
+  en: {
+    title: "Consciousness\n& Meaning Intelligence",
+    sub: "SANRI doesn’t produce answers.\nIt opens space. Meaning forms in you.",
+    email: "Email",
+    phone: "Phone",
+    emailPh: "Email",
+    phonePh: "Phone",
+    passPh: "Password",
+    cta: "Open Your Frequency",
+    hint: "If you don’t have an account, it will be created.",
+    back: "Back",
+  },
+} as const;
 
 export default function LoginScreen() {
   const { setUser } = useAuth();
@@ -15,138 +55,310 @@ export default function LoginScreen() {
   const nextRoute = params.next ? String(params.next) : "/(tabs)/gates";
 
   const [lang, setLang] = useState<Lang>("tr");
-  const [mode, setMode] = useState<"email" | "phone">("email");
+  const [mode, setMode] = useState<Mode>("email");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [pass, setPass] = useState("");
 
-  const bg = useMemo(() => ["#07080d", "#12082a", "#05060a"] as const, []);
+  const t = useMemo(() => COPY[lang], [lang]);
 
-  const disabled =
-    pass.trim().length < 3 || (mode === "email" ? email.trim().length < 3 : phone.trim().length < 6);
+  const disabled = useMemo(() => {
+    const p = pass.trim();
+    if (!p) return true;
+    if (mode === "email") return !email.trim();
+    return !phone.trim();
+  }, [mode, email, phone, pass]);
 
-  const handleBack = useCallback(() => {
-    if (router.canGoBack()) router.back();
-    else router.replace("/rabbit");
-  }, []);
-
-  const handleSubmit = useCallback(async () => {
+  const onSubmit = async () => {
     if (disabled) return;
+    try {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch {}
 
-    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+      // ✅ Şimdilik local login (backend auth bağlayınca burada API login/register olacak)
+      const id = Date.now().toString(16) + "_" + Math.random().toString(16).slice(2);
+      await setUser({
+        id,
+        email: mode === "email" ? email.trim() : undefined,
+        phone: mode === "phone" ? phone.trim() : undefined,
+      });
 
-    // Şimdilik “local login”
-    const id = Date.now().toString(16);
-    await setUser({
-      id,
-      email: mode === "email" ? email.trim() : undefined,
-      phone: mode === "phone" ? phone.trim() : undefined,
-    });
+      router.replace(nextRoute as any);
+    } catch (e) {
+      // sessiz fail: ileride toast ekleriz
+    }
+  };
 
-    // LOGIN SONRASI
-    router.replace(nextRoute as any);
-  }, [disabled, email, phone, mode, nextRoute, setUser]);
+  const onBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/gates");
+  };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={bg} style={StyleSheet.absoluteFillObject} />
-      <MatrixRain opacity={0.18} />
+      <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
 
-      <View style={styles.container}>
-        <View style={styles.topRow}>
-          <Pressable onPress={handleBack} style={styles.backBtn} hitSlop={10}>
-            <Text style={styles.backTxt}>←</Text>
-          </Pressable>
+      {/* filmic veil */}
+      <View pointerEvents="none" style={styles.veil} />
+      <View pointerEvents="none" style={styles.glowA} />
+      <View pointerEvents="none" style={styles.glowB} />
 
-          <View style={styles.langRow}>
-            <Pressable onPress={() => setLang("tr")} style={[styles.langBtn, lang === "tr" && styles.langActive]} hitSlop={10}>
-              <Text style={styles.langTxt}>TR</Text>
-            </Pressable>
-            <Pressable onPress={() => setLang("en")} style={[styles.langBtn, lang === "en" && styles.langActive]} hitSlop={10}>
-              <Text style={styles.langTxt}>EN</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <Text style={styles.title}>{lang === "tr" ? "Frekansını Aç" : "Activate Your Frequency"}</Text>
-        <Text style={styles.sub}>{lang === "tr" ? "E-posta veya telefon ile devam et." : "Continue with email or phone."}</Text>
-
-        <View style={styles.modeRow}>
-          <Pressable onPress={() => setMode("email")} style={[styles.modeBtn, mode === "email" && styles.modeActive]}>
-            <Text style={styles.modeTxt}>{lang === "tr" ? "E-posta" : "Email"}</Text>
-          </Pressable>
-          <Pressable onPress={() => setMode("phone")} style={[styles.modeBtn, mode === "phone" && styles.modeActive]}>
-            <Text style={styles.modeTxt}>{lang === "tr" ? "Telefon" : "Phone"}</Text>
-          </Pressable>
-        </View>
-
-        {mode === "email" ? (
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder={lang === "tr" ? "E-posta" : "Email"}
-            placeholderTextColor="rgba(255,255,255,0.35)"
-            style={styles.input}
-            autoCapitalize="none"
-          />
-        ) : (
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            placeholder={lang === "tr" ? "Telefon" : "Phone"}
-            placeholderTextColor="rgba(255,255,255,0.35)"
-            style={styles.input}
-            keyboardType="phone-pad"
-          />
-        )}
-
-        <TextInput
-          value={pass}
-          onChangeText={setPass}
-          placeholder={lang === "tr" ? "Şifre" : "Password"}
-          placeholderTextColor="rgba(255,255,255,0.35)"
-          style={styles.input}
-          secureTextEntry
-        />
-
-        <Pressable onPress={handleSubmit} disabled={disabled} style={[styles.cta, disabled && { opacity: 0.5 }]}>
-          <Text style={styles.ctaTxt}>{lang === "tr" ? "Devam Et" : "Continue"}</Text>
+      {/* TOP BAR */}
+      <View style={styles.topbar}>
+        <Pressable onPress={onBack} style={styles.backBtn} hitSlop={12}>
+          <Text style={styles.backTxt}>←</Text>
         </Pressable>
 
-        <Text style={styles.hint}>
-          {lang === "tr"
-            ? "Hesabın yoksa devam ettiğinde oluşturulur."
-            : "If you don’t have an account, it will be created."}
-        </Text>
+        <View style={{ flex: 1 }} />
+
+        <View style={styles.langRow}>
+          <Pressable
+            onPress={() => setLang("tr")}
+            style={[styles.langChip, lang === "tr" && styles.langChipActive]}
+            hitSlop={10}
+          >
+            <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setLang("en")}
+            style={[styles.langChip, lang === "en" && styles.langChipActive]}
+            hitSlop={10}
+          >
+            <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>EN</Text>
+          </Pressable>
+        </View>
       </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
+      >
+        <View style={styles.container}>
+          <Text style={styles.h1}>{t.title}</Text>
+          <Text style={styles.sub}>{t.sub}</Text>
+
+          {/* MODE CHIPS */}
+          <View style={styles.modeRow}>
+            <Pressable
+              onPress={() => setMode("email")}
+              style={[styles.modeChip, mode === "email" && styles.modeChipActive]}
+            >
+              <Text style={[styles.modeTxt, mode === "email" && styles.modeTxtActive]}>{t.email}</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setMode("phone")}
+              style={[styles.modeChip, mode === "phone" && styles.modeChipActive]}
+            >
+              <Text style={[styles.modeTxt, mode === "phone" && styles.modeTxtActive]}>{t.phone}</Text>
+            </Pressable>
+          </View>
+
+          {/* GLASS CARD */}
+          <View style={styles.cardOuter}>
+            <LinearGradient
+              colors={["rgba(255,255,255,0.14)", "rgba(255,255,255,0.06)", "rgba(124,247,216,0.06)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cardGrad}
+            >
+              <BlurView intensity={24} tint="dark" style={styles.cardGlass}>
+                {mode === "email" ? (
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder={t.emailPh}
+                    placeholderTextColor="rgba(203,188,255,0.35)"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    style={styles.input}
+                  />
+                ) : (
+                  <TextInput
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder={t.phonePh}
+                    placeholderTextColor="rgba(203,188,255,0.35)"
+                    keyboardType="phone-pad"
+                    style={styles.input}
+                  />
+                )}
+
+                <TextInput
+                  value={pass}
+                  onChangeText={setPass}
+                  placeholder={t.passPh}
+                  placeholderTextColor="rgba(203,188,255,0.35)"
+                  secureTextEntry
+                  style={styles.input}
+                />
+
+                {/* CTA GLASS */}
+                <Pressable onPress={onSubmit} disabled={disabled} style={[styles.ctaOuter, disabled && { opacity: 0.55 }]}>
+                  <LinearGradient
+                    colors={["rgba(169,112,255,0.42)", "rgba(94,59,255,0.30)", "rgba(124,247,216,0.10)"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.ctaGrad}
+                  >
+                    <BlurView intensity={22} tint="dark" style={styles.ctaGlass}>
+                      <Text style={styles.ctaTxt}>{t.cta}</Text>
+                    </BlurView>
+                  </LinearGradient>
+                </Pressable>
+
+                <Text style={styles.hint}>{t.hint}</Text>
+              </BlurView>
+            </LinearGradient>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 18, paddingTop: 60 },
-  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  backBtn: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },
-  backTxt: { color: "white", fontSize: 18, fontWeight: "900" },
+  root: { flex: 1, backgroundColor: "#07080d" },
 
-  langRow: { flexDirection: "row", gap: 8 },
-  langBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },
-  langActive: { borderColor: "rgba(124,247,216,0.35)", backgroundColor: "rgba(124,247,216,0.10)" },
-  langTxt: { color: "white", fontWeight: "900" },
+  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,8,20,0.52)" },
+  glowA: {
+    position: "absolute",
+    width: 560,
+    height: 560,
+    borderRadius: 560,
+    left: -210,
+    top: 80,
+    backgroundColor: "rgba(94,59,255,0.22)",
+  },
+  glowB: {
+    position: "absolute",
+    width: 620,
+    height: 620,
+    borderRadius: 620,
+    right: -240,
+    bottom: -140,
+    backgroundColor: "rgba(124,247,216,0.12)",
+  },
 
-  title: { color: "white", fontSize: 42, fontWeight: "900", marginTop: 22 },
-  sub: { color: "rgba(255,255,255,0.60)", marginTop: 10 },
+  topbar: {
+    paddingTop: 12,
+    paddingHorizontal: 14,
+    paddingBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  backTxt: { color: "#7cf7d8", fontSize: 18, fontWeight: "900" },
 
-  modeRow: { flexDirection: "row", gap: 10, marginTop: 20 },
-  modeBtn: { flex: 1, paddingVertical: 12, borderRadius: 999, alignItems: "center", backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },
-  modeActive: { backgroundColor: "rgba(94,59,255,0.35)", borderColor: "rgba(94,59,255,0.55)" },
-  modeTxt: { color: "white", fontWeight: "900" },
+  langRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  langChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  langChipActive: {
+    backgroundColor: "rgba(124,247,216,0.10)",
+    borderColor: "rgba(124,247,216,0.25)",
+  },
+  langTxt: { color: "rgba(255,255,255,0.70)", fontWeight: "900", letterSpacing: 1 },
+  langTxtActive: { color: "#7cf7d8" },
 
-  input: { marginTop: 14, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 14, backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)", color: "white" },
+  container: { flex: 1, paddingHorizontal: 18, paddingTop: 10 },
+  h1: {
+    color: "#b388ff",
+    fontSize: 44,
+    fontWeight: "900",
+    lineHeight: 46,
+    textShadowColor: "rgba(169,112,255,0.75)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
+  },
+  sub: {
+    color: "rgba(255,255,255,0.75)",
+    marginTop: 10,
+    fontSize: 16,
+    lineHeight: 22,
+  },
 
-  cta: { marginTop: 18, borderRadius: 18, paddingVertical: 16, alignItems: "center", backgroundColor: "#5e3bff" },
-  ctaTxt: { color: "white", fontWeight: "900", fontSize: 16 },
+  modeRow: { flexDirection: "row", gap: 12, marginTop: 18 },
+  modeChip: {
+    flex: 1,
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  modeChipActive: {
+    borderColor: "rgba(169,112,255,0.45)",
+    backgroundColor: "rgba(169,112,255,0.18)",
+  },
+  modeTxt: { color: "rgba(255,255,255,0.78)", fontWeight: "900", fontSize: 16 },
+  modeTxtActive: {
+    color: "#b388ff",
+    textShadowColor: "rgba(169,112,255,0.60)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 14,
+  },
 
-  hint: { color: "rgba(255,255,255,0.50)", marginTop: 14 },
+  cardOuter: { marginTop: 18, borderRadius: 26, overflow: "hidden" },
+  cardGrad: { borderRadius: 26, padding: 1 },
+  cardGlass: {
+    borderRadius: 26,
+    padding: 18,
+    backgroundColor: "rgba(10,10,18,0.40)",
+  },
+
+  input: {
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: "white",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    marginBottom: 12,
+  },
+
+  ctaOuter: { marginTop: 10, borderRadius: 22, overflow: "hidden" },
+  ctaGrad: { borderRadius: 22, padding: 1 },
+  ctaGlass: {
+    borderRadius: 22,
+    paddingVertical: 16,
+    alignItems: "center",
+    backgroundColor: "rgba(10,10,18,0.35)",
+  },
+  ctaTxt: {
+    color: "#d7c8ff",
+    fontWeight: "900",
+    fontSize: 18,
+    letterSpacing: 0.5,
+    textShadowColor: "rgba(169,112,255,0.65)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 14,
+  },
+
+  hint: {
+    marginTop: 14,
+    color: "rgba(255,255,255,0.55)",
+    textAlign: "center",
+  },
 });

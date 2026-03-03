@@ -41,7 +41,7 @@
       },
       "expo": {
         "extra": {
-          "EXPO_PUBLIC_API_BASE": "https://sanri-api-2.onrender.com"
+          "EXPO_PUBLIC_API_BASE": "https://api.asksanri.com"
         }
       }
     }

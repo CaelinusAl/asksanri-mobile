@@ -1,5 +1,5 @@
 // app/(tabs)/sanri_flow.tsx
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -12,33 +12,28 @@ import {
   StatusBar,
   ImageBackground,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Audio } from "expo-av";
-import Constants from "expo-constants";
-import * as FileSystem from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system";
+
+import { apiPostJson, apiPostForm, API } from "@/lib/apiClient";
 import ConsciousMenu from "../../components/ConsciousMenu";
 
 type Lang = "tr" | "en";
-type Msg = { id: string; role: "user" | "assistant"; text: string };
+type Role = "user" | "assistant";
+type Msg = { id: string; role: Role; text: string };
 
-function uid() {
-  return "m_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+function uid(prefix?: string) {
+  const p = prefix ? String(prefix) : "m";
+  const a = Math.random().toString(16).slice(2);
+  const b = Date.now().toString(16);
+  return p + "" + b + "" + a;
 }
 
-/**
- * API_BASE
- * Local: http://192.168.1.181:8000
- * Prod:  https://sanri-api-2.onrender.com   (Render açıldıysa bunu env ile ver)
- */
-const API_BASE = "https://sanri-api-2.onrender.com";
-
-const ASK_URL = API_BASE + "/bilinc-alani/ask";
-const TRANSCRIBE_URL = API_BASE + "/api/voice/transcribe";
-
-console.log("API_BASE_SELECTED =", API_BASE);
-console.log("ASK_URL =", ASK_URL);
-console.log("TRANSCRIBE_URL =", TRANSCRIBE_URL);
+function safeStr(x: any) {
+  return String(x == null ? "" : x);
+}
 
 const BG = require("../../assets/sanri_bg.jpg");
 
@@ -50,24 +45,32 @@ const T = {
     placeholder: "Bir cümle yaz…",
     send: "Gönder",
     tip: "İpucu: Tek bir cümle yaz. Sanrı anlamı yansıtır ve yön çıkarır.",
-    err: "Hata: ",
     micHold: "Basılı tut",
-    timeout: "Timeout (15sn). API cevap vermedi.",
-    netfail: "Network request failed (IP/port/firewall/HTTP).",
-    audioShort: "Ses çok kısa/boş geldi. 1-2 saniye basılı tut.",
+    waking: "Sanrı uyanıyor…",
+    wakingSub: "Sistem hazırlanıyor. Birkaç saniye sürebilir.",
+    timeout: "Hata: Timeout (20sn). API cevap vermedi.",
+    netfail: "Hata: Bağlantı kurulamadı. İnternet / VPN / izinleri kontrol et.",
+    invalidJson: "Hata: API geçersiz JSON döndürdü.",
+    audioShort: "Ses çok kısa/boş geldi. 1–2 saniye basılı tut.",
+    audioEmpty: "Ses alındı ama metin boş döndü.",
+    retry: "Tekrar dene",
   },
   en: {
     title: "Sanri",
     personal: "Personal Field",
-    welcome: "Welcome. Write a sentence. I reflect meaning, not answers.",
+    welcome: "Welcome. Write one sentence. I reflect meaning, not answers.",
     placeholder: "Write one sentence…",
     send: "Send",
     tip: "Tip: One sentence. Sanri mirrors meaning and produces direction.",
-    err: "Error: ",
     micHold: "Hold",
-    timeout: "Timeout (15s). API did not respond.",
-    netfail: "Network request failed (IP/port/firewall/HTTP).",
-    audioShort: "Audio too short/empty. Hold for 1-2s.",
+    waking: "Sanri is waking…",
+    wakingSub: "Preparing the system. It may take a few seconds.",
+    timeout: "Error: Timeout (20s). API did not respond.",
+    netfail: "Error: Network request failed. Check internet / VPN / permissions.",
+    invalidJson: "Error: API returned invalid JSON.",
+    audioShort: "Audio too short/empty. Hold for 1–2 seconds.",
+    audioEmpty: "Audio received but text came back empty.",
+    retry: "Retry",
   },
 } as const;
 
@@ -94,21 +97,35 @@ const RECORDING_OPTIONS: Audio.RecordingOptions = {
 };
 
 export default function SanriFlowScreen() {
-  const scrollRef = useRef<ScrollView>(null);
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    lang?: string;
+    title?: string;
+    seed?: string;
+    code?: string;
+    city?: string;
+    layer?: string;
+  }>();
 
-  const params = useLocalSearchParams<{ lang?: string; title?: string; seed?: string }>();
-  const initialLang: Lang = String(params.lang || "").toLowerCase() === "en" ? "en" : "tr";
-
+  const initialLang: Lang = safeStr(params.lang).toLowerCase() === "en" ? "en" : "tr";
   const [lang, setLang] = useState<Lang>(initialLang);
+
+  const t = useMemo(() => T[lang], [lang]);
+
   const [messages, setMessages] = useState<Msg[]>([
-    { id: uid(), role: "assistant", text: T[initialLang].welcome },
+    { id: uid("a"), role: "assistant", text: T[initialLang].welcome },
   ]);
 
   const [input, setInput] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [typing, setTyping] = useState(false);
-  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [error, setError] = useState("");
+  const [isWaking, setIsWaking] = useState(true);
+
+  const scrollRef = useRef<ScrollView>(null);
+
+  // loader id asla null değil
+  const loaderIdRef = useRef<string>("");
 
   // mic refs
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -134,122 +151,146 @@ export default function SanriFlowScreen() {
     scrollToEnd();
   }, [messages, scrollToEnd]);
 
-  const typeIn = useCallback(
-    async (fullText: string) => {
-      setTyping(true);
-      const id = uid();
-      setMessages((prev) => prev.concat([{ id, role: "assistant", text: "" }]));
+  const ensureLoader = useCallback((): string => {
+    if (!loaderIdRef.current) {
+      loaderIdRef.current = uid("ld");
+      const id = loaderIdRef.current;
+      setMessages((prev) => prev.concat([{ id, role: "assistant", text: "…" }]));
+      return id;
+    }
+    const id = loaderIdRef.current;
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text: "…" } : m)));
+    return id;
+  }, []);
 
-      let i = 0;
-      const step = () => {
-        i = Math.min(i + 1, fullText.length);
-        const part = fullText.slice(0, i);
+  const resolveLoader = useCallback((id: string, text: string) => {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text } : m)));
+  }, []);
 
-        setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text: part } : m)));
+  const removeLoader = useCallback((id: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+    loaderIdRef.current = "";
+  }, []);
 
-        const ch = fullText[i - 1] || "";
-        const pause = ch === "\n" ? 70 : ch === "." || ch === "!" || ch === "?" ? 90 : 0;
-        const delay = 10 + Math.floor(Math.random() * 18) + pause;
+  const typeIntoLoader = useCallback(async (id: string, fullText: string) => {
+    let i = 0;
+    const step = () => {
+      i = Math.min(i + 1, fullText.length);
+      const part = fullText.slice(0, i);
 
-        if (i < fullText.length) setTimeout(step, delay);
-        else setTyping(false);
-      };
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text: part } : m)));
 
-      setTimeout(step, 120);
-    },
-    []
-  );
+      const ch = fullText[i - 1] || "";
+      const pause = ch === "\n" ? 60 : ch === "." || ch === "!" || ch === "?" ? 90 : 0;
+      const delay = 9 + Math.floor(Math.random() * 14) + pause;
 
-  // ✅ TEXT SEND: ASK_URL'e gider (transcribe değil!)
+      if (i < fullText.length) setTimeout(step, delay);
+      else loaderIdRef.current = "";
+    };
+    setTimeout(step, 100);
+  }, []);
+
+  // ✅ SEND (text -> /bilinc-alani/ask)
   const send = useCallback(async () => {
     const text = input.trim();
-    if (!text || isSending || typing) return;
+    if (!text || busy) return;
 
-    setError("");
     setInput("");
-    setIsSending(true);
+    setBusy(true);
+    setError("");
+
+    const loaderId = ensureLoader();
 
     try {
       try {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } catch {}
 
-      setMessages((prev) => prev.concat([{ id: uid(), role: "user", text }]));
+      setMessages((prev) => prev.concat([{ id: uid("u"), role: "user", text }]));
 
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15000);
+      if (isWaking) {
+        resolveLoader(loaderId, t.waking + "\n" + t.wakingSub);
+        setTimeout(() => {
+          setMessages((prev) => prev.map((m) => (m.id === loaderId ? { ...m, text: "…" } : m)));
+        }, 650);
+      }
 
+      // ✅ payload burada TANIMLI
       const payload = {
         message: text,
         session_id: "mobile-default",
         domain: "auto",
         gate_mode: "mirror",
         persona: "user",
-        lang: lang,
+        lang,
         context: {
           source: "personal_field",
-          title: params.title ? String(params.title) : undefined,
-          seed: params.seed ? String(params.seed) : undefined,
+          title: params.title ? safeStr(params.title) : undefined,
+          seed: params.seed ? safeStr(params.seed) : undefined,
+          city_code: params.code ? safeStr(params.code) : undefined,
+          city: params.city ? safeStr(params.city) : undefined,
+          layer: params.layer ? safeStr(params.layer) : undefined,
         },
       };
 
-      const res = await fetch(ASK_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timer);
-
-      const raw = await res.text();
-      console.log("ASK_STATUS =", res.status);
-      console.log("ASK_RAW =", raw.slice(0, 300));
-
-      let data: any = {};
-      try {
-        data = raw ? JSON.parse(raw) : {};
-      } catch {
-        throw new Error("Invalid JSON from API");
-      }
-
-      if (!res.ok) {
-        throw new Error(String(data?.detail || ("HTTP " + res.status)));
-      }
+      const data: any = await apiPostJson(API.ask, payload, 20000);
 
       const answer =
-        String(data?.answer || data?.response || "").trim() ||
+        safeStr(data?.answer || data?.response).trim() ||
         (lang === "tr" ? "Buradayım." : "I’m here.");
 
-      await typeIn(answer);
-    } catch (e: any) {
-      const msg = String(e?.message || e);
+      setIsWaking(false);
 
-      if (msg.toLowerCase().includes("abort")) {
-        setError(T[lang].timeout);
+      await typeIntoLoader(loaderId, answer);
+    } catch (e: any) {
+      removeLoader(loaderId);
+
+      const msg = safeStr(e?.message || e);
+
+      if (msg === "TIMEOUT" || msg.toLowerCase().includes("abort")) {
+        setError(t.timeout);
+      } else if (msg === "INVALID_JSON") {
+        setError(t.invalidJson);
       } else if (msg.toLowerCase().includes("network request failed")) {
-        setError(T[lang].netfail);
+        setError(t.netfail);
+      } else if (msg.startsWith("HTTP_")) {
+        const detail = e?.detail;
+        setError("Hata: " + safeStr(detail?.message || detail || msg));
       } else {
-        setError(msg);
+        setError("Hata: " + msg);
       }
     } finally {
-      setIsSending(false);
+      setBusy(false);
       scrollToEnd();
     }
-  }, [input, isSending, typing, lang, params.title, params.seed, typeIn, scrollToEnd]);
+  }, [
+    input,
+    busy,
+    ensureLoader,
+    resolveLoader,
+    removeLoader,
+    isWaking,
+    t,
+    lang,
+    params.title,
+    params.seed,
+    params.code,
+    params.city,
+    params.layer,
+    typeIntoLoader,
+    scrollToEnd,
+  ]);
 
   // ✅ MIC START
   const startRec = useCallback(async () => {
+    if (busy) return;
+    if (isStartingRef.current || isStoppingRef.current) return;
+    if (recordingRef.current) return;
+
+    isStartingRef.current = true;
+    setError("");
+
     try {
-      if (isStartingRef.current || isStoppingRef.current) return;
-      if (recordingRef.current) return;
-
-      isStartingRef.current = true;
-      setError("");
-
       const perm = await Audio.requestPermissionsAsync();
       if (!perm.granted) {
         setError(lang === "tr" ? "Mikrofon izni yok." : "Microphone permission missing.");
@@ -273,7 +314,7 @@ export default function SanriFlowScreen() {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch {}
     } catch (e: any) {
-      setError(String(e?.message || e));
+      setError("Hata: " + safeStr(e?.message || e));
       try {
         await recordingRef.current?.stopAndUnloadAsync();
       } catch {}
@@ -282,42 +323,36 @@ export default function SanriFlowScreen() {
     } finally {
       isStartingRef.current = false;
     }
-  }, [lang]);
+  }, [busy, lang]);
 
   // ✅ MIC STOP + TRANSCRIBE
   const stopRec = useCallback(async () => {
     const rec = recordingRef.current;
     if (!rec) return;
-
     if (isStoppingRef.current) return;
+
     isStoppingRef.current = true;
 
     try {
       setIsRecording(false);
-
       await rec.stopAndUnloadAsync();
       const uri = rec.getURI();
-
-      // ref'i hemen boşalt
       recordingRef.current = null;
 
       if (!uri) return;
 
-      // dosya boyutu kontrolü (legacy file system)
-      const info = await (FileSystem as any).getInfoAsync(uri, { size: true });
-      const size = info && info.exists && typeof info.size === "number" ? info.size : 0;
-
-      console.log("REC_URI =", uri);
-      console.log("REC_SIZE =", size);
+      const info = await FileSystem.getInfoAsync(uri);
+      const size =
+        info && (info as any).exists && typeof (info as any).size === "number" ? (info as any).size : 0;
 
       if (size < 2000) {
-        setError(T[lang].audioShort);
+        setError(t.audioShort);
         return;
       }
 
-      const formData = new FormData();
-      formData.append("lang", lang);
-      formData.append(
+      const form = new FormData();
+      form.append("lang", lang);
+      form.append(
         "file",
         {
           uri: String(uri),
@@ -326,54 +361,28 @@ export default function SanriFlowScreen() {
         } as any
       );
 
-      setIsSending(true);
-      setError("");
+      const voice: any = await apiPostForm(API.transcribe, form, 20000);
+      const outText = safeStr(voice?.text).trim();
 
-      const res = await fetch(TRANSCRIBE_URL, {
-        method: "POST",
-        body: formData,
-      });
-
-      const voiceRaw = await res.text();
-      console.log("VOICE_STATUS =", res.status);
-      console.log("VOICE_RAW =", voiceRaw);
-
-      let voiceData: any = {};
-      try {
-        voiceData = voiceRaw ? JSON.parse(voiceRaw) : {};
-      } catch {
-        // ignore
+      if (!outText) {
+        setError(t.audioEmpty);
+        return;
       }
 
-      if (!res.ok) {
-        throw new Error(String(voiceData?.detail || ("HTTP " + res.status)));
-      }
-
-      const text = String(voiceData?.text || "").trim();
-      if (text) {
-        setInput((prev) => (prev ? prev + " " : "") + text);
-        try {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch {}
-      } else {
-        setError(lang === "tr" ? "Ses alındı ama metin boş döndü." : "Audio received but text came back empty.");
-      }
+      setInput((prev) => (prev ? prev + " " : "") + outText);
     } catch (e: any) {
-      setError(String(e?.message || e));
-      try {
-        await rec.stopAndUnloadAsync();
-      } catch {}
-      recordingRef.current = null;
+      const msg = safeStr(e?.message || e);
+      if (msg === "TIMEOUT" || msg.toLowerCase().includes("abort")) setError(t.timeout);
+      else if (msg.toLowerCase().includes("network request failed")) setError(t.netfail);
+      else setError("Hata: " + msg);
     } finally {
-      setIsSending(false);
       isStoppingRef.current = false;
       scrollToEnd();
     }
-  }, [lang, TRANSCRIBE_URL, scrollToEnd]);
+  }, [lang, t.audioShort, t.audioEmpty, t.timeout, t.netfail, scrollToEnd]);
 
   return (
     <View style={styles.root}>
-
       <StatusBar barStyle="light-content" />
 
       <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
@@ -384,8 +393,8 @@ export default function SanriFlowScreen() {
       {/* TOP BAR */}
       <View style={styles.topbar}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.topTitle}>{T[lang].title}</Text>
-          <Text style={styles.topMeta}>{T[lang].personal}</Text>
+          <Text style={styles.topTitle}>{t.title}</Text>
+          <Text style={styles.topMeta}>{t.personal}</Text>
         </View>
 
         <View style={styles.langRow}>
@@ -396,6 +405,7 @@ export default function SanriFlowScreen() {
           >
             <Text style={[styles.langText, lang === "tr" && styles.langTextActive]}>TR</Text>
           </Pressable>
+
           <Pressable
             onPress={() => setLang("en")}
             style={[styles.langChip, lang === "en" && styles.langChipActive]}
@@ -415,21 +425,33 @@ export default function SanriFlowScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
       >
-        <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+        <ScrollView
+          ref={scrollRef}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
           {messages.map((m) => {
             const isUser = m.role === "user";
             return (
-              <View key={m.id} style={[styles.bubbleRow, isUser ? styles.rowRight : styles.rowLeft]}>
+              <View key={m.id} style={[styles.row, isUser ? styles.rowRight : styles.rowLeft]}>
                 <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
                   <Text style={styles.bubbleText}>{m.text}</Text>
                 </View>
-                <ConsciousMenu />
               </View>
             );
           })}
 
-          {error ? <Text style={styles.errorText}>{T[lang].err + error}</Text> : null}
-          {isSending || typing ? <Text style={styles.thinking}>…</Text> : null}
+          {error ? (
+            <View style={styles.errWrap}>
+              <Text style={styles.errorText}>{error}</Text>
+              <Pressable onPress={send} style={styles.retryBtn} hitSlop={10} disabled={busy}>
+                <Text style={styles.retryTxt}>{t.retry}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <View style={{ height: 10 }} />
         </ScrollView>
 
         {/* INPUT BAR */}
@@ -437,35 +459,37 @@ export default function SanriFlowScreen() {
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder={T[lang].placeholder}
+            placeholder={t.placeholder}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
             multiline
           />
 
-          {/* MIC: basılı tut */}
           <Pressable
             onPressIn={startRec}
             onPressOut={stopRec}
-            style={[styles.micBtn, isRecording && styles.micBtnActive, (isSending || typing) && { opacity: 0.5 }]}
+            style={[styles.micBtn, isRecording && styles.micBtnActive, busy && { opacity: 0.5 }]}
             hitSlop={10}
-            disabled={isSending || typing}
+            disabled={busy}
           >
             <Text style={styles.micTxt}>{isRecording ? "■" : "🎙"}</Text>
-            <Text style={styles.micHint}>{T[lang].micHold}</Text>
+            <Text style={styles.micHint}>{t.micHold}</Text>
           </Pressable>
 
           <Pressable
             onPress={send}
-            style={[styles.sendBtn, (!input.trim() || isSending || typing) && { opacity: 0.5 }]}
+            style={[styles.sendBtn, (!input.trim() || busy) && { opacity: 0.5 }]}
             hitSlop={10}
-            disabled={!input.trim() || isSending || typing}
+            disabled={!input.trim() || busy}
           >
-            <Text style={styles.sendText}>{T[lang].send}</Text>
+            <Text style={styles.sendText}>{t.send}</Text>
           </Pressable>
         </View>
 
-        <Text style={styles.hintBottom}>{T[lang].tip}</Text>
+        <View style={styles.bottomRow}>
+          <Text style={styles.hintBottom}>{t.tip}</Text>
+          <ConsciousMenu />
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -532,7 +556,7 @@ const styles = StyleSheet.create({
 
   scroll: { padding: 16, paddingBottom: 18 },
 
-  bubbleRow: { marginBottom: 10, flexDirection: "row" },
+  row: { marginBottom: 10, flexDirection: "row" },
   rowLeft: { justifyContent: "flex-start" },
   rowRight: { justifyContent: "flex-end" },
 
@@ -541,8 +565,26 @@ const styles = StyleSheet.create({
   bubbleUser: { backgroundColor: "rgba(94,59,255,0.70)", borderColor: "rgba(94,59,255,0.55)" },
   bubbleText: { color: "white", lineHeight: 20 },
 
-  errorText: { color: "#ff6b8a", marginTop: 6 },
-  thinking: { color: "rgba(255,255,255,0.55)", marginTop: 6 },
+  errWrap: {
+    marginTop: 6,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,80,120,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,80,120,0.22)",
+  },
+  errorText: { color: "#ff6b8a", fontWeight: "700" },
+  retryBtn: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  retryTxt: { color: "white", fontWeight: "900" },
 
   inputBar: {
     flexDirection: "row",
@@ -582,5 +624,13 @@ const styles = StyleSheet.create({
   sendBtn: { paddingHorizontal: 16, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#5e3bff" },
   sendText: { color: "white", fontWeight: "900" },
 
-  hintBottom: { color: "rgba(255,255,255,0.45)", paddingHorizontal: 14, paddingBottom: 10 },
+  bottomRow: {
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  hintBottom: { flex: 1, color: "rgba(255,255,255,0.45)" },
 });
