@@ -16,14 +16,32 @@ function getApiBase() {
 
 export const API = {
   base: getApiBase(),
+
   ask: "",
   transcribe: "",
+
+  // ✅ Feed
   dailyStream: "",
+  weeklySymbol: "",
+
+  // ✅ Ritual packs
+  ritualPacks: "",
+  ritualPack: "",
 };
 
 API.ask = API.base + "/bilinc-alani/ask";
 API.transcribe = API.base + "/api/voice/transcribe";
-API.dailyStream = API.base + "/content/daily_stream";
+
+// ✅ backend route: /content/daily-stream
+API.dailyStream = API.base + "/content/daily-stream";
+// ✅ backend route: /content/weekly-symbol
+API.weeklySymbol = API.base + "/content/weekly-symbol";
+
+// ✅ backend routes:
+// GET /content/ritual-packs
+// GET /content/ritual-pack/{id}
+API.ritualPacks = API.base + "/content/ritual-packs";
+API.ritualPack = API.base + "/content/ritual-pack"; // + "/{id}"
 
 function timeoutController(ms: number) {
   const controller = new AbortController();

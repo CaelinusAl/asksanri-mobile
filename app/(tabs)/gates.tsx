@@ -28,6 +28,8 @@ const COPY = {
       { title: "AWAKENED CITIES", sub: "Şehrin kodunu seç", route: "/(tabs)/awakenedCities" },
       { title: "MATRIX", sub: "Akışı decode et", route: "/(tabs)/matrix" },
       { title: "ÜST BİLİNÇ", sub: "Seviye 1–5 katmanları", route: "/(tabs)/ust_bilinc" },
+      // ✅ YENİ: RİTÜEL ALANI
+      { title: "RİTÜEL ALANI", sub: "Okunur ve hissedilir · ses + metin", route: "/(tabs)/rituals" },
       { title: "DÜNYA OLAYLARI", sub: "Haber → mesaj okuması", route: "/(tabs)/world" },
     ],
     back: "Geri",
@@ -39,7 +41,10 @@ const COPY = {
       { title: "SANRI", sub: "Personal reflection field", route: "/(tabs)/sanri_flow" },
       { title: "AWAKENED CITIES", sub: "Choose a city code", route: "/(tabs)/awakenedCities" },
       { title: "MATRIX", sub: "Decode the stream", route: "/(tabs)/matrix" },
-      { title: "HIGHER MIND", sub: "Levels 1–5 layers", route: "/(tabs)/ust" },
+      // ✅ DÜZELTME: route "/(tabs)/ust" yerine "/(tabs)/ust_bilinc"
+      { title: "HIGHER MIND", sub: "Levels 1–5 layers", route: "/(tabs)/ust_bilinc" },
+      // ✅ YENİ: RITUAL SPACE
+      { title: "RITUAL SPACE", sub: "Read + feel · audio + text", route: "/(tabs)/rituals" },
       { title: "WORLD EVENTS", sub: "News → meaning reading", route: "/(tabs)/world" },
     ],
     back: "Back",
@@ -90,7 +95,7 @@ export default function GatesScreen() {
 
           {t.items.map((it) => (
             <GateItem
-              key={it.route}
+              key={it.route + it.title}
               title={it.title}
               sub={it.sub}
               onPress={() => router.push(it.route as any)}
