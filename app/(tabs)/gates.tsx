@@ -32,7 +32,6 @@ const COPY = {
       { title: "RİTÜEL ALANI", sub: "Okunur ve hissedilir · ses + metin", route: "/(tabs)/rituals" },
       { title: "DÜNYA OLAYLARI", sub: "Haber → mesaj okuması", route: "/(tabs)/world" },
     ],
-    back: "Geri",
   },
   en: {
     title: "Gates",
@@ -41,13 +40,12 @@ const COPY = {
       { title: "SANRI", sub: "Personal reflection field", route: "/(tabs)/sanri_flow" },
       { title: "AWAKENED CITIES", sub: "Choose a city code", route: "/(tabs)/awakenedCities" },
       { title: "MATRIX", sub: "Decode the stream", route: "/(tabs)/matrix" },
-      // ✅ DÜZELTME: route "/(tabs)/ust" yerine "/(tabs)/ust_bilinc"
+      // ✅ DÜZELTME: "/(tabs)/ust" yerine "/(tabs)/ust_bilinc"
       { title: "HIGHER MIND", sub: "Levels 1–5 layers", route: "/(tabs)/ust_bilinc" },
       // ✅ YENİ: RITUAL SPACE
       { title: "RITUAL SPACE", sub: "Read + feel · audio + text", route: "/(tabs)/rituals" },
       { title: "WORLD EVENTS", sub: "News → meaning reading", route: "/(tabs)/world" },
     ],
-    back: "Back",
   },
 } as const;
 
@@ -56,6 +54,11 @@ export default function GatesScreen() {
   const t = useMemo(() => COPY[lang], [lang]);
 
   const toggleLang = () => setLang((p) => (p === "tr" ? "en" : "tr"));
+
+  const onBack = () => {
+    if ((router as any).canGoBack?.()) router.back();
+    else router.replace("/(tabs)/index" as any);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -72,7 +75,7 @@ export default function GatesScreen() {
 
         {/* Top bar */}
         <View style={styles.topbar}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+          <Pressable onPress={onBack} style={styles.backBtn} hitSlop={10}>
             <Text style={styles.backTxt}>←</Text>
           </Pressable>
 
@@ -179,7 +182,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 8,
-    paddingBottom: 140, // ✅ alt tabbar + gesture alanı çakışmasın
+    paddingBottom: 140,
   },
 
   title: { color: "white", fontSize: 40, fontWeight: "900", marginTop: 6 },

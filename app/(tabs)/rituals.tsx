@@ -54,12 +54,14 @@ export default function RitualsScreen() {
 
   useEffect(() => {
     let alive = true;
+
     (async () => {
       try {
         setLoading(true);
         setErr("");
-        // ✅ endpoint: /content/rituals
-        const data: any = await apiGetJson(API.ritualPacks, 30000);
+
+        // ✅ backend: GET /content/rituals
+        const data: any = await apiGetJson(API.ritualPacks + "?lang=" + lang, 30000);
 
         const list: RitualPackListItem[] = Array.isArray(data?.items)
           ? data.items
@@ -91,14 +93,18 @@ export default function RitualsScreen() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [lang]);
 
   const openPack = (packId: string) => {
-    // ✅ KRİTİK: route + param adı "id"
     router.push({
       pathname: "/(tabs)/ritual_pack",
       params: { id: packId, lang },
     } as any);
+  };
+
+  const goBack = () => {
+    if ((router as any).canGoBack?.()) router.back();
+    else router.replace("/(tabs)/gates" as any);
   };
 
   return (
@@ -111,7 +117,7 @@ export default function RitualsScreen() {
       <View pointerEvents="none" style={styles.overlay} />
 
       <View style={styles.topbar}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+        <Pressable onPress={goBack} style={styles.backBtn} hitSlop={12}>
           <Text style={styles.backTxt}>←</Text>
         </Pressable>
         <View style={{ flex: 1 }} />
@@ -139,9 +145,7 @@ export default function RitualsScreen() {
             <BlurView intensity={22} tint="dark" style={styles.cardInner}>
               <Text style={styles.cardTitle}>{it.title || it.ritual_pack_id}</Text>
               <Text style={styles.cardSub}>{it.description || ""}</Text>
-              <Text style={styles.cardHint}>
-                {lang === "tr" ? "Aç →" : "Open →"}
-              </Text>
+              <Text style={styles.cardHint}>{lang === "tr" ? "Aç →" : "Open →"}</Text>
             </BlurView>
           </Pressable>
         ))}

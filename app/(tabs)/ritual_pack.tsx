@@ -36,7 +36,7 @@ const BG = require("../../assets/sanri_glass_bg.jpg");
 export default function RitualPackScreen() {
   const params = useLocalSearchParams<{ id?: string; lang?: string }>();
   const lang: Lang = String(params.lang || "tr").toLowerCase() === "en" ? "en" : "tr";
-  const id = String(params.id || "").trim(); // ✅ KRİTİK
+  const id = String(params.id || "").trim();
 
   const [pack, setPack] = useState<RitualPack | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,15 +52,12 @@ export default function RitualPackScreen() {
         setLoading(true);
         setErr("");
 
-        if (!id) {
-          throw new Error(lang === "tr" ? "Pack ID boş geldi." : "Pack ID is empty.");
-        }
+        if (!id) throw new Error(lang === "tr" ? "Pack ID boş geldi." : "Pack ID is empty.");
 
-        // ✅ endpoint: /content/ritual-pack/{id}
-        const url = API.ritualPack + "/" + encodeURIComponent(id);
+        // ✅ backend: GET /content/ritual-pack/{id}?lang=tr
+        const url = API.ritualPack + "/" + encodeURIComponent(id) + "?lang=" + lang;
         const data: any = await apiGetJson(url, 30000);
 
-        // backend farklı format döndürürse normalize
         const normalized: RitualPack = {
           ritual_pack_id: String(data?.ritual_pack_id || data?.id || id),
           mode: data?.mode,
@@ -83,7 +80,12 @@ export default function RitualPackScreen() {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, lang]);
+
+  const goBack = () => {
+    if ((router as any).canGoBack?.()) router.back();
+    else router.replace("/(tabs)/rituals" as any);
+  };
 
   return (
     <View style={styles.root}>
@@ -95,7 +97,7 @@ export default function RitualPackScreen() {
       <View pointerEvents="none" style={styles.overlay} />
 
       <View style={styles.topbar}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+        <Pressable onPress={goBack} style={styles.backBtn} hitSlop={12}>
           <Text style={styles.backTxt}>←</Text>
         </Pressable>
         <Text style={styles.topTitle}>{title}</Text>
@@ -118,21 +120,35 @@ export default function RitualPackScreen() {
 
             <View style={{ height: 14 }} />
 
-            {pack.rituals?.map((r) => (
-              <BlurView key={r.ritual_id} intensity={20} tint="dark" style={styles.card}>
-                <Text style={styles.cardTitle}>{r.title}</Text>
-                {Array.isArray(r.steps) ? (
-                  <View style={{ marginTop: 10 }}>
-                    {r.steps.map((s, idx) => (
-                      <Text key={idx} style={styles.step}>
-                        {idx + 1}. {s}
-                      </Text>
-                    ))}
-                  </View>
-                ) : null}
-                {r.note ? <Text style={styles.note2}>{r.note}</Text> : null}
-              </BlurView>
-            ))}
+            {pack.rituals?.length ? (
+              pack.rituals.map((r) => (
+                <BlurView key={r.ritual_id} intensity={20} tint="dark" style={styles.card}>
+                  <Text style={styles.cardTitle}>{r.title}</Text>
+
+                  {Array.isArray(r.steps) && r.steps.length ? (
+                    <View style={{ marginTop: 10 }}>
+                      {r.steps.map((s, idx) => (
+                        <Text key={idx} style={styles.step}>
+                          {idx + 1}. {s}
+                        </Text>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.note2}>
+                      {lang === "tr" ? "Bu ritüelde adım bulunamadı." : "No steps found for this ritual."}
+                    </Text>
+                  )}
+
+                  {r.note ? <Text style={styles.note2}>{r.note}</Text> : null}
+                </BlurView>
+              ))
+            ) : (
+              <Text style={styles.note}>
+                {lang === "tr"
+                  ? "Ritüel listesi boş geldi. (Backend ritual-pack/{id} rituals döndürmüyor.)"
+                  : "Ritual list is empty. (Backend ritual-pack/{id} is not returning rituals.)"}
+              </Text>
+            )}
           </>
         ) : null}
 

@@ -1,3 +1,4 @@
+// app/(tabs)/world_events.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -12,10 +13,8 @@ import {
   Share,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { WORLD_EVENTS_CREATE_URL } from "../../lib/config";
 
-const STORE_KEY = "world_events_items_v1";
+import { apiGetJson, apiPostJson, API } from "@/lib/apiClient";
 
 type Lang = "tr" | "en";
 
@@ -45,7 +44,6 @@ const T = {
     copy: "Kopyala",
     del: "Sil",
     empty: "Henüz kayıt yok.",
-    err: "Hata: ",
   },
   en: {
     title: "WORLD EVENTS",
@@ -59,98 +57,27 @@ const T = {
     copy: "Copy",
     del: "Delete",
     empty: "No entries yet.",
-    err: "Error: ",
   },
 } as const;
+
 export default function WorldEventsScreen() {
-
-  // -------------------------
-  // STATE
-  // -------------------------
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [lang, setLang] = useState<Lang>("tr");
+  const t = T[lang];
 
+  const [items, setItems] = useState<Item[]>([]);
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
-  
   const [busy, setBusy] = useState(false);
 
-  // -------------------------
-  // THEME
-  // -------------------------
   const theme = useMemo(() => {
-    if (lang === "tr") {
-      return {
-        bg: ["#07080d", "#14072e", "#050610"] as [string, string, string],
-        accent: "#7cf7d8",
-        primary: "rgba(94,59,255,0.85)",
-        card: "rgba(255,255,255,0.06)",
-        stroke: "rgba(255,255,255,0.10)",
-      };
-    }
-
     return {
-      bg: ["#05060a", "#061325", "#05060a"] as [string, string, string],
+      bg: ["#07080d", "#14072e", "#050610"] as [string, string, string],
       accent: "#7cf7d8",
-      primary: "rgba(30,180,120,0.55)",
+      primary: "rgba(94,59,255,0.85)",
       card: "rgba(255,255,255,0.06)",
       stroke: "rgba(255,255,255,0.10)",
     };
-  }, [lang]);
-
-  // -------------------------
-  // API BASE
-  // -------------------------
-  const API_BASE = "https://api.asksanri.com";
-
-  // -------------------------
-  // LOAD EVENTS
-  // -------------------------
-  const load = useCallback(() => {
-    let alive = true;
-
-    setLoading(true);
-    setError("");
-
-    fetch(API_BASE + "/world-events/list?status=published&limit=50")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!alive) return;
-
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.items)
-          ? data.items
-          : [];
-
-        setItems(list);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (!alive) return;
-        console.error(err);
-        setError("Fetch error");
-        setLoading(false);
-      });
-
-    return () => {
-      alive = false;
-    };
   }, []);
-
-  // -------------------------
-  // INITIAL FETCH
-  // -------------------------
-  useEffect(() => {
-    const cleanup = load();
-    return cleanup;
-  }, [load]);
-
-  // -------------------------
-  // RETURN ALTINA DEVAM
-  // -------------------------
 
   const buildInstruction = useCallback(
     (u: string, n: string) => {
@@ -161,13 +88,13 @@ export default function WorldEventsScreen() {
           "Kullanici Notu: " + n + "\n\n" +
           "Soru sorma. Okuma ver.\n" +
           "Basliklarla yaz:\n" +
-          "1) SINYAL (1 cümle: Sistem bugün ne söylüyor?)\n" +
-          "2) SEMBOL DECODE (olay→sembol→mesaj)\n" +
-          "3) SAYI/HARF AKISI (varsa tarihler/sayilar)\n" +
-          "4) ROL HARITASI (aktor/rol: tetikleyici-katalizor-perde)\n" +
-          "5) KOLEKTIF DERS (insanliga mesaj)\n" +
-          "6) KISEL UYGULAMA (okuyana 1 adım)\n" +
-          "7) PAYLASIM METNI (2-3 satır IG/X/FB)\n"
+          "1) SINYAL\n" +
+          "2) SEMBOL DECODE\n" +
+          "3) SAYI/HARF AKISI\n" +
+          "4) ROL HARITASI\n" +
+          "5) KOLEKTIF DERS\n" +
+          "6) KISEL UYGULAMA\n" +
+          "7) PAYLASIM METNI\n"
         );
       }
       return (
@@ -176,24 +103,39 @@ export default function WorldEventsScreen() {
         "User note: " + n + "\n\n" +
         "Do not ask questions. Provide the reading.\n" +
         "Use headings:\n" +
-        "1) SIGNAL (1 sentence)\n" +
+        "1) SIGNAL\n" +
         "2) SYMBOL DECODE\n" +
         "3) NUMBER/LETTER FLOW\n" +
-        "4) ROLE MAP (actors/roles)\n" +
+        "4) ROLE MAP\n" +
         "5) COLLECTIVE LESSON\n" +
         "6) ONE ACTION\n" +
-        "7) SHARE TEXT (2-3 lines)\n"
+        "7) SHARE TEXT\n"
       );
     },
-    [lang],
+    [lang]
   );
+
+  const loadList = useCallback(async () => {
+    try {
+      const qs = "?status=published&limit=50";
+      const data: any = await apiGetJson(API.worldEventsList + qs, 30000);
+      const list = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+      // backend formatın farklıysa burada normalize edebilirsin
+      // şimdilik: UI listesi serverdan değil localden de tutulabilir
+    } catch {
+      // liste fetch zorunlu değil
+    }
+  }, []);
+
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
 
   const readNow = useCallback(async () => {
     const u = url.trim();
     const n = note.trim();
-
     if (!u || !n) {
-      Alert.alert("!", lang === "tr" ? "Link ve 1 cümle not gerekli." : "Link and one sentence note required.");
+      Alert.alert("!", lang === "tr" ? "Link ve 1 cümle not gerekli." : "Link and note required.");
       return;
     }
 
@@ -207,41 +149,31 @@ export default function WorldEventsScreen() {
         domain: "world_events",
         gate_mode: "mirror",
         persona: "user",
-        lang: lang,
+        lang,
         context: {
           source: "world_events",
           intent: "ust_bilinc_matrix_read",
           url: u,
           user_note: n,
           output_format: "world_event_read_v1",
-          sanri_birth: "2026-02-21",
         },
       };
 
-      const res = await fetch(WORLD_EVENTS_CREATE_URL, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(payload),
-});
+      // ✅ kritik: apiPostJson headerları otomatik ekler (X-User-Id vs)
+      const data: any = await apiPostJson(API.worldEventsCreate, payload, 60000);
 
-const data = await res.json().catch(() => ({} as any));
-if (!res.ok) throw new Error(String((data as any)?.detail || "HTTP " + res.status));
-
-const reading = String((data as any)?.answer || (data as any)?.response || "").trim() || "-";
+      const reading = String(data?.answer || data?.response || "").trim() || "-";
 
       const item: Item = {
         id: uid(),
         created_at: Date.now(),
         url: u,
         note: n,
-        lang: lang,
-        reading: reading,
+        lang,
+        reading,
       };
 
-      const next = [item, ...items];
-      load();
-
-      // temizle
+      setItems((prev) => [item, ...prev]);
       setUrl("");
       setNote("");
     } catch (e: any) {
@@ -249,7 +181,7 @@ const reading = String((data as any)?.answer || (data as any)?.response || "").t
     } finally {
       setBusy(false);
     }
-  }, [buildInstruction, items, lang, note, url]);
+  }, [buildInstruction, lang, note, url]);
 
   const shareItem = useCallback(async (it: Item) => {
     const text =
@@ -265,56 +197,48 @@ const reading = String((data as any)?.answer || (data as any)?.response || "").t
     } catch {}
   }, []);
 
-  const copyItem = useCallback(async (it: Item) => {
-    // Clipboard API eklemek istersen söylerim (expo-clipboard)
-    Alert.alert(lang === "tr" ? "Kopyalama" : "Copy", lang === "tr" ? "Şimdilik Paylaş butonu ile kopyalayabilirsin." : "Use Share to copy for now.");
-  }, [lang]);
-
-  const deleteItem = useCallback(async (id: string) => {
-  // Şimdilik sadece ekrandan sil (server delete sonra)
-  setItems((prev) => prev.filter((x) => x.id !== id));
-}, []);
+  const deleteItem = useCallback((id: string) => {
+    setItems((prev) => prev.filter((x) => x.id !== id));
+  }, []);
 
   return (
     <View style={styles.root}>
       <LinearGradient colors={theme.bg} style={StyleSheet.absoluteFillObject} />
 
-      
-
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.h1}>{T[lang].title}</Text>
-              <Text style={styles.sub}>{T[lang].sub}</Text>
+              <Text style={styles.h1}>{t.title}</Text>
+              <Text style={styles.sub}>{t.sub}</Text>
             </View>
 
             <View style={styles.langRow}>
-              <Pressable onPress={() => setLang("tr")} style={[styles.langChip, lang === "tr" && styles.langChipActive]}>
+              <Pressable onPress={() => setLang("tr")} style={styles.langChip}>
                 <Text style={[styles.langText, lang === "tr" && { color: theme.accent }]}>TR</Text>
               </Pressable>
-              <Pressable onPress={() => setLang("en")} style={[styles.langChip, lang === "en" && styles.langChipActive]}>
+              <Pressable onPress={() => setLang("en")} style={styles.langChip}>
                 <Text style={[styles.langText, lang === "en" && { color: theme.accent }]}>EN</Text>
               </Pressable>
             </View>
           </View>
 
           <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.stroke }]}>
-            <Text style={styles.label}>{T[lang].url}</Text>
+            <Text style={styles.label}>{t.url}</Text>
             <TextInput
               value={url}
               onChangeText={setUrl}
-              placeholder={T[lang].url}
+              placeholder={t.url}
               placeholderTextColor="rgba(255,255,255,0.35)"
               style={styles.input}
               autoCapitalize="none"
             />
 
-            <Text style={[styles.label, { marginTop: 12 }]}>{T[lang].note}</Text>
+            <Text style={[styles.label, { marginTop: 12 }]}>{t.note}</Text>
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder={T[lang].note}
+              placeholder={t.note}
               placeholderTextColor="rgba(255,255,255,0.35)"
               style={[styles.input, { minHeight: 86 }]}
               multiline
@@ -325,20 +249,18 @@ const reading = String((data as any)?.answer || (data as any)?.response || "").t
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: theme.primary }, busy && { opacity: 0.6 }]}
             >
-              <Text style={styles.primaryText}>{busy ? T[lang].saving : T[lang].read}</Text>
+              <Text style={styles.primaryText}>{busy ? t.saving : t.read}</Text>
             </Pressable>
           </View>
 
-          <Text style={[styles.sectionTitle, { color: theme.accent }]}>{T[lang].today}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.accent }]}>{t.today}</Text>
 
           {items.length === 0 ? (
-            <Text style={styles.empty}>{T[lang].empty}</Text>
+            <Text style={styles.empty}>{t.empty}</Text>
           ) : (
             items.map((it) => (
               <View key={it.id} style={[styles.itemCard, { backgroundColor: theme.card, borderColor: theme.stroke }]}>
-                <Text style={styles.itemMeta}>
-                  {new Date(it.created_at).toLocaleString()}
-                </Text>
+                <Text style={styles.itemMeta}>{new Date(it.created_at).toLocaleString()}</Text>
 
                 <Text style={styles.itemUrl}>{it.url}</Text>
                 <Text style={styles.itemNote}>Not: {it.note}</Text>
@@ -349,15 +271,10 @@ const reading = String((data as any)?.answer || (data as any)?.response || "").t
 
                 <View style={styles.actionsRow}>
                   <Pressable onPress={() => shareItem(it)} style={styles.smallBtn}>
-                    <Text style={[styles.smallBtnText, { color: theme.accent }]}>{T[lang].share}</Text>
+                    <Text style={[styles.smallBtnText, { color: theme.accent }]}>{t.share}</Text>
                   </Pressable>
-
-                  <Pressable onPress={() => copyItem(it)} style={styles.smallBtn}>
-                    <Text style={[styles.smallBtnText, { color: theme.accent }]}>{T[lang].copy}</Text>
-                  </Pressable>
-
                   <Pressable onPress={() => deleteItem(it.id)} style={styles.smallBtn}>
-                    <Text style={[styles.smallBtnText, { color: "#ff6b8a" }]}>{T[lang].del}</Text>
+                    <Text style={[styles.smallBtnText, { color: "#ff6b8a" }]}>{t.del}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -388,7 +305,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  langChipActive: { backgroundColor: "rgba(124,247,216,0.12)" },
   langText: { color: "rgba(255,255,255,0.75)", fontWeight: "900" },
 
   card: {

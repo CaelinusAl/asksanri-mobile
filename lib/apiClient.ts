@@ -16,32 +16,29 @@ function getApiBase() {
 
 export const API = {
   base: getApiBase(),
-
   ask: "",
   transcribe: "",
-
-  // ✅ Feed
   dailyStream: "",
   weeklySymbol: "",
-
-  // ✅ Ritual packs
   ritualPacks: "",
   ritualPack: "",
+  worldEventsCreate: "",
+  worldEventsList: "",
 };
 
 API.ask = API.base + "/bilinc-alani/ask";
 API.transcribe = API.base + "/api/voice/transcribe";
 
-// ✅ backend route: /content/daily-stream
 API.dailyStream = API.base + "/content/daily-stream";
-// ✅ backend route: /content/weekly-symbol
 API.weeklySymbol = API.base + "/content/weekly-symbol";
 
-// ✅ backend routes:
-// GET /content/ritual-packs
-// GET /content/ritual-pack/{id}
+// ✅ ritüel endpoint isimlerini standartla:
 API.ritualPacks = API.base + "/content/ritual-packs";
 API.ritualPack = API.base + "/content/ritual-pack"; // + "/{id}"
+
+// ✅ world events:
+API.worldEventsCreate = API.base + "/world-events/create";
+API.worldEventsList = API.base + "/world-events/list";
 
 function timeoutController(ms: number) {
   const controller = new AbortController();
