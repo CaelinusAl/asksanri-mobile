@@ -22,7 +22,6 @@
     "android": {
       "package": "com.caelinusai.asksanri",
       "versionCode": 16,
-      "usesCleartextTraffic": true,
       "permissions": [
         "RECORD_AUDIO"
       ],
@@ -36,13 +35,9 @@
       "expo-secure-store"
     ],
     "extra": {
+      "EXPO_PUBLIC_API_BASE": "https://api.asksanri.com",
       "eas": {
         "projectId": "f2d81bef-b1a5-4de7-b0cb-22747bfae469"
-      },
-      "expo": {
-        "extra": {
-          "EXPO_PUBLIC_API_BASE": "https://api.asksanri.com"
-        }
       }
     }
   }

@@ -1,5 +1,5 @@
 // app/(tabs)/matrix.tsx
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Alert,
 } from "react-native";
 import { router } from "expo-router";
+
 import MatrixRain from "../../lib/MatrixRain";
 import { hasVipEntitlement } from "../../lib/premium";
 
@@ -42,7 +43,6 @@ const T = {
     premiumTitle: "Premium Aylık Okuma",
     premiumSub: "Aşk · ilişki · iş · para · kader rotası · haftalık akış",
     premiumBtn: "Premium",
-    back: "Geri",
   },
   en: {
     kicker: "CAELINUS AI · CONSCIOUSNESS MIRROR",
@@ -64,7 +64,6 @@ const T = {
     premiumTitle: "Premium Monthly",
     premiumSub: "Love · relationships · work · money · destiny path · weekly flow",
     premiumBtn: "Premium",
-    back: "Back",
   },
 } as const;
 
@@ -76,16 +75,14 @@ export default function MatrixScreen() {
   const [name, setName] = useState<string>("");
   const [dob, setDob] = useState<string>("");
 
-  // sabit cycle
   const cycle = "22.02.2026";
-
-  const toggleLang = () => setLang((p) => (p === "tr" ? "en" : "tr"));
 
   const onBack = () => {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/gates");
   };
 
+  // ✅ sadece mini ekrana gider (sanri_flow yok)
   const onFree = () => {
     const safeName = (name || "").trim();
     const safeDob = (dob || "").trim();
@@ -99,20 +96,14 @@ export default function MatrixScreen() {
       return;
     }
 
-    // seed (backtick yok)
-    const seed =
-      mode === "name"
-        ? "MODE=name; NAME=" + safeName + "; TYPE=free_frequency"
-        : "MODE=dob; DOB=" + safeDob + "; TYPE=free_frequency";
-
-    const title = lang === "tr" ? "Matrix Okuma" : "Matrix Reading";
-
     router.push({
-      pathname: "/(tabs)/sanri_flow",
+      pathname: "/(tabs)/matrix_mini",
       params: {
         lang,
-        title,
-        seed,
+        mode, // "name" | "dob"
+        name: safeName,
+        dob: safeDob,
+        cycle,
       },
     } as any);
   };
@@ -120,7 +111,6 @@ export default function MatrixScreen() {
   const goVip = async (source: "role" | "premium_monthly") => {
     const ok = await hasVipEntitlement().catch(() => false);
     if (ok) {
-      // VIP varsa şimdilik sadece bilgi ver (ileride direkt premium içeriğe atarız)
       Alert.alert(
         "Sanrı",
         lang === "tr"
@@ -130,7 +120,6 @@ export default function MatrixScreen() {
       return;
     }
 
-    // VIP yoksa VIP sayfasına
     router.push({
       pathname: "/(tabs)/vip",
       params: { lang, source },
@@ -166,6 +155,7 @@ export default function MatrixScreen() {
           >
             <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
           </Pressable>
+
           <Pressable
             onPress={() => setLang("en")}
             style={[styles.langChip, lang === "en" && styles.langChipActive]}
@@ -220,6 +210,8 @@ export default function MatrixScreen() {
                 placeholder={t.namePh}
                 placeholderTextColor="rgba(255,255,255,0.35)"
                 style={styles.input}
+                autoCapitalize="words"
+                autoCorrect={false}
               />
             </>
           ) : null}
@@ -233,7 +225,8 @@ export default function MatrixScreen() {
                 placeholder={t.dobPh}
                 placeholderTextColor="rgba(255,255,255,0.35)"
                 style={styles.input}
-                keyboardType="numeric"
+                keyboardType={Platform.OS === "ios" ? "numbers-and-punctuation" : "numeric"}
+                autoCorrect={false}
               />
             </>
           ) : null}
@@ -266,9 +259,7 @@ export default function MatrixScreen() {
           </View>
 
           <View style={styles.payRight}>
-            <Text style={styles.priceTag}>
-              {lang === "tr" ? priceTry : priceUsd}
-            </Text>
+            <Text style={styles.priceTag}>{lang === "tr" ? priceTry : priceUsd}</Text>
             <Pressable onPress={() => goVip("premium_monthly")} style={styles.ghostBtn} hitSlop={10}>
               <Text style={styles.ghostBtnTxt}>{t.premiumBtn}</Text>
             </Pressable>

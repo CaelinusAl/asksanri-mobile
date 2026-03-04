@@ -15,7 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Audio } from "expo-av";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { apiPostJson, apiPostForm, API } from "@/lib/apiClient";
 import ConsciousMenu from "../../components/ConsciousMenu";
@@ -109,7 +109,6 @@ export default function SanriFlowScreen() {
 
   const initialLang: Lang = safeStr(params.lang).toLowerCase() === "en" ? "en" : "tr";
   const [lang, setLang] = useState<Lang>(initialLang);
-
   const t = useMemo(() => T[lang], [lang]);
 
   const [messages, setMessages] = useState<Msg[]>([
@@ -126,6 +125,9 @@ export default function SanriFlowScreen() {
 
   // loader id asla null değil
   const loaderIdRef = useRef<string>("");
+
+  // last sent text (retry için)
+  const lastSentRef = useRef<string>("");
 
   // mic refs
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -191,104 +193,123 @@ export default function SanriFlowScreen() {
   }, []);
 
   // ✅ SEND (text -> /bilinc-alani/ask)
-  const send = useCallback(async () => {
-    const text = input.trim();
-    if (!text || busy) return;
+  const sendText = useCallback(
+    async (raw: string) => {
+      const text = raw.trim();
+      if (!text || busy) return;
 
-    setInput("");
-    setBusy(true);
-    setError("");
+      lastSentRef.current = text;
 
-    const loaderId = ensureLoader();
+      setInput("");
+      setBusy(true);
+      setError("");
 
-    try {
+      const loaderId = ensureLoader();
+
       try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } catch {}
+        try {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch {}
 
-      setMessages((prev) => prev.concat([{ id: uid("u"), role: "user", text }]));
+        setMessages((prev) => prev.concat([{ id: uid("u"), role: "user", text }]));
 
-      if (isWaking) {
-        resolveLoader(loaderId, t.waking + "\n" + t.wakingSub);
-        setTimeout(() => {
-          setMessages((prev) => prev.map((m) => (m.id === loaderId ? { ...m, text: "…" } : m)));
-        }, 650);
+        if (isWaking) {
+          resolveLoader(loaderId, t.waking + "\n" + t.wakingSub);
+          setTimeout(() => {
+            setMessages((prev) => prev.map((m) => (m.id === loaderId ? { ...m, text: "…" } : m)));
+          }, 650);
+        }
+
+        // ✅ payload burada TANIMLI
+        const payload = {
+          message: text,
+          session_id: "mobile-default",
+          domain: "auto",
+          gate_mode: "mirror",
+          persona: "user",
+          lang,
+          context: {
+            source: "personal_field",
+            title: params.title ? safeStr(params.title) : undefined,
+            seed: params.seed ? safeStr(params.seed) : undefined,
+            city_code: params.code ? safeStr(params.code) : undefined,
+            city: params.city ? safeStr(params.city) : undefined,
+            layer: params.layer ? safeStr(params.layer) : undefined,
+          },
+        };
+
+        const data: any = await apiPostJson(API.ask, payload, 60000);
+
+        // ✅ DEBUG: gerçek response
+        console.log("SANRI_RAW_RESPONSE", data);
+        try {
+          console.log("SANRI_KEYS", Object.keys(data || {}));
+        } catch {}
+
+        const answer =
+          safeStr(data?.answer || data?.response).trim() ||
+          (lang === "tr" ? "Buradayım." : "I’m here.");
+
+        setIsWaking(false);
+        await typeIntoLoader(loaderId, answer);
+      } catch (e: any) {
+        removeLoader(loaderId);
+
+        const msg = safeStr(e?.message || e);
+
+        if (msg === "TIMEOUT" || msg.toLowerCase().includes("abort")) {
+          setError(t.timeout);
+        } else if (msg === "INVALID_JSON" || msg === "NON_JSON_RESPONSE") {
+          const st = String(e?.status || "");
+          const ct = String(e?.contentType || "");
+          const rawErr = String(e?.raw || "");
+          setError(
+            (lang === "tr" ? "API JSON dönmedi. " : "API did not return JSON. ") +
+              "status=" +
+              st +
+              " ct=" +
+              ct +
+              " raw=" +
+              rawErr
+          );
+        } else if (msg.toLowerCase().includes("network request failed")) {
+          setError(t.netfail);
+        } else if (msg.startsWith("HTTP_")) {
+          const detail = e?.detail;
+          setError("Hata: " + safeStr(detail?.message || detail || msg));
+        } else {
+          setError("Hata: " + msg);
+        }
+      } finally {
+        setBusy(false);
+        scrollToEnd();
       }
-
-      // ✅ payload burada TANIMLI
-      const payload = {
-        message: text,
-        session_id: "mobile-default",
-        domain: "auto",
-        gate_mode: "mirror",
-        persona: "user",
-        lang,
-        context: {
-          source: "personal_field",
-          title: params.title ? safeStr(params.title) : undefined,
-          seed: params.seed ? safeStr(params.seed) : undefined,
-          city_code: params.code ? safeStr(params.code) : undefined,
-          city: params.city ? safeStr(params.city) : undefined,
-          layer: params.layer ? safeStr(params.layer) : undefined,
-        },
-      };
-
-      const data: any = await apiPostJson(API.ask, payload, 60000);
-
-      const answer =
-        safeStr(data?.answer || data?.response).trim() ||
-        (lang === "tr" ? "Buradayım." : "I’m here.");
-
-      setIsWaking(false);
-
-      await typeIntoLoader(loaderId, answer);
-    } catch (e: any) {
-      removeLoader(loaderId);
-
-      const msg = safeStr(e?.message || e);
-
-      if (msg === "TIMEOUT" || msg.toLowerCase().includes("abort")) {
-        setError(t.timeout);
-      } else if (msg === "INVALID_JSON" || msg === "NON_JSON_RESPONSE") {
-  const st = String(e?.status || "");
-  const ct = String(e?.contentType || "");
-  const raw = String(e?.raw || "");
-
-  setError(
-    (lang === "tr" ? "API JSON dönmedi. " : "API did not return JSON. ") +
-    "status=" + st +
-    " ct=" + ct +
-    " raw=" + raw
+    },
+    [
+      busy,
+      ensureLoader,
+      isWaking,
+      lang,
+      params.city,
+      params.code,
+      params.layer,
+      params.seed,
+      params.title,
+      resolveLoader,
+      removeLoader,
+      scrollToEnd,
+      t,
+      typeIntoLoader,
+    ]
   );
-}else if (msg.toLowerCase().includes("network request failed")) {
-        setError(t.netfail);
-      } else if (msg.startsWith("HTTP_")) {
-        const detail = e?.detail;
-        setError("Hata: " + safeStr(detail?.message || detail || msg));
-      } else {
-        setError("Hata: " + msg);
-      }
-    } finally {
-      setBusy(false);
-      scrollToEnd();
-    }
-  }, [
-    input,
-    busy,
-    ensureLoader,
-    resolveLoader,
-    removeLoader,
-    isWaking,
-    t,
-    lang,
-    params.title,
-    params.seed,
-    params.code,
-    params.city,
-    params.layer,
-    typeIntoLoader,
-    scrollToEnd,
-  ]);
+
+  const send = useCallback(() => sendText(input), [sendText, input]);
+
+  const retrySend = useCallback(() => {
+    const last = lastSentRef.current;
+    if (!last || busy) return;
+    sendText(last);
+  }, [sendText, busy]);
 
   // ✅ MIC START
   const startRec = useCallback(async () => {
@@ -370,7 +391,7 @@ export default function SanriFlowScreen() {
         } as any
       );
 
-      const voice: any = await apiPostForm(API.transcribe, form, 20000);
+      const voice: any = await apiPostForm(API.transcribe, form, 60000);
       const outText = safeStr(voice?.text).trim();
 
       if (!outText) {
@@ -454,7 +475,7 @@ export default function SanriFlowScreen() {
           {error ? (
             <View style={styles.errWrap}>
               <Text style={styles.errorText}>{error}</Text>
-              <Pressable onPress={send} style={styles.retryBtn} hitSlop={10} disabled={busy}>
+              <Pressable onPress={retrySend} style={styles.retryBtn} hitSlop={10} disabled={busy}>
                 <Text style={styles.retryTxt}>{t.retry}</Text>
               </Pressable>
             </View>
@@ -547,7 +568,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  langChipActive: { backgroundColor: "rgba(124,247,216,0.12)", borderColor: "rgba(124,247,216,0.28)" },
+  langChipActive: {
+    backgroundColor: "rgba(124,247,216,0.12)",
+    borderColor: "rgba(124,247,216,0.28)",
+  },
   langText: { color: "rgba(255,255,255,0.70)", fontWeight: "900", letterSpacing: 1 },
   langTextActive: { color: "#7cf7d8" },
 
@@ -569,7 +593,13 @@ const styles = StyleSheet.create({
   rowLeft: { justifyContent: "flex-start" },
   rowRight: { justifyContent: "flex-end" },
 
-  bubble: { maxWidth: "92%", paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1 },
+  bubble: {
+    maxWidth: "92%",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
   bubbleAI: { backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.12)" },
   bubbleUser: { backgroundColor: "rgba(94,59,255,0.70)", borderColor: "rgba(94,59,255,0.55)" },
   bubbleText: { color: "white", lineHeight: 20 },
@@ -630,7 +660,13 @@ const styles = StyleSheet.create({
   micTxt: { color: "white", fontWeight: "900", fontSize: 16, lineHeight: 18 },
   micHint: { color: "rgba(255,255,255,0.55)", fontSize: 10, marginTop: 2 },
 
-  sendBtn: { paddingHorizontal: 16, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#5e3bff" },
+  sendBtn: {
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#5e3bff",
+  },
   sendText: { color: "white", fontWeight: "900" },
 
   bottomRow: {

@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { hasVipEntitlement } from "../../lib/premium";
 import { WORLD_EVENTS_PINNED_URL } from "../../lib/config";
 import MatrixRain from "../../lib/MatrixRain";
+import { API, apiGetJson } from "@/lib/apiClient";
 
 type Lang = "tr" | "en";
 
@@ -29,6 +30,14 @@ type PinnedEvent = {
   tags?: string[];
   meta?: any;
 } | null;
+
+type DailyStream = {
+  day: string;
+  lang: Lang;
+  title: string;
+  body: string;
+  tags?: string[];
+};
 
 type Level = {
   id: 1 | 2 | 3 | 4 | 5;
@@ -63,49 +72,11 @@ const FALLBACK = {
 } as const;
 
 const LEVELS: Level[] = [
-  {
-    id: 1,
-    titleTR: "Level 1 — Gözlemci",
-    titleEN: "Level 1 — Observer",
-    subTR: "Gözlem. Nefes. Basit veri.",
-    subEN: "Observe. Breathe. Simple data.",
-    route: "/(tabs)/observer",
-  },
-  {
-    id: 2,
-    titleTR: "Level 2 — Örüntü",
-    titleEN: "Level 2 — Pattern",
-    subTR: "Tekrarlayan motifleri gör.",
-    subEN: "See repeating motifs.",
-    route: "/(tabs)/pattern",
-  },
-  {
-    id: 3,
-    titleTR: "Level 3 — Sembol 🔒",
-    titleEN: "Level 3 — Symbol 🔒",
-    subTR: "Sembol okuma: olay → mesaj.",
-    subEN: "Symbol reading: event → message.",
-    premium: true,
-    route: "/(tabs)/symbol",
-  },
-  {
-    id: 4,
-    titleTR: "Level 4 — Sistem 🔒",
-    titleEN: "Level 4 — System 🔒",
-    subTR: "Sistem haritası: aktörler, roller.",
-    subEN: "System map: actors, roles.",
-    premium: true,
-    route: "/(tabs)/system_map",
-  },
-  {
-    id: 5,
-    titleTR: "Level 5 — Kod Gözü 🔒",
-    titleEN: "Level 5 — Code Eye 🔒",
-    subTR: "Her şeye 'kod' olarak bak.",
-    subEN: "Look at everything as code.",
-    premium: true,
-    route: "/(tabs)/code_eye",
-  },
+  { id: 1, titleTR: "Level 1 — Gözlemci", titleEN: "Level 1 — Observer", subTR: "Gözlem. Nefes. Basit veri.", subEN: "Observe. Breathe. Simple data.", route: "/(tabs)/observer" },
+  { id: 2, titleTR: "Level 2 — Örüntü", titleEN: "Level 2 — Pattern", subTR: "Tekrarlayan motifleri gör.", subEN: "See repeating motifs.", route: "/(tabs)/pattern" },
+  { id: 3, titleTR: "Level 3 — Sembol 🔒", titleEN: "Level 3 — Symbol 🔒", subTR: "Sembol okuma: olay → mesaj.", subEN: "Symbol reading: event → message.", premium: true, route: "/(tabs)/symbol" },
+  { id: 4, titleTR: "Level 4 — Sistem 🔒", titleEN: "Level 4 — System 🔒", subTR: "Sistem haritası: aktörler, roller.", subEN: "System map: actors, roles.", premium: true, route: "/(tabs)/system_map" },
+  { id: 5, titleTR: "Level 5 — Kod Gözü 🔒", titleEN: "Level 5 — Code Eye 🔒", subTR: "Her şeye 'kod' olarak bak.", subEN: "Look at everything as code.", premium: true, route: "/(tabs)/code_eye" },
 ];
 
 const T = {
@@ -117,6 +88,10 @@ const T = {
     vip: "VIP",
     loading: "Vitrin yükleniyor…",
     back: "Kapılar",
+    dailyKicker: "☀️ Günün Akışı",
+    dailyOpen: "Akışı Aç",
+    dailyLoading: "Günlük akış çekiliyor…",
+    dailyFail: "Günlük akış alınamadı. (Fallback gösteriliyor.)",
   },
   en: {
     kicker: "SYSTEM TERMINAL",
@@ -126,6 +101,10 @@ const T = {
     vip: "VIP",
     loading: "Loading showcase…",
     back: "Gates",
+    dailyKicker: "☀️ Daily Stream",
+    dailyOpen: "Open Stream",
+    dailyLoading: "Fetching daily stream…",
+    dailyFail: "Daily stream not available. (Showing fallback.)",
   },
 } as const;
 
@@ -142,6 +121,10 @@ export default function UstBilincScreen() {
   const [pinned, setPinned] = useState<PinnedEvent>(null);
   const [loadingPinned, setLoadingPinned] = useState(true);
   const [isVip, setIsVip] = useState(false);
+
+  const [daily, setDaily] = useState<DailyStream | null>(null);
+  const [dailyLoading, setDailyLoading] = useState(true);
+  const [dailyFail, setDailyFail] = useState(false);
 
   const theme = useMemo(
     () => ({
@@ -164,6 +147,7 @@ export default function UstBilincScreen() {
     })();
   }, []);
 
+  // pinned fetch (vitrin)
   useEffect(() => {
     let alive = true;
     setLoadingPinned(true);
@@ -186,6 +170,32 @@ export default function UstBilincScreen() {
     };
   }, []);
 
+  // daily stream fetch
+  useEffect(() => {
+    let alive = true;
+    setDailyLoading(true);
+    setDailyFail(false);
+
+    (async () => {
+      try {
+        const url = API.dailyStream + "?lang=" + encodeURIComponent(lang);
+        const data = await apiGetJson<DailyStream>(url, 30000);
+        if (!alive) return;
+        setDaily(data);
+        setDailyLoading(false);
+      } catch {
+        if (!alive) return;
+        setDaily(null);
+        setDailyFail(true);
+        setDailyLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [lang]);
+
   const openLevel = (lvl: Level) => {
     if (lvl.premium && !isVip) {
       router.push({ pathname: "/(tabs)/vip", params: { lang } } as any);
@@ -193,6 +203,12 @@ export default function UstBilincScreen() {
     }
     router.push({ pathname: lvl.route, params: { lang } } as any);
   };
+
+  // Haftanın Sembolü text
+  const pinnedText =
+    lang === "tr"
+      ? pinned?.reading_tr || ""
+      : pinned?.reading_en || pinned?.reading_tr || "";
 
   const showcaseTitle =
     pinned?.title
@@ -202,13 +218,41 @@ export default function UstBilincScreen() {
       : FALLBACK[lang].title;
 
   const showcaseSubtitle = pinned?.title ? pinned.title : FALLBACK[lang].subtitle;
-
-  const pinnedText =
-    lang === "tr"
-      ? pinned?.reading_tr || ""
-      : pinned?.reading_en || pinned?.reading_tr || "";
-
   const showcaseText = pinned?.title ? firstLines(pinnedText, 5) : FALLBACK[lang].text;
+
+  const onOpenWeekly = () => {
+    router.push({
+      pathname: "/(tabs)/weekly_symbol",
+      params: {
+        lang,
+        kicker: showcaseTitle,
+        title: showcaseSubtitle,
+        body: pinned?.title ? pinnedText : FALLBACK[lang].text,
+        source_url: pinned?.source_url || "",
+        created_at: pinned?.created_at || "",
+      },
+    } as any);
+  };
+
+  const onOpenDaily = () => {
+    const title = daily?.title || (lang === "tr" ? "Günün Akışı" : "Daily Stream");
+    const body =
+      daily?.body ||
+      (lang === "tr"
+        ? "Bugün: tek cümle. tek niyet. tek yön.\n\nSistem cevap vermez.\nAnlamı açar."
+        : "Today: one sentence. one intent. one direction.\n\nThe system does not answer.\nIt opens meaning.");
+
+    router.push({
+      pathname: "/(tabs)/daily_stream",
+      params: {
+        lang,
+        day: daily?.day || "",
+        title,
+        body,
+        tags: (daily?.tags || []).join(","),
+      },
+    } as any);
+  };
 
   return (
     <View style={styles.root}>
@@ -217,7 +261,7 @@ export default function UstBilincScreen() {
       {/* BACKGROUND */}
       <ImageBackground source={BG} style={RNStyleSheet.absoluteFillObject} resizeMode="cover" />
 
-      {/* MATRIX LAYER */}
+      {/* MATRIX */}
       <View pointerEvents="none" style={RNStyleSheet.absoluteFillObject}>
         <MatrixRain opacity={0.14} />
       </View>
@@ -252,14 +296,13 @@ export default function UstBilincScreen() {
         </View>
       </View>
 
-      {/* CONTENT */}
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <Text style={styles.kicker}>{T[lang].kicker}</Text>
         <Text style={styles.h1}>{T[lang].title}</Text>
         <Text style={styles.sub}>{T[lang].subtitle}</Text>
 
-        {/* SHOWCASE */}
-        <View style={styles.showcaseWrap}>
+        {/* SHOWCASE (CLICKABLE) */}
+        <Pressable onPress={onOpenWeekly} style={styles.showcaseWrap} hitSlop={10}>
           <ImageBackground
             source={AY_CICEGI}
             resizeMode="cover"
@@ -272,9 +315,36 @@ export default function UstBilincScreen() {
                 {loadingPinned ? T[lang].loading : showcaseSubtitle}
               </Text>
               <Text style={styles.showcaseText}>{showcaseText}</Text>
+
+              <View style={styles.openRow}>
+                <Text style={styles.openHint}>{lang === "tr" ? "Detayı aç" : "Open details"}</Text>
+                <Text style={styles.openArrow}>›</Text>
+              </View>
             </BlurView>
           </ImageBackground>
-        </View>
+        </Pressable>
+
+        {/* DAILY STREAM (CLICKABLE) */}
+        <Pressable onPress={onOpenDaily} style={styles.dailyCard} hitSlop={10}>
+          <Text style={styles.dailyKicker}>{T[lang].dailyKicker}</Text>
+          <Text style={styles.dailyTitle}>
+            {dailyLoading
+              ? T[lang].dailyLoading
+              : daily?.title || (lang === "tr" ? "Günün Akışı" : "Daily Stream")}
+          </Text>
+          <Text style={styles.dailyBody}>
+            {dailyLoading
+              ? ""
+              : dailyFail
+              ? T[lang].dailyFail
+              : firstLines(daily?.body || "", 5)}
+          </Text>
+
+          <View style={styles.openRow}>
+            <Text style={styles.openHint}>{T[lang].dailyOpen}</Text>
+            <Text style={styles.openArrow}>›</Text>
+          </View>
+        </Pressable>
 
         {/* LEVELS */}
         <View style={styles.levelCard}>
@@ -301,7 +371,6 @@ export default function UstBilincScreen() {
           ))}
         </View>
 
-        {/* bottom safe gap */}
         <View style={{ height: 120 }} />
       </ScrollView>
     </View>
@@ -356,7 +425,7 @@ const styles = StyleSheet.create({
   h1: { color: "white", fontSize: 44, fontWeight: "900", lineHeight: 48 },
   sub: { color: "rgba(255,255,255,0.72)", marginTop: 10, marginBottom: 18, fontSize: 16, lineHeight: 22 },
 
-  showcaseWrap: { marginBottom: 18 },
+  showcaseWrap: { marginBottom: 14 },
   showcaseImage: { borderRadius: 22, overflow: "hidden" },
   showcaseCard: {
     padding: 18,
@@ -368,6 +437,22 @@ const styles = StyleSheet.create({
   showcaseTitle: { color: "#7cf7d8", fontWeight: "900", fontSize: 16 },
   showcaseSubtitle: { color: "white", marginTop: 6, fontSize: 18, fontWeight: "900" },
   showcaseText: { color: "rgba(255,255,255,0.9)", marginTop: 10, lineHeight: 22, fontSize: 14 },
+
+  dailyCard: {
+    borderRadius: 22,
+    padding: 18,
+    backgroundColor: "rgba(94,59,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    marginBottom: 18,
+  },
+  dailyKicker: { color: "#7cf7d8", fontWeight: "900", fontSize: 14 },
+  dailyTitle: { color: "white", marginTop: 6, fontSize: 18, fontWeight: "900" },
+  dailyBody: { color: "rgba(255,255,255,0.85)", marginTop: 10, lineHeight: 22, fontSize: 14 },
+
+  openRow: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  openHint: { color: "rgba(255,255,255,0.75)", fontWeight: "800" },
+  openArrow: { color: "#7cf7d8", fontWeight: "900", fontSize: 22 },
 
   levelCard: {
     borderRadius: 22,

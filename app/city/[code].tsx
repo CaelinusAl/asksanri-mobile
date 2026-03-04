@@ -8,7 +8,6 @@ import {
   Platform,
   ScrollView,
   Image,
-  ImageBackground,
   Animated,
   Easing,
 } from "react-native";
@@ -25,6 +24,8 @@ import VipSheet from "../../components/VipSheet";
 import { consumeVipJustActivated } from "@/lib/vipPulse";
 
 const KEY_BG = require("../../assets/key_holo.png");
+// Eğer assets'te varsa kullan (yoksa build patlar). Dosya sende var demiştin.
+const DOOR_IMG = require("../../assets/door_holo.png");
 
 export default function CityCodeScreen() {
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function CityCodeScreen() {
   const [vipOpen, setVipOpen] = useState(false);
   const [vipRain, setVipRain] = useState(false);
 
-  // "nefes" animasyonu (key background)
+  // === KEY background breathe ===
   const breathe = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -65,6 +66,33 @@ export default function CityCodeScreen() {
   const keyScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
   const keyOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.26] });
 
+  // === DOOR OPEN animation ===
+  const doorAnim = useRef(new Animated.Value(0)).current;
+  const [doorOpen, setDoorOpen] = useState(false);
+
+  const playDoorOpen = useCallback(() => {
+    setDoorOpen(true);
+    doorAnim.setValue(0);
+    Animated.timing(doorAnim, {
+      toValue: 1,
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      // kısa “afterglow”
+      setTimeout(() => {
+        setDoorOpen(false);
+        doorAnim.setValue(0);
+      }, 450);
+    });
+  }, [doorAnim]);
+
+  const doorOpacity = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.85] });
+  const doorScale = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.02] });
+  const doorLift = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] });
+
+  const glowOpacity = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+
   // VIP check
   useEffect(() => {
     (async () => {
@@ -77,9 +105,9 @@ export default function CityCodeScreen() {
     })();
   }, []);
 
-  // VIP satın alma sonrası "yağmur patlaması"
+  // VIP satın alma sonrası “yağmur patlaması” (global pulse)
   useEffect(() => {
-    if (consumeVipJustActivated && consumeVipJustActivated()) {
+    if (consumeVipJustActivated()) {
       setVipRain(true);
       const t = setTimeout(() => setVipRain(false), 9000);
       return () => clearTimeout(t);
@@ -90,17 +118,14 @@ export default function CityCodeScreen() {
     logEvent("screen_view", "awakened_cities", { screen: "city", code: cityCode });
   }, [cityCode]);
 
-  const headerTitle = useMemo(() => {
-    return String(cityCode) + " · " + String(cityName);
-  }, [cityCode, cityName]);
+  const headerTitle = useMemo(() => `${cityCode} · ${cityName}`, [cityCode, cityName]);
 
   const content = getCityContent(cityCode, appLang, layer);
 
-  const deepenTitle = appLang === "en" ? "Deepen" : "Derinleş";
   const deepenSub =
     appLang === "en"
-      ? "Go down one layer. The gate tells more."
-      : "Alt katmana in. Kapı daha fazlasını söylüyor.";
+      ? "Deep layer is VIP. Open the gate."
+      : "Derin katman VIP. Kapıyı aç.";
 
   const hint =
     appLang === "en"
@@ -115,29 +140,38 @@ export default function CityCodeScreen() {
         return;
       }
       setIsVip(true);
-      setLayer("deepC");
+      playDoorOpen(); // ✅ kapı animasyonu
+      setTimeout(() => setLayer("deepC"), 520);
     } catch {
       setVipOpen(true);
     }
-  }, []);
+  }, [playDoorOpen]);
 
   const onPressAsk = useCallback(() => {
+    // Sanri flow senin dosyada params: code / city / layer bekliyor gibi ayarladık.
     router.push({
       pathname: "/(tabs)/sanri_flow",
       params: {
         lang: appLang,
-        city_code: cityCode,
-        city_name: cityName,
-        source: "city_detail",
+        code: cityCode,
+        city: cityName,
         layer: layer,
+        title: headerTitle,
+        source: "city_detail",
       },
     } as any);
-  }, [router, appLang, cityCode, cityName, layer]);
+  }, [router, appLang, cityCode, cityName, layer, headerTitle]);
 
   return (
     <View style={styles.root}>
       {/* Key hologram background */}
-      <Animated.View pointerEvents="none" style={[styles.keyBgWrap, { opacity: keyOpacity, transform: [{ scale: keyScale }] }]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.keyBgWrap,
+          { opacity: keyOpacity, transform: [{ scale: keyScale }] },
+        ]}
+      >
         <Image source={KEY_BG} style={styles.keyBg} resizeMode="cover" />
       </Animated.View>
 
@@ -146,6 +180,26 @@ export default function CityCodeScreen() {
         <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
           <MatrixRain opacity={0.18} />
         </View>
+      ) : null}
+
+      {/* Door open overlay */}
+      {doorOpen ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.doorWrap,
+            {
+              opacity: doorOpacity,
+              transform: [{ translateY: doorLift }, { scale: doorScale }],
+            },
+          ]}
+        >
+          <Image source={DOOR_IMG} style={styles.doorImg} resizeMode="contain" />
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.doorGlow, { opacity: glowOpacity }]}
+          />
+        </Animated.View>
       ) : null}
 
       {/* Soft veil */}
@@ -178,26 +232,33 @@ export default function CityCodeScreen() {
         priceUsd="39 USD / mo"
         onClose={() => setVipOpen(false)}
         onSubscribe={async () => {
-          // Şimdilik “başarılı” varsayımı (RevenueCat/IAP bağlanınca gerçek satın almayı buraya koyacaksın)
+          // ✅ Burayı RevenueCat başarı callback’i yapınca “real” olacak.
           setIsVip(true);
-          setLayer("deepC");
           setVipOpen(false);
 
-          // küçük "yağmur" patlaması
+          // Kapı açılıyor hissi
+          playDoorOpen();
+          setTimeout(() => setLayer("deepC"), 520);
+
+          // küçük yağmur patlaması
           setVipRain(true);
           setTimeout(() => setVipRain(false), 3500);
         }}
       />
 
       {/* SCROLL */}
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.h1}>{headerTitle}</Text>
 
         {/* BİLİNÇ KAPISI */}
         <Pressable onPress={onPressDeepen} style={styles.vipGlass} hitSlop={10}>
           <View style={{ flex: 1 }}>
             <Text style={styles.vipTitle}>BİLİNÇ KAPISI</Text>
-            <Text style={styles.vipSub}>{isVip ? deepenSub : (appLang === "en" ? "Deep layer is VIP. Open the gate." : "Derin katman VIP. Kapıyı aç.")}</Text>
+            <Text style={styles.vipSub}>{isVip ? deepenSub : deepenSub}</Text>
           </View>
           <Text style={styles.vipArrow}>›</Text>
         </Pressable>
@@ -238,16 +299,27 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 14 : 0,
   },
 
-  keyBgWrap: {
-    ...StyleSheet.absoluteFillObject,
+  keyBgWrap: { ...StyleSheet.absoluteFillObject },
+  keyBg: { width: "100%", height: "100%" },
+  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.48)" },
+
+  // Door overlay
+  doorWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 70,
+    height: 420,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  keyBg: {
-    width: "100%",
+  doorImg: { width: "92%", height: "100%" },
+  doorGlow: {
+    position: "absolute",
+    width: "92%",
     height: "100%",
-  },
-  veil: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.48)",
+    borderRadius: 28,
+    backgroundColor: "rgba(124,247,216,0.08)",
   },
 
   top: {
@@ -322,7 +394,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-
     shadowColor: "#7cf7d8",
     shadowOpacity: 0.22,
     shadowRadius: 18,
