@@ -71,7 +71,7 @@ export const WORLD_EVENTS_LIST_URL =
   API_BASE + "/world-events/list";
 
 export const WORLD_EVENTS_CREATE_URL =
-  API_BASE + "/world-events/create";
+  API_BASE + "/bilinc-alani/ask";
 
 /*
 |--------------------------------------------------------------------------

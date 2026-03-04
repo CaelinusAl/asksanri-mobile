@@ -31,6 +31,7 @@ const COPY = {
       // ✅ YENİ: RİTÜEL ALANI
       { title: "RİTÜEL ALANI", sub: "Okunur ve hissedilir · ses + metin", route: "/(tabs)/rituals" },
       { title: "DÜNYA OLAYLARI", sub: "Haber → mesaj okuması", route: "/(tabs)/world" },
+      {title: "SYSTEM FEED",sub: "Sanrı günlük bilinç akışı",route: "/(tabs)/system_feed"},
     ],
   },
   en: {

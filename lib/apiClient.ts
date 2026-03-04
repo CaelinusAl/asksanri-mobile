@@ -24,6 +24,7 @@ export const API = {
   ritualPack: "",
   worldEventsCreate: "",
   worldEventsList: "",
+  systemFeed: "",
 };
 
 API.ask = API.base + "/bilinc-alani/ask";
@@ -39,6 +40,8 @@ API.ritualPack = API.base + "/content/ritual-pack"; // + "/{id}"
 // ✅ world events:
 API.worldEventsCreate = API.base + "/world-events/create";
 API.worldEventsList = API.base + "/world-events/list";
+
+API.systemFeed = API.base + "/content/system-feed";
 
 function timeoutController(ms: number) {
   const controller = new AbortController();
