@@ -1,42 +1,105 @@
 // app/(tabs)/rituals.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, ImageBackground } from "react-native";
-import { router } from "expo-router";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  ImageBackground,
+  StatusBar,
+} from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { BlurView } from "expo-blur";
+
 import MatrixRain from "../../lib/MatrixRain";
-import { API, apiGetJson } from "@/lib/apiClient";
+import { apiGetJson, API } from "@/lib/apiClient";
 
 type Lang = "tr" | "en";
-type PackItem = { ritual_pack_id: string; mode: string; description: string; count: number };
+
+type RitualPackListItem = {
+  ritual_pack_id: string;
+  title?: string;
+  description?: string;
+  mode?: string;
+};
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 
+const FALLBACK: RitualPackListItem[] = [
+  {
+    ritual_pack_id: "tanricanin_hatirlayisi",
+    title: "Tanrıça’nın Hatırlayışı",
+    description: "Bu ritüeller yorumlanmaz. Okunur ve hissedilir.",
+    mode: "read_only",
+  },
+];
+
 export default function RitualsScreen() {
-  const [lang] = useState<Lang>("tr");
-  const [items, setItems] = useState<PackItem[]>([]);
+  const params = useLocalSearchParams<{ lang?: string }>();
+  const lang: Lang = String(params.lang || "tr").toLowerCase() === "en" ? "en" : "tr";
+
+  const [items, setItems] = useState<RitualPackListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  const title = useMemo(() => (lang === "tr" ? "RİTÜEL ALANI" : "RITUAL SPACE"), [lang]);
+  const sub = useMemo(
+    () =>
+      lang === "tr"
+        ? "Okunur ve hissedilir. Açıklama yok. Soru yok."
+        : "Read and feel. No explanation. No questions.",
+    [lang]
+  );
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         setLoading(true);
-        const data = await apiGetJson<{ items: PackItem[] }>(API.ritualPacks, 30000);
+        setErr("");
+        // ✅ endpoint: /content/rituals
+        const data: any = await apiGetJson(API.ritualPacks, 30000);
+
+        const list: RitualPackListItem[] = Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data)
+          ? data
+          : [];
+
+        const cleaned = list
+          .map((x) => ({
+            ritual_pack_id: String(x?.ritual_pack_id || ""),
+            title: x?.title,
+            description: x?.description,
+            mode: x?.mode,
+          }))
+          .filter((x) => x.ritual_pack_id);
+
         if (!alive) return;
-        setItems(Array.isArray(data?.items) ? data.items : []);
-      } catch {
+        setItems(cleaned.length ? cleaned : FALLBACK);
+      } catch (e: any) {
         if (!alive) return;
-        setItems([]);
+        setItems(FALLBACK);
+        setErr(String(e?.message || e));
       } finally {
         if (!alive) return;
         setLoading(false);
       }
     })();
+
     return () => {
       alive = false;
     };
   }, []);
 
-  const title = useMemo(() => (lang === "tr" ? "RİTÜEL ALANI" : "RITUAL SPACE"), [lang]);
+  const openPack = (packId: string) => {
+    // ✅ KRİTİK: route + param adı "id"
+    router.push({
+      pathname: "/(tabs)/ritual_pack",
+      params: { id: packId, lang },
+    } as any);
+  };
 
   return (
     <View style={styles.root}>
@@ -51,36 +114,35 @@ export default function RitualsScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
           <Text style={styles.backTxt}>←</Text>
         </Pressable>
-        <Text style={styles.topTitle}>{title}</Text>
+        <View style={{ flex: 1 }} />
+        <View style={styles.langPill}>
+          <Text style={styles.langTxt}>{lang.toUpperCase()}</Text>
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.note}>
-          {lang === "tr"
-            ? "Bu alan konuşmaz. Açıklamaz. Yorumlamaz.\nSadece okunur ve hissedilir."
-            : "This space does not explain. It does not interpret.\nIt is read — and felt."}
-        </Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.h1}>{title}</Text>
+        <Text style={styles.sub}>{sub}</Text>
 
-        {loading ? <Text style={styles.dim}>{lang === "tr" ? "Yükleniyor…" : "Loading…"}</Text> : null}
+        {loading ? <Text style={styles.note}>{lang === "tr" ? "Yükleniyor…" : "Loading…"}</Text> : null}
+        {err ? <Text style={styles.err}>Hata: {err}</Text> : null}
 
-        {items.map((p) => (
+        <View style={{ height: 14 }} />
+
+        {items.map((it) => (
           <Pressable
-            key={p.ritual_pack_id}
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/ritual_pack",
-                params: { id: p.ritual_pack_id, lang },
-              } as any)
-            }
+            key={it.ritual_pack_id}
+            onPress={() => openPack(it.ritual_pack_id)}
             style={styles.card}
-            hitSlop={10}
+            hitSlop={12}
           >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{p.ritual_pack_id}</Text>
-              <Text style={styles.cardSub}>{p.description}</Text>
-              <Text style={styles.cardMeta}>• {p.count} ritüel • {p.mode}</Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
+            <BlurView intensity={22} tint="dark" style={styles.cardInner}>
+              <Text style={styles.cardTitle}>{it.title || it.ritual_pack_id}</Text>
+              <Text style={styles.cardSub}>{it.description || ""}</Text>
+              <Text style={styles.cardHint}>
+                {lang === "tr" ? "Aç →" : "Open →"}
+              </Text>
+            </BlurView>
           </Pressable>
         ))}
 
@@ -92,30 +154,58 @@ export default function RitualsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.40)" },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
 
-  topbar: { paddingTop: 10, paddingHorizontal: 14, paddingBottom: 10, flexDirection: "row", alignItems: "center", gap: 10 },
-  backBtn: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },
-  backTxt: { color: "#7cf7d8", fontWeight: "900", fontSize: 18 },
-  topTitle: { color: "white", fontWeight: "900", fontSize: 18 },
-
-  container: { padding: 18, paddingTop: 6 },
-  note: { color: "rgba(255,255,255,0.75)", lineHeight: 20, marginBottom: 14 },
-  dim: { color: "rgba(255,255,255,0.55)" },
-
-  card: {
-    marginTop: 12,
-    borderRadius: 22,
-    padding: 16,
-    backgroundColor: "rgba(94,59,255,0.16)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+  topbar: {
+    paddingTop: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 8,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
-  cardTitle: { color: "white", fontWeight: "900", fontSize: 16 },
-  cardSub: { color: "rgba(255,255,255,0.72)", marginTop: 8, lineHeight: 20 },
-  cardMeta: { color: "rgba(124,247,216,0.75)", marginTop: 10, fontWeight: "800" },
-  arrow: { color: "#7cf7d8", fontSize: 26, fontWeight: "900" },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  backTxt: { color: "#7cf7d8", fontSize: 18, fontWeight: "900" },
+  langPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(94,59,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(94,59,255,0.35)",
+  },
+  langTxt: { color: "#cbbcff", fontWeight: "900", letterSpacing: 1 },
+
+  content: { padding: 18, paddingTop: 8 },
+  h1: { color: "white", fontSize: 36, fontWeight: "900" },
+  sub: { color: "rgba(255,255,255,0.72)", marginTop: 8, lineHeight: 22 },
+
+  note: { color: "rgba(255,255,255,0.55)", marginTop: 10 },
+  err: { color: "#ff6b8a", marginTop: 10 },
+
+  card: {
+    borderRadius: 22,
+    overflow: "hidden",
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  cardInner: {
+    padding: 16,
+    borderRadius: 22,
+    backgroundColor: "rgba(94,59,255,0.14)",
+  },
+  cardTitle: { color: "#7cf7d8", fontWeight: "900", fontSize: 18 },
+  cardSub: { color: "rgba(255,255,255,0.82)", marginTop: 8, lineHeight: 20 },
+  cardHint: { color: "rgba(255,255,255,0.65)", marginTop: 10, fontWeight: "800" },
 });
