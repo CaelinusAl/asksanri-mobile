@@ -7,7 +7,6 @@ import {
   Pressable,
   ImageBackground,
   StatusBar,
-  Alert,
   StyleSheet as RNStyleSheet,
 } from "react-native";
 import { BlurView } from "expo-blur";
@@ -185,6 +184,7 @@ export default function UstBilincScreen() {
     })();
   }, []);
 
+  // pinned weekly symbol fetch
   useEffect(() => {
     let alive = true;
     setLoadingPinned(true);
@@ -207,6 +207,7 @@ export default function UstBilincScreen() {
     };
   }, []);
 
+  // daily stream fetch
   useEffect(() => {
     let alive = true;
     setDailyLoading(true);
@@ -251,22 +252,188 @@ export default function UstBilincScreen() {
       : "🌻 Symbol of the Week"
     : FALLBACK[lang].title;
 
-  const showcaseSubtitle = pinned?.title ? pinned.title : FALLBACK[lang].subtitle;
-  const showcaseText = pinned?.title ? firstLines(pinnedText, 5) : FALLBACK[lang].text;
+  const showcaseSubtitle = pinned?.title
+    ? pinned.title
+    : FALLBACK[lang].subtitle;
+
+  const showcaseText = pinned?.title
+    ? firstLines(pinnedText, 5)
+    : FALLBACK[lang].text;
+
+  const weeklyBodyTR = `☀️ Neden Güneşe Döner?
+
+Ayçiçeği gençken heliotropiktir.
+Güneş doğudan batıya hareket ederken o da döner.
+
+Sembol dili:
+Bilinç ışığa yönelir.
+Bu mekanik değil, arketipsel bir mesajdır.
+
+🌙 Ay + ☀️ Güneş
+
+Ayçiçeği aslında “Güneş çiçeği”dir ama Türkçede adı Ayçiçeği.
+
+Ay:
+Bilinçaltı
+Yansıma
+Gece
+
+Güneş:
+Bilinç
+Kaynak
+Öz
+
+İkisi birleşince:
+Bilinçaltı da ışığa dönebilir.
+
+🌻 Fibonacci Dizisi
+
+Ayçiçeğinin merkezindeki spiral sayıları genelde:
+21 & 34
+34 & 55
+55 & 89
+89 & 144
+
+Bunlar Fibonacci sayılarıdır:
+0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144...
+
+Her sayı:
+Kendisinden önceki iki sayının toplamıdır.
+
+🌻 Oran (φ)
+
+Spiral açısı yaklaşık:
+137.5°
+
+Bu açıya “Altın Açı” denir.
+φ ≈ 1.618
+
+Bu oran:
+Deniz kabuklarında
+Galaksilerde
+DNA yapısında
+İnsan vücudunda da görülür.
+
+🌻 Neden Böyle Dizilir?
+
+Çekirdekler:
+Alanı maksimum verimle doldurmak için
+bu açıda yerleşir.
+
+Yani:
+Matematik + verimlilik + estetik = Doğa sistemi
+
+🌻 Tohum Sembolü
+
+Ayçiçeği:
+Yüzlerce tohum üretir
+Bir merkezden çoğalır
+
+Matrix dili:
+Tek merkezden çoğalan bilinç.
+
+🌻 Karanlıkta Sabitlenmesi
+
+Ayçiçeği olgunlaşınca artık güneşi takip etmez.
+Doğuya sabitlenir.
+
+Genç bilinç:
+Işığı arar.
+
+Olgun bilinç:
+Yönünü bilir.`;
+
+  const weeklyBodyEN = `☀️ Why Does It Turn Toward the Sun?
+
+When young, the sunflower is heliotropic.
+As the sun moves from east to west, it turns as well.
+
+Symbol language:
+Consciousness turns toward light.
+This is not merely mechanical, but archetypal.
+
+🌙 Moon + ☀️ Sun
+
+The sunflower is known as the “sun flower,” yet in Turkish it carries the moon in its name.
+
+Moon:
+subconscious
+reflection
+night
+
+Sun:
+consciousness
+source
+essence
+
+Together:
+even the subconscious can turn toward light.
+
+🌻 Fibonacci Sequence
+
+The spirals in the center often appear in pairs such as:
+21 & 34
+34 & 55
+55 & 89
+89 & 144
+
+These are Fibonacci numbers:
+0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144...
+
+Each number is the sum of the two before it.
+
+🌻 Ratio (φ)
+
+The spiral angle is approximately:
+137.5°
+
+This is called the Golden Angle.
+φ ≈ 1.618
+
+This ratio appears in:
+shells
+galaxies
+DNA
+the human body
+
+🌻 Why This Arrangement?
+
+Seeds align at this angle to fill space with maximum efficiency.
+
+So:
+Mathematics + efficiency + aesthetics = Nature's system
+
+🌻 Seed Symbol
+
+The sunflower:
+produces hundreds of seeds
+multiplies from one center
+
+Matrix language:
+consciousness multiplying from one center.
+
+🌻 Mature Fixation
+
+When mature, the sunflower no longer follows the sun.
+It stabilizes toward the east.
+
+Young consciousness:
+seeks the light.
+
+Mature consciousness:
+knows its direction.`;
 
   const onOpenWeekly = () => {
-    if (!pinned?.title) {
-      router.push("/(tabs)/system_feed" as any);
-      return;
-    }
-
     router.push({
-      pathname: "/(tabs)/system_feed",
+      pathname: "/(tabs)/weekly_symbol",
       params: {
         lang,
-        kicker: showcaseTitle,
-        title: showcaseSubtitle,
-        body: pinnedText,
+        title: "Ay Çiçeği",
+        subtitle:
+          lang === "tr"
+            ? "Altın Oran – Işığa Dönüş"
+            : "Golden Ratio – Turning Toward Light",
+        body: lang === "tr" ? weeklyBodyTR : weeklyBodyEN,
         source_url: pinned?.source_url || "",
         created_at: pinned?.created_at || "",
       },
@@ -274,7 +441,9 @@ export default function UstBilincScreen() {
   };
 
   const onOpenDaily = () => {
-    const title = daily?.title || (lang === "tr" ? "Günün Akışı" : "Daily Stream");
+    const title =
+      daily?.title || (lang === "tr" ? "Günün Akışı" : "Daily Stream");
+
     const body =
       daily?.body ||
       (lang === "tr"
@@ -297,7 +466,11 @@ export default function UstBilincScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      <ImageBackground source={BG} style={RNStyleSheet.absoluteFillObject} resizeMode="cover" />
+      <ImageBackground
+        source={BG}
+        style={RNStyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
 
       <View pointerEvents="none" style={RNStyleSheet.absoluteFillObject}>
         <MatrixRain opacity={0.14} />
@@ -306,7 +479,11 @@ export default function UstBilincScreen() {
       <View pointerEvents="none" style={styles.overlay} />
 
       <View style={styles.topbar}>
-        <Pressable onPress={() => router.replace("/(tabs)/gates")} style={styles.backBtn} hitSlop={10}>
+        <Pressable
+          onPress={() => router.replace("/(tabs)/gates")}
+          style={styles.backBtn}
+          hitSlop={10}
+        >
           <Text style={styles.backArrow}>←</Text>
           <Text style={styles.backLbl}>{T[lang].back}</Text>
         </Pressable>
@@ -319,7 +496,9 @@ export default function UstBilincScreen() {
             style={[styles.langChip, lang === "tr" && styles.langChipActive]}
             hitSlop={10}
           >
-            <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
+            <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>
+              TR
+            </Text>
           </Pressable>
 
           <Pressable
@@ -327,7 +506,9 @@ export default function UstBilincScreen() {
             style={[styles.langChip, lang === "en" && styles.langChipActive]}
             hitSlop={10}
           >
-            <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>EN</Text>
+            <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>
+              EN
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -352,7 +533,9 @@ export default function UstBilincScreen() {
               <Text style={styles.showcaseText}>{showcaseText}</Text>
 
               <View style={styles.openRow}>
-                <Text style={styles.openHint}>{lang === "tr" ? "Detayı aç" : "Open details"}</Text>
+                <Text style={styles.openHint}>
+                  {lang === "tr" ? "Detayı aç" : "Open details"}
+                </Text>
                 <Text style={styles.openArrow}>›</Text>
               </View>
             </BlurView>
@@ -384,8 +567,12 @@ export default function UstBilincScreen() {
           {LEVELS.map((lvl) => (
             <View key={lvl.id} style={styles.levelRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.levelTitle}>{lang === "tr" ? lvl.titleTR : lvl.titleEN}</Text>
-                <Text style={styles.levelSub}>{lang === "tr" ? lvl.subTR : lvl.subEN}</Text>
+                <Text style={styles.levelTitle}>
+                  {lang === "tr" ? lvl.titleTR : lvl.titleEN}
+                </Text>
+                <Text style={styles.levelSub}>
+                  {lang === "tr" ? lvl.subTR : lvl.subEN}
+                </Text>
               </View>
 
               <Pressable
@@ -393,12 +580,18 @@ export default function UstBilincScreen() {
                 style={[
                   styles.btn,
                   {
-                    backgroundColor: lvl.premium ? "rgba(255,255,255,0.08)" : theme.primary,
-                    borderColor: lvl.premium ? "rgba(255,255,255,0.12)" : "rgba(94,59,255,0.35)",
+                    backgroundColor: lvl.premium
+                      ? "rgba(255,255,255,0.08)"
+                      : theme.primary,
+                    borderColor: lvl.premium
+                      ? "rgba(255,255,255,0.12)"
+                      : "rgba(94,59,255,0.35)",
                   },
                 ]}
               >
-                <Text style={styles.btnTxt}>{lvl.premium ? T[lang].vip : T[lang].open}</Text>
+                <Text style={styles.btnTxt}>
+                  {lvl.premium ? T[lang].vip : T[lang].open}
+                </Text>
               </Pressable>
             </View>
           ))}
@@ -412,7 +605,10 @@ export default function UstBilincScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
-  overlay: { ...RNStyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
+  overlay: {
+    ...RNStyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
 
   topbar: {
     paddingTop: 10,
@@ -449,14 +645,34 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(124,247,216,0.12)",
     borderColor: "rgba(124,247,216,0.28)",
   },
-  langTxt: { color: "rgba(255,255,255,0.7)", fontWeight: "900", letterSpacing: 1 },
+  langTxt: {
+    color: "rgba(255,255,255,0.7)",
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
   langTxtActive: { color: "#7cf7d8" },
 
   container: { padding: 18, paddingTop: 6 },
 
-  kicker: { color: "rgba(255,255,255,0.55)", letterSpacing: 2, fontWeight: "800", marginBottom: 8 },
-  h1: { color: "white", fontSize: 44, fontWeight: "900", lineHeight: 48 },
-  sub: { color: "rgba(255,255,255,0.72)", marginTop: 10, marginBottom: 18, fontSize: 16, lineHeight: 22 },
+  kicker: {
+    color: "rgba(255,255,255,0.55)",
+    letterSpacing: 2,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+  h1: {
+    color: "white",
+    fontSize: 44,
+    fontWeight: "900",
+    lineHeight: 48,
+  },
+  sub: {
+    color: "rgba(255,255,255,0.72)",
+    marginTop: 10,
+    marginBottom: 18,
+    fontSize: 16,
+    lineHeight: 22,
+  },
 
   showcaseWrap: { marginBottom: 14 },
   showcaseImage: { borderRadius: 22, overflow: "hidden" },
@@ -468,8 +684,18 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
   },
   showcaseTitle: { color: "#7cf7d8", fontWeight: "900", fontSize: 16 },
-  showcaseSubtitle: { color: "white", marginTop: 6, fontSize: 18, fontWeight: "900" },
-  showcaseText: { color: "rgba(255,255,255,0.9)", marginTop: 10, lineHeight: 22, fontSize: 14 },
+  showcaseSubtitle: {
+    color: "white",
+    marginTop: 6,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  showcaseText: {
+    color: "rgba(255,255,255,0.9)",
+    marginTop: 10,
+    lineHeight: 22,
+    fontSize: 14,
+  },
 
   dailyCard: {
     borderRadius: 22,
@@ -480,10 +706,25 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   dailyKicker: { color: "#7cf7d8", fontWeight: "900", fontSize: 14 },
-  dailyTitle: { color: "white", marginTop: 6, fontSize: 18, fontWeight: "900" },
-  dailyBody: { color: "rgba(255,255,255,0.85)", marginTop: 10, lineHeight: 22, fontSize: 14 },
+  dailyTitle: {
+    color: "white",
+    marginTop: 6,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  dailyBody: {
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 10,
+    lineHeight: 22,
+    fontSize: 14,
+  },
 
-  openRow: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  openRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   openHint: { color: "rgba(255,255,255,0.75)", fontWeight: "800" },
   openArrow: { color: "#7cf7d8", fontWeight: "900", fontSize: 22 },
 
@@ -494,7 +735,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  levelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 12 },
+  levelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    gap: 12,
+  },
   levelTitle: { color: "white", fontWeight: "900", fontSize: 18 },
   levelSub: { color: "rgba(255,255,255,0.7)", marginTop: 4 },
 
