@@ -16,6 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
+import { BlurView } from "expo-blur";
 
 import { apiPostJson, apiPostForm, API } from "@/lib/apiClient";
 import ConsciousMenu from "../../components/ConsciousMenu";
@@ -55,7 +56,6 @@ const T = {
     audioEmpty: "Ses alındı ama metin boş döndü.",
     retry: "Tekrar dene",
     newChat: "Yeni Sohbet",
-    myArea: "Benim Alanım",
   },
   en: {
     title: "Sanri",
@@ -74,7 +74,6 @@ const T = {
     audioEmpty: "Audio received but text came back empty.",
     retry: "Retry",
     newChat: "New Chat",
-    myArea: "My Area",
   },
 } as const;
 
@@ -156,11 +155,12 @@ export default function SanriFlowScreen() {
 
   const ensureLoader = useCallback((): string => {
     if (!loaderIdRef.current) {
-      loaderIdRef.current = uid("ld");
-      const id = loaderIdRef.current;
-      setMessages((prev) => prev.concat([{ id, role: "assistant", text: "…" }]));
+      const id = uid("ld");
+      loaderIdRef.current = id;
+      setMessages((prev) => [...prev, { id, role: "assistant", text: "…" }]);
       return id;
     }
+
     const id = loaderIdRef.current;
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text: "…" } : m)));
     return id;
@@ -176,6 +176,12 @@ export default function SanriFlowScreen() {
   }, []);
 
   const typeIntoLoader = useCallback(async (id: string, fullText: string) => {
+    if (!fullText?.trim()) {
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text: "" } : m)));
+      loaderIdRef.current = "";
+      return;
+    }
+
     let i = 0;
 
     const step = () => {
@@ -188,11 +194,14 @@ export default function SanriFlowScreen() {
       const pause = ch === "\n" ? 60 : ch === "." || ch === "!" || ch === "?" ? 90 : 0;
       const delay = 9 + Math.floor(Math.random() * 14) + pause;
 
-      if (i < fullText.length) setTimeout(step, delay);
-      else loaderIdRef.current = "";
+      if (i < fullText.length) {
+        setTimeout(step, delay);
+      } else {
+        loaderIdRef.current = "";
+      }
     };
 
-    setTimeout(step, 100);
+    setTimeout(step, 90);
   }, []);
 
   const resetChat = useCallback(() => {
@@ -214,19 +223,20 @@ export default function SanriFlowScreen() {
       if (!text || busy) return;
 
       lastSentRef.current = text;
-
-      setInput("");
       setBusy(true);
       setError("");
-
-      const loaderId = ensureLoader();
+      setInput("");
 
       try {
         try {
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         } catch {}
 
-        setMessages((prev) => prev.concat([{ id: uid("u"), role: "user", text }]));
+        // önce kullanıcı mesajını ekle
+        setMessages((prev) => [...prev, { id: uid("u"), role: "user", text }]);
+
+        // sonra loader ekle ki cevap mutlaka altta başlasın
+        const loaderId = ensureLoader();
 
         if (isWaking) {
           resolveLoader(loaderId, t.waking + "\n" + t.wakingSub);
@@ -252,6 +262,8 @@ export default function SanriFlowScreen() {
           },
         };
 
+        console.log("SANRI_SEND", { text, lang });
+
         const data: any = await apiPostJson(API.ask, payload, 60000);
 
         console.log("SANRI_RAW_RESPONSE", data);
@@ -266,9 +278,11 @@ export default function SanriFlowScreen() {
         setIsWaking(false);
         await typeIntoLoader(loaderId, answer);
       } catch (e: any) {
-        removeLoader(loaderId);
-
         const msg = safeStr(e?.message || e);
+
+        if (loaderIdRef.current) {
+          removeLoader(loaderIdRef.current);
+        }
 
         if (msg === "TIMEOUT" || msg.toLowerCase().includes("abort")) {
           setError(t.timeout);
@@ -294,6 +308,7 @@ export default function SanriFlowScreen() {
           setError("Hata: " + msg);
         }
       } finally {
+        loaderIdRef.current = "";
         setBusy(false);
         scrollToEnd();
       }
@@ -308,8 +323,8 @@ export default function SanriFlowScreen() {
       params.layer,
       params.seed,
       params.title,
-      resolveLoader,
       removeLoader,
+      resolveLoader,
       scrollToEnd,
       t,
       typeIntoLoader,
@@ -433,10 +448,11 @@ export default function SanriFlowScreen() {
       <View pointerEvents="none" style={styles.glowA} />
       <View pointerEvents="none" style={styles.glowB} />
 
-      {/* TOP BAR */}
       <View style={styles.topbar}>
         <Pressable onPress={openMyArea} style={styles.profileBtn} hitSlop={10}>
-          <Text style={styles.profileTxt}>◎</Text>
+          <BlurView intensity={20} tint="dark" style={styles.profileBtnInner}>
+            <Text style={styles.profileTxt}>◎</Text>
+          </BlurView>
         </Pressable>
 
         <View style={{ flex: 1 }}>
@@ -450,7 +466,9 @@ export default function SanriFlowScreen() {
             style={[styles.langChip, lang === "tr" && styles.langChipActive]}
             hitSlop={10}
           >
-            <Text style={[styles.langText, lang === "tr" && styles.langTextActive]}>TR</Text>
+            <BlurView intensity={20} tint="dark" style={styles.langChipInner}>
+              <Text style={[styles.langText, lang === "tr" && styles.langTextActive]}>TR</Text>
+            </BlurView>
           </Pressable>
 
           <Pressable
@@ -458,19 +476,24 @@ export default function SanriFlowScreen() {
             style={[styles.langChip, lang === "en" && styles.langChipActive]}
             hitSlop={10}
           >
-            <Text style={[styles.langText, lang === "en" && styles.langTextActive]}>EN</Text>
+            <BlurView intensity={20} tint="dark" style={styles.langChipInner}>
+              <Text style={[styles.langText, lang === "en" && styles.langTextActive]}>EN</Text>
+            </BlurView>
           </Pressable>
         </View>
 
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
-          <Text style={styles.backBtnText}>←</Text>
+          <BlurView intensity={20} tint="dark" style={styles.backBtnInner}>
+            <Text style={styles.backBtnText}>←</Text>
+          </BlurView>
         </Pressable>
       </View>
 
-      {/* NEW CHAT */}
       <View style={styles.actionRow}>
         <Pressable onPress={resetChat} style={styles.newChatBtn} hitSlop={10}>
-          <Text style={styles.newChatTxt}>{t.newChat}</Text>
+          <BlurView intensity={24} tint="dark" style={styles.newChatInner}>
+            <Text style={styles.newChatTxt}>{t.newChat}</Text>
+          </BlurView>
         </Pressable>
       </View>
 
@@ -490,8 +513,15 @@ export default function SanriFlowScreen() {
 
             return (
               <View key={m.id} style={[styles.row, isUser ? styles.rowRight : styles.rowLeft]}>
-                <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
-                  <Text style={styles.bubbleText}>{m.text}</Text>
+                <View style={styles.bubbleWrap}>
+                  {isUser ? <View style={styles.userGlow} /> : null}
+                  <BlurView
+                    intensity={24}
+                    tint="dark"
+                    style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}
+                  >
+                    <Text style={styles.bubbleText}>{m.text}</Text>
+                  </BlurView>
                 </View>
               </View>
             );
@@ -499,32 +529,35 @@ export default function SanriFlowScreen() {
 
           {error ? (
             <View style={styles.errWrap}>
-              <Text style={styles.errorText}>{error}</Text>
+              <BlurView intensity={24} tint="dark" style={styles.errCard}>
+                <Text style={styles.errorText}>{error}</Text>
 
-              <Pressable
-                onPress={retrySend}
-                style={styles.retryBtn}
-                hitSlop={10}
-                disabled={busy}
-              >
-                <Text style={styles.retryTxt}>{t.retry}</Text>
-              </Pressable>
+                <Pressable
+                  onPress={retrySend}
+                  style={styles.retryBtn}
+                  hitSlop={10}
+                  disabled={busy}
+                >
+                  <Text style={styles.retryTxt}>{t.retry}</Text>
+                </Pressable>
+              </BlurView>
             </View>
           ) : null}
 
           <View style={{ height: 10 }} />
         </ScrollView>
 
-        {/* INPUT BAR */}
         <View style={styles.inputBar}>
-          <TextInput
-            value={input}
-            onChangeText={setInput}
-            placeholder={t.placeholder}
-            placeholderTextColor="rgba(255,255,255,0.35)"
-            style={styles.input}
-            multiline
-          />
+          <BlurView intensity={24} tint="dark" style={styles.inputShell}>
+            <TextInput
+              value={input}
+              onChangeText={setInput}
+              placeholder={t.placeholder}
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              style={styles.input}
+              multiline
+            />
+          </BlurView>
 
           <Pressable
             onPressIn={startRec}
@@ -533,17 +566,21 @@ export default function SanriFlowScreen() {
             hitSlop={10}
             disabled={busy}
           >
-            <Text style={styles.micTxt}>{isRecording ? "■" : "🎙"}</Text>
-            <Text style={styles.micHint}>{t.micHold}</Text>
+            <BlurView intensity={24} tint="dark" style={styles.micInner}>
+              <Text style={styles.micTxt}>{isRecording ? "■" : "🎙"}</Text>
+              <Text style={styles.micHint}>{t.micHold}</Text>
+            </BlurView>
           </Pressable>
 
           <Pressable
             onPress={send}
-            style={[styles.sendBtn, (!input.trim() || busy) && { opacity: 0.5 }]}
+            style={[styles.sendBtn, (!input.trim() || busy) && { opacity: 0.6 }]}
             hitSlop={10}
             disabled={!input.trim() || busy}
           >
-            <Text style={styles.sendText}>{t.send}</Text>
+            <BlurView intensity={30} tint="dark" style={styles.sendInner}>
+              <Text style={styles.sendText}>{t.send}</Text>
+            </BlurView>
           </Pressable>
         </View>
 
@@ -557,36 +594,36 @@ export default function SanriFlowScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#05060b" },
+  root: { flex: 1, backgroundColor: "#07080d" },
 
   veil: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(6,8,18,0.35)",
+    backgroundColor: "rgba(6,8,16,0.34)",
   },
 
   glowA: {
     position: "absolute",
-    width: 430,
-    height: 430,
+    width: 320,
+    height: 320,
     borderRadius: 999,
-    backgroundColor: "rgba(124, 92, 255, 0.18)",
-    top: 70,
-    left: -120,
+    backgroundColor: "rgba(101, 72, 255, 0.16)",
+    top: 140,
+    left: -90,
   },
 
   glowB: {
     position: "absolute",
-    width: 360,
-    height: 360,
+    width: 300,
+    height: 300,
     borderRadius: 999,
-    backgroundColor: "rgba(124, 92, 255, 0.14)",
-    bottom: 80,
-    right: -70,
+    backgroundColor: "rgba(130, 103, 255, 0.12)",
+    bottom: 70,
+    right: -90,
   },
 
   topbar: {
     paddingTop: 54,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingBottom: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -594,14 +631,19 @@ const styles = StyleSheet.create({
   },
 
   profileBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+
+  profileBtnInner: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(124,247,216,0.08)",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "rgba(124,247,216,0.28)",
+    borderColor: "rgba(124,247,216,0.22)",
   },
 
   profileTxt: {
@@ -612,14 +654,14 @@ const styles = StyleSheet.create({
 
   topTitle: {
     color: "white",
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "900",
   },
 
   topMeta: {
-    color: "rgba(255,255,255,0.58)",
+    color: "rgba(255,255,255,0.68)",
     marginTop: 2,
-    fontSize: 12,
+    fontSize: 14,
   },
 
   langRow: {
@@ -629,23 +671,27 @@ const styles = StyleSheet.create({
   },
 
   langChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    width: 60,
+    height: 54,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    overflow: "hidden",
   },
 
-  langChipActive: {
-    backgroundColor: "rgba(124,247,216,0.12)",
-    borderColor: "rgba(124,247,216,0.30)",
+  langChipInner: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
+
+  langChipActive: {},
 
   langText: {
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.80)",
     fontWeight: "900",
-    fontSize: 13,
+    fontSize: 16,
   },
 
   langTextActive: {
@@ -653,203 +699,245 @@ const styles = StyleSheet.create({
   },
 
   backBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+
+  backBtnInner: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(255,255,255,0.10)",
   },
 
   backBtnText: {
     color: "white",
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "900",
   },
 
   actionRow: {
-    paddingHorizontal: 14,
-    paddingBottom: 6,
-    flexDirection: "row",
-    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
 
   newChatBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    width: 150,
+    height: 56,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+
+  newChatInner: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
 
   newChatTxt: {
-    color: "#cbbcff",
-    fontWeight: "800",
-    fontSize: 13,
+    color: "white",
+    fontWeight: "900",
+    fontSize: 16,
+  },
+
+  scroll: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 12,
   },
 
   row: {
-  width: "100%",
-  marginBottom: 12,
-  flexDirection: "row",
-},
+    width: "100%",
+    marginBottom: 14,
+    flexDirection: "row",
+  },
 
-rowLeft: {
-  justifyContent: "flex-start",
-},
+  rowLeft: {
+    justifyContent: "flex-start",
+  },
 
-rowRight: {
-  justifyContent: "flex-end",
-},
+  rowRight: {
+    justifyContent: "flex-end",
+  },
 
-scroll: {
-  flex: 1,
-},
+  bubbleWrap: {
+    maxWidth: "88%",
+    position: "relative",
+  },
 
-scrollContent: {
-  paddingHorizontal: 14,
-  paddingTop: 8,
-  paddingBottom: 20,
-},
+  userGlow: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: -10,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: "rgba(94,59,255,0.30)",
+    opacity: 0.9,
+  },
 
-bubble: {
-  maxWidth: "88%",
-  borderRadius: 24,
-  paddingHorizontal: 16,
-  paddingVertical: 14,
-  borderWidth: 1,
-},
+  bubble: {
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+
   bubbleAI: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.06)",
     borderColor: "rgba(255,255,255,0.10)",
   },
 
   bubbleUser: {
-    backgroundColor: "rgba(94,59,255,0.42)",
-    borderColor: "rgba(94,59,255,0.30)",
+    backgroundColor: "rgba(105,76,255,0.22)",
+    borderColor: "rgba(163,142,255,0.34)",
   },
 
   bubbleText: {
     color: "white",
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 28,
+    fontWeight: "500",
   },
 
   errWrap: {
     marginTop: 4,
-    marginHorizontal: 14,
-    padding: 14,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,90,90,0.12)",
+    marginBottom: 10,
+  },
+
+  errCard: {
+    borderRadius: 22,
+    padding: 16,
+    backgroundColor: "rgba(255,80,120,0.12)",
     borderWidth: 1,
-    borderColor: "rgba(255,120,120,0.18)",
+    borderColor: "rgba(255,140,160,0.18)",
+    overflow: "hidden",
   },
 
   errorText: {
-    color: "#ffd0d0",
-    lineHeight: 20,
+    color: "#ffd5df",
+    lineHeight: 22,
   },
 
   retryBtn: {
+    marginTop: 12,
     alignSelf: "flex-start",
-    marginTop: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(105,76,255,0.88)",
   },
 
   retryTxt: {
     color: "white",
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
   inputBar: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 8,
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 10,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(10,12,20,0.72)",
+  },
+
+  inputShell: {
+    flex: 1,
+    minHeight: 64,
+    maxHeight: 140,
+    borderRadius: 22,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
 
   input: {
-    flex: 1,
-    minHeight: 54,
-    maxHeight: 120,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    minHeight: 64,
+    maxHeight: 140,
     color: "white",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
     fontSize: 16,
   },
 
   micBtn: {
-    width: 78,
-    height: 54,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    width: 92,
+    height: 64,
+    borderRadius: 22,
+    overflow: "hidden",
   },
 
   micBtnActive: {
-    backgroundColor: "rgba(255,80,120,0.25)",
-    borderColor: "rgba(255,80,120,0.35)",
+    transform: [{ scale: 0.98 }],
+  },
+
+  micInner: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
 
   micTxt: {
     color: "white",
     fontSize: 18,
-    fontWeight: "900",
   },
 
   micHint: {
-    color: "rgba(255,255,255,0.68)",
-    fontSize: 11,
-    marginTop: 2,
+    marginTop: 3,
+    color: "rgba(255,255,255,0.80)",
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   sendBtn: {
-    height: 54,
-    paddingHorizontal: 20,
-    borderRadius: 18,
+    width: 132,
+    height: 64,
+    borderRadius: 22,
+    overflow: "hidden",
+  },
+
+  sendInner: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(94,59,255,0.85)",
+    backgroundColor: "rgba(104,76,255,0.42)",
+    borderWidth: 1,
+    borderColor: "rgba(170,150,255,0.24)",
   },
 
   sendText: {
     color: "white",
     fontWeight: "900",
-    fontSize: 16,
+    fontSize: 17,
   },
 
   bottomRow: {
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === "ios" ? 16 : 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingBottom: 20,
-    paddingTop: 6,
-    backgroundColor: "rgba(10,12,20,0.72)",
+    justifyContent: "space-between",
+    gap: 12,
   },
 
   hintBottom: {
     flex: 1,
-    color: "rgba(255,255,255,0.52)",
-    fontSize: 12,
+    color: "rgba(255,255,255,0.58)",
+    fontSize: 13,
     lineHeight: 18,
   },
 });
