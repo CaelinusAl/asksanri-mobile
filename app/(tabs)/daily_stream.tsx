@@ -8,7 +8,6 @@ import {
   ImageBackground,
   StatusBar,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import MatrixRain from "../../lib/MatrixRain";
@@ -56,6 +55,7 @@ export default function DailyStreamScreen() {
   const loadDaily = useCallback(async () => {
     setBusy(true);
     setErr("");
+    setResult(null);
 
     try {
       const instruction =
@@ -112,8 +112,14 @@ Write in English.`;
 
       const data: any = await apiPostJson(API.ask, payload, 60000);
 
-      const body =
-        String(data?.answer || data?.response || data?.text || "").trim() || "";
+      const raw =
+        data?.answer ??
+        data?.response ??
+        data?.text ??
+        data?.body ??
+        "";
+
+      const body = String(raw || "").trim();
 
       if (!body) {
         throw new Error(lang === "tr" ? "Boş cevap geldi." : "Empty response.");
@@ -139,7 +145,11 @@ Write in English.`;
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+      <ImageBackground
+        source={BG}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
 
       <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
         <MatrixRain opacity={0.12} />
@@ -160,19 +170,26 @@ Write in English.`;
             onPress={() => setLang("tr")}
             style={[styles.langChip, lang === "tr" && styles.langChipActive]}
           >
-            <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
+            <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>
+              TR
+            </Text>
           </Pressable>
 
           <Pressable
             onPress={() => setLang("en")}
             style={[styles.langChip, lang === "en" && styles.langChipActive]}
           >
-            <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>EN</Text>
+            <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>
+              EN
+            </Text>
           </Pressable>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.kicker}>{t.kicker}</Text>
         <Text style={styles.h1}>{t.title}</Text>
         <Text style={styles.sub}>{t.subtitle}</Text>
@@ -209,7 +226,10 @@ Write in English.`;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.38)" },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.38)",
+  },
 
   topbar: {
     paddingTop: 10,
@@ -246,7 +266,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(124,247,216,0.12)",
     borderColor: "rgba(124,247,216,0.28)",
   },
-  langTxt: { color: "rgba(255,255,255,0.72)", fontWeight: "900", letterSpacing: 1 },
+  langTxt: {
+    color: "rgba(255,255,255,0.72)",
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
   langTxtActive: { color: "#7cf7d8" },
 
   container: { padding: 18, paddingTop: 6 },
