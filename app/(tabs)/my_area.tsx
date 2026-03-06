@@ -1,135 +1,68 @@
-// app/(tabs)/my_area.tsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Pressable,
   ScrollView,
-  StatusBar,
+  Pressable,
   ImageBackground,
+  StatusBar,
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { BlurView } from "expo-blur";
 import MatrixRain from "../../lib/MatrixRain";
-import { apiGetJson, API } from "@/lib/apiClient";
+import { API, apiGetJson } from "@/lib/apiClient";
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 
-type Me = {
-  id: number | null;
-  name: string;
-  email: string;
-  language?: string;
-  bio?: string;
-  intention?: string;
-  vip?: boolean;
-};
-
-type MemoryItem = {
-  id: number;
-  user_id: number;
-  type: string;
-  content: string;
-  created_at: string;
-};
-
-type ActivityItem = {
-  id: number;
-  user_id: number;
-  type: string;
-  data: string;
-  created_at: string;
-};
-
-function takeTop(items: string[], n = 3) {
-  return items.filter(Boolean).slice(0, n);
+type Insight = {
+  theme: string
+  focus: string
+  symbol: string
+  ritual_direction: string
+  next_area: string
 }
 
 export default function MyAreaScreen() {
-  const [me, setMe] = useState<Me | null>(null);
-  const [memory, setMemory] = useState<MemoryItem[]>([]);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    setErr("");
+  const [loading,setLoading]=useState(true)
+  const [name,setName]=useState("")
+  const [insight,setInsight]=useState<Insight | null>(null)
 
-    try {
-      const meData = await apiGetJson<Me>(`${API.base}/me`, 30000);
-      setMe(meData);
+  useEffect(()=>{
+    load()
+  },[])
 
-      if (meData?.id) {
-        const memData = await apiGetJson<MemoryItem[]>(
-          `${API.base}/memory/${meData.id}`,
-          30000
-        );
+  async function load(){
 
-        const actData = await apiGetJson<ActivityItem[]>(
-          `${API.base}/activity/${meData.id}`,
-          30000
-        );
+    try{
 
-        setMemory(Array.isArray(memData) ? memData : []);
-        setActivity(Array.isArray(actData) ? actData : []);
-      } else {
-        setMemory([]);
-        setActivity([]);
+      const me:any = await apiGetJson(`${API.base}/me`,20000)
+
+      if(me?.name){
+        setName(me.name)
       }
-    } catch (e: any) {
-      setErr(String(e?.message || e || "Bir hata oluştu."));
-    } finally {
-      setLoading(false);
+
+      const ins:any = await apiGetJson(`${API.base}/insight`,20000)
+
+      if(ins){
+        setInsight(ins)
+      }
+
+    }catch(e){
+      console.log("my_area load error",e)
     }
-  }, []);
 
-  useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+    setLoading(false)
 
-  const profileText = useMemo(() => {
-    if (!me) return "Profil yükleniyor…";
-
-    return [
-      `İsim: ${me.name || "Guest"}`,
-      `E-posta: ${me.email || "-"}`,
-      `Dil: ${me.language || "tr"}`,
-      `VIP: ${me.vip ? "Aktif" : "Pasif"}`,
-      `Bio: ${me.bio || "-"}`,
-      `Niyet: ${me.intention || "-"}`,
-    ].join("\n");
-  }, [me]);
-
-  const memoryText = useMemo(() => {
-    const rows = takeTop(memory.map((m) => `${m.type}: ${m.content}`), 3);
-    return rows.length ? rows.join("\n") : "Henüz kayıtlı hafıza yok.";
-  }, [memory]);
-
-  const ritualText = useMemo(() => {
-    const rows = takeTop(
-      activity
-        .filter((a) => a.type.toLowerCase().includes("ritual"))
-        .map((a) => a.data),
-      3
-    );
-    return rows.length ? rows.join("\n") : "Henüz ritüel geçmişi yok.";
-  }, [activity]);
-
-  const readingText = useMemo(() => {
-    const rows = takeTop(
-      activity
-        .filter((a) => !a.type.toLowerCase().includes("ritual"))
-        .map((a) => `${a.type}: ${a.data}`),
-      3
-    );
-    return rows.length ? rows.join("\n") : "Henüz kayıtlı okuma yok.";
-  }, [activity]);
+  }
 
   return (
+
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
+
+      <StatusBar barStyle="light-content"/>
 
       <ImageBackground
         source={BG}
@@ -138,226 +71,301 @@ export default function MyAreaScreen() {
       />
 
       <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.12} />
+        <MatrixRain opacity={0.08}/>
       </View>
 
-      <View pointerEvents="none" style={styles.overlay} />
+      <View pointerEvents="none" style={styles.overlay}/>
+
+      {/* TOP BAR */}
 
       <View style={styles.topbar}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+
+        <Pressable
+          style={styles.backBtn}
+          onPress={()=>router.back()}
+        >
           <Text style={styles.backTxt}>←</Text>
         </Pressable>
 
-        <View style={{ flex: 1 }} />
-
-        <Pressable onPress={loadAll} style={styles.profileBadge}>
-          <Text style={styles.profileBadgeTxt}>◎</Text>
-        </Pressable>
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.container}
       >
-        <Text style={styles.kicker}>MY AREA</Text>
-        <Text style={styles.title}>Benim Alanım</Text>
-        <Text style={styles.sub}>
-          Sanrı burada seni hatırlamaya başlıyor.
+
+        <Text style={styles.kicker}>
+          MY AREA
         </Text>
 
-        {loading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator />
-            <Text style={styles.loadingTxt}>Yükleniyor…</Text>
+        <Text style={styles.title}>
+          Benim Alanım
+        </Text>
+
+        <Text style={styles.subtitle}>
+          Sanrı burada seni hatırlamaya başlar
+        </Text>
+
+        {/* USER CARD */}
+
+        <BlurView intensity={30} tint="dark" style={styles.userCard}>
+
+          <View style={styles.avatar}>
+            <Text style={styles.avatarTxt}>
+              {name ? name.charAt(0).toUpperCase() : "S"}
+            </Text>
           </View>
-        ) : null}
 
-        {err ? (
-          <View style={styles.errCard}>
-            <Text style={styles.errText}>{err}</Text>
+          <View style={{flex:1}}>
+            <Text style={styles.userName}>
+              {name || "Sanrı Kullanıcısı"}
+            </Text>
+
+            <Text style={styles.userSub}>
+              kişisel bilinç alanı
+            </Text>
           </View>
-        ) : null}
 
-        <Pressable
-          style={styles.card}
-          onPress={() => router.push("/(tabs)/profile" as any)}
-        >
-          <Text style={styles.cardTitle}>Profil</Text>
-          <Text style={styles.cardText}>{profileText}</Text>
-          <Text style={styles.cardHint}>Düzenlemek için dokun</Text>
-        </Pressable>
+        </BlurView>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Hafızam</Text>
-          <Text style={styles.cardText}>{memoryText}</Text>
-        </View>
+        {/* INSIGHT */}
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Ritüel Geçmişim</Text>
-          <Text style={styles.cardText}>{ritualText}</Text>
-        </View>
+        <BlurView intensity={28} tint="dark" style={styles.insightCard}>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Okumalarım</Text>
-          <Text style={styles.cardText}>{readingText}</Text>
-        </View>
+          <Text style={styles.sectionTitle}>
+            Sanrı Insight
+          </Text>
 
-        <Pressable style={styles.actionBtn} onPress={loadAll}>
-          <Text style={styles.actionTxt}>Yenile</Text>
-        </Pressable>
+          {loading && (
+            <ActivityIndicator/>
+          )}
 
-        <View style={{ height: 120 }} />
+          {!loading && insight && (
+
+            <>
+              <Text style={styles.insightText}>
+                Tema: {insight.theme}
+              </Text>
+
+              <Text style={styles.insightText}>
+                Odak: {insight.focus}
+              </Text>
+
+              <Text style={styles.insightText}>
+                Sembol: {insight.symbol}
+              </Text>
+
+              <Text style={styles.insightText}>
+                Ritüel: {insight.ritual_direction}
+              </Text>
+
+              <Text style={styles.insightText}>
+                Sonraki Alan: {insight.next_area}
+              </Text>
+            </>
+          )}
+
+        </BlurView>
+
+        {/* CARDS */}
+
+        <Card
+          title="Profil"
+          subtitle="kimlik bilgilerin"
+          onPress={()=>router.push("/(tabs)/profile")}
+        />
+
+        <Card
+          title="Hafızam"
+          subtitle="kaydedilen temalar"
+          onPress={()=>router.push("/(tabs)/memory")}
+        />
+
+        <Card
+          title="Ritüel Geçmişim"
+          subtitle="Sanrı'nın önerileri"
+          onPress={()=>router.push("/(tabs)/ritual_history")}
+        />
+
+        <Card
+          title="Okumalarım"
+          subtitle="system feed ve analizler"
+          onPress={()=>router.push("/(tabs)/readings")}
+        />
+
+        <View style={{height:120}}/>
+
       </ScrollView>
+
     </View>
-  );
+  )
+}
+
+function Card({title,subtitle,onPress}:any){
+
+  return(
+
+    <Pressable onPress={onPress} style={styles.card}>
+
+      <BlurView intensity={25} tint="dark" style={styles.cardInner}>
+
+        <View style={{flex:1}}>
+
+          <Text style={styles.cardTitle}>
+            {title}
+          </Text>
+
+          <Text style={styles.cardSub}>
+            {subtitle}
+          </Text>
+
+        </View>
+
+        <Text style={styles.arrow}>
+          ›
+        </Text>
+
+      </BlurView>
+
+    </Pressable>
+
+  )
+
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#07080d",
+
+  root:{
+    flex:1,
+    backgroundColor:"#07080d"
   },
 
-  overlay: {
+  overlay:{
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.36)",
+    backgroundColor:"rgba(0,0,0,0.35)"
   },
 
-  topbar: {
-    paddingTop: 54,
-    paddingHorizontal: 14,
-    paddingBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+  topbar:{
+    paddingTop:55,
+    paddingHorizontal:16,
+    flexDirection:"row"
   },
 
-  backBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+  backBtn:{
+    width:44,
+    height:44,
+    borderRadius:14,
+    alignItems:"center",
+    justifyContent:"center",
+    backgroundColor:"rgba(255,255,255,0.06)"
   },
 
-  backTxt: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "900",
+  backTxt:{
+    color:"#7cf7d8",
+    fontSize:18,
+    fontWeight:"900"
   },
 
-  profileBadge: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(124,247,216,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(124,247,216,0.28)",
+  container:{
+    padding:18
   },
 
-  profileBadgeTxt: {
-    color: "#7cf7d8",
-    fontSize: 20,
-    fontWeight: "900",
+  kicker:{
+    color:"rgba(255,255,255,0.5)",
+    letterSpacing:2,
+    fontWeight:"800"
   },
 
-  container: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 120,
+  title:{
+    color:"white",
+    fontSize:40,
+    fontWeight:"900"
   },
 
-  kicker: {
-    color: "rgba(255,255,255,0.55)",
-    letterSpacing: 2,
-    fontWeight: "800",
-    marginBottom: 8,
+  subtitle:{
+    color:"rgba(255,255,255,0.7)",
+    marginTop:6,
+    marginBottom:18
   },
 
-  title: {
-    color: "white",
-    fontSize: 40,
-    fontWeight: "900",
-    marginBottom: 8,
+  userCard:{
+    borderRadius:24,
+    padding:16,
+    flexDirection:"row",
+    alignItems:"center",
+    marginBottom:16
   },
 
-  sub: {
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 16,
-    lineHeight: 22,
-    marginBottom: 22,
+  avatar:{
+    width:52,
+    height:52,
+    borderRadius:999,
+    alignItems:"center",
+    justifyContent:"center",
+    backgroundColor:"rgba(94,59,255,0.35)",
+    marginRight:12
   },
 
-  loadingWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 14,
+  avatarTxt:{
+    color:"white",
+    fontSize:20,
+    fontWeight:"900"
   },
 
-  loadingTxt: {
-    color: "rgba(255,255,255,0.7)",
+  userName:{
+    color:"white",
+    fontSize:18,
+    fontWeight:"900"
   },
 
-  errCard: {
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 14,
-    backgroundColor: "rgba(255,90,90,0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255,120,120,0.18)",
+  userSub:{
+    color:"rgba(255,255,255,0.6)",
+    fontSize:12
   },
 
-  errText: {
-    color: "#ffd0d0",
-    lineHeight: 20,
+  insightCard:{
+    borderRadius:24,
+    padding:16,
+    marginBottom:16
   },
 
-  card: {
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 14,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+  sectionTitle:{
+    color:"#7cf7d8",
+    fontWeight:"900",
+    marginBottom:8
   },
 
-  cardTitle: {
-    color: "#7cf7d8",
-    fontSize: 20,
-    fontWeight: "900",
-    marginBottom: 8,
+  insightText:{
+    color:"white",
+    marginBottom:4
   },
 
-  cardText: {
-    color: "rgba(255,255,255,0.80)",
-    fontSize: 15,
-    lineHeight: 24,
+  card:{
+    borderRadius:22,
+    overflow:"hidden",
+    marginTop:12
   },
 
-  cardHint: {
-    marginTop: 10,
-    color: "rgba(255,255,255,0.45)",
-    fontSize: 12,
+  cardInner:{
+    padding:18,
+    flexDirection:"row",
+    alignItems:"center"
   },
 
-  actionBtn: {
-    marginTop: 8,
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(94,59,255,0.80)",
+  cardTitle:{
+    color:"white",
+    fontSize:20,
+    fontWeight:"900"
   },
 
-  actionTxt: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "900",
+  cardSub:{
+    color:"rgba(255,255,255,0.6)",
+    marginTop:4
   },
-});
+
+  arrow:{
+    color:"white",
+    fontSize:26
+  }
+
+})
