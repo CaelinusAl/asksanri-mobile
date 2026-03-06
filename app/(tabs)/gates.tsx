@@ -28,10 +28,9 @@ const COPY = {
       { title: "AWAKENED CITIES", sub: "Şehrin kodunu seç", route: "/(tabs)/awakenedCities" },
       { title: "MATRIX", sub: "Akışı decode et", route: "/(tabs)/matrix" },
       { title: "ÜST BİLİNÇ", sub: "Seviye 1–5 katmanları", route: "/(tabs)/ust_bilinc" },
-      // ✅ YENİ: RİTÜEL ALANI
       { title: "RİTÜEL ALANI", sub: "Okunur ve hissedilir · ses + metin", route: "/(tabs)/rituals" },
       { title: "DÜNYA OLAYLARI", sub: "Haber → mesaj okuması", route: "/(tabs)/world" },
-      {title: "SYSTEM FEED",sub: "Sanrı günlük bilinç akışı",route: "/(tabs)/system_feed"},
+      { title: "SYSTEM FEED", sub: "Sanrı günlük bilinç akışı", route: "/(tabs)/system_feed" },
     ],
   },
   en: {
@@ -41,9 +40,7 @@ const COPY = {
       { title: "SANRI", sub: "Personal reflection field", route: "/(tabs)/sanri_flow" },
       { title: "AWAKENED CITIES", sub: "Choose a city code", route: "/(tabs)/awakenedCities" },
       { title: "MATRIX", sub: "Decode the stream", route: "/(tabs)/matrix" },
-      // ✅ DÜZELTME: "/(tabs)/ust" yerine "/(tabs)/ust_bilinc"
       { title: "HIGHER MIND", sub: "Levels 1–5 layers", route: "/(tabs)/ust_bilinc" },
-      // ✅ YENİ: RITUAL SPACE
       { title: "RITUAL SPACE", sub: "Read + feel · audio + text", route: "/(tabs)/rituals" },
       { title: "WORLD EVENTS", sub: "News → meaning reading", route: "/(tabs)/world" },
     ],
@@ -61,28 +58,40 @@ export default function GatesScreen() {
     else router.replace("/(tabs)/index" as any);
   };
 
+  const openProfile = () => {
+    router.push("/(tabs)/my_area" as any);
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <StatusBar barStyle="light-content" translucent={false} />
 
       <ImageBackground source={BG} style={styles.bg} resizeMode="cover">
-        {/* Matrix layer */}
+
+        {/* MATRIX EFFECT */}
         <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
           <MatrixRain opacity={0.18} />
         </View>
 
-        {/* Dark overlay */}
         <View pointerEvents="none" style={styles.overlay} />
 
-        {/* Top bar */}
+        {/* TOP BAR */}
         <View style={styles.topbar}>
-          <Pressable onPress={onBack} style={styles.backBtn} hitSlop={10}>
+
+          {/* PROFIL */}
+          <Pressable onPress={openProfile} style={styles.profileBtn}>
+            <Text style={styles.profileTxt}>◎</Text>
+          </Pressable>
+
+          {/* BACK */}
+          <Pressable onPress={onBack} style={styles.backBtn}>
             <Text style={styles.backTxt}>←</Text>
           </Pressable>
 
           <View style={{ flex: 1 }} />
 
-          <Pressable onPress={toggleLang} style={styles.langChip} hitSlop={10}>
+          {/* LANGUAGE */}
+          <Pressable onPress={toggleLang} style={styles.langChip}>
             <Text style={styles.langTxt}>{lang.toUpperCase()}</Text>
           </Pressable>
         </View>
@@ -121,7 +130,7 @@ function GateItem({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={styles.card} hitSlop={10}>
+    <Pressable onPress={onPress} style={styles.card}>
       <LinearGradient
         colors={[
           "rgba(255,255,255,0.10)",
@@ -156,7 +165,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 6,
     paddingBottom: 6,
+    gap: 8,
   },
+
+  profileBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(124,247,216,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.30)",
+  },
+
+  profileTxt: {
+    color: "#7cf7d8",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+
   backBtn: {
     width: 44,
     height: 44,
@@ -167,6 +195,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
+
   backTxt: { color: "#7cf7d8", fontSize: 18, fontWeight: "900" },
 
   langChip: {
@@ -177,9 +206,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(94,59,255,0.35)",
   },
+
   langTxt: { color: "#cbbcff", fontWeight: "900", letterSpacing: 1 },
 
   scroll: { flex: 1 },
+
   scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 8,
@@ -187,6 +218,7 @@ const styles = StyleSheet.create({
   },
 
   title: { color: "white", fontSize: 40, fontWeight: "900", marginTop: 6 },
+
   sub: { color: "rgba(255,255,255,0.70)", marginTop: 6, fontSize: 16 },
 
   card: {
@@ -197,6 +229,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
     backgroundColor: "rgba(255,255,255,0.04)",
   },
+
   cardGlass: {
     paddingHorizontal: 18,
     paddingVertical: 18,
@@ -204,7 +237,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+
   cardTitle: { color: "white", fontSize: 22, fontWeight: "900" },
+
   cardSub: { color: "rgba(255,255,255,0.68)", marginTop: 6, fontSize: 14 },
 
   chevWrap: {
@@ -217,5 +252,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
+
   chev: { color: "rgba(255,255,255,0.85)", fontSize: 26, fontWeight: "900" },
 });

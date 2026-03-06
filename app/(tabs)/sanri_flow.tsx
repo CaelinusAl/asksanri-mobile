@@ -28,7 +28,7 @@ function uid(prefix?: string) {
   const p = prefix ? String(prefix) : "m";
   const a = Math.random().toString(16).slice(2);
   const b = Date.now().toString(16);
-  return p + "" + b + "" + a;
+  return p + b + a;
 }
 
 function safeStr(x: any) {
@@ -54,6 +54,8 @@ const T = {
     audioShort: "Ses çok kısa/boş geldi. 1–2 saniye basılı tut.",
     audioEmpty: "Ses alındı ama metin boş döndü.",
     retry: "Tekrar dene",
+    newChat: "Yeni Sohbet",
+    myArea: "Benim Alanım",
   },
   en: {
     title: "Sanri",
@@ -71,6 +73,8 @@ const T = {
     audioShort: "Audio too short/empty. Hold for 1–2 seconds.",
     audioEmpty: "Audio received but text came back empty.",
     retry: "Retry",
+    newChat: "New Chat",
+    myArea: "My Area",
   },
 } as const;
 
@@ -98,6 +102,7 @@ const RECORDING_OPTIONS: Audio.RecordingOptions = {
 
 export default function SanriFlowScreen() {
   const router = useRouter();
+
   const params = useLocalSearchParams<{
     lang?: string;
     title?: string;
@@ -122,19 +127,15 @@ export default function SanriFlowScreen() {
   const [isWaking, setIsWaking] = useState(true);
 
   const scrollRef = useRef<ScrollView>(null);
-
-  // loader id asla null değil
   const loaderIdRef = useRef<string>("");
-
-  // last sent text (retry için)
   const lastSentRef = useRef<string>("");
-
-  // mic refs
   const recordingRef = useRef<Audio.Recording | null>(null);
   const isStartingRef = useRef(false);
   const isStoppingRef = useRef(false);
 
-  useEffect(() => setLang(initialLang), [initialLang]);
+  useEffect(() => {
+    setLang(initialLang);
+  }, [initialLang]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -176,6 +177,7 @@ export default function SanriFlowScreen() {
 
   const typeIntoLoader = useCallback(async (id: string, fullText: string) => {
     let i = 0;
+
     const step = () => {
       i = Math.min(i + 1, fullText.length);
       const part = fullText.slice(0, i);
@@ -189,10 +191,23 @@ export default function SanriFlowScreen() {
       if (i < fullText.length) setTimeout(step, delay);
       else loaderIdRef.current = "";
     };
+
     setTimeout(step, 100);
   }, []);
 
-  // ✅ SEND (text -> /bilinc-alani/ask)
+  const resetChat = useCallback(() => {
+    if (busy) return;
+    loaderIdRef.current = "";
+    setError("");
+    setInput("");
+    setMessages([{ id: uid("a"), role: "assistant", text: T[lang].welcome }]);
+    setIsWaking(false);
+  }, [busy, lang]);
+
+  const openMyArea = useCallback(() => {
+    router.push("/(tabs)/my_area" as any);
+  }, [router]);
+
   const sendText = useCallback(
     async (raw: string) => {
       const text = raw.trim();
@@ -220,7 +235,6 @@ export default function SanriFlowScreen() {
           }, 650);
         }
 
-        // ✅ payload burada TANIMLI
         const payload = {
           message: text,
           session_id: "mobile-default",
@@ -240,7 +254,6 @@ export default function SanriFlowScreen() {
 
         const data: any = await apiPostJson(API.ask, payload, 60000);
 
-        // ✅ DEBUG: gerçek response
         console.log("SANRI_RAW_RESPONSE", data);
         try {
           console.log("SANRI_KEYS", Object.keys(data || {}));
@@ -311,7 +324,6 @@ export default function SanriFlowScreen() {
     sendText(last);
   }, [sendText, busy]);
 
-  // ✅ MIC START
   const startRec = useCallback(async () => {
     if (busy) return;
     if (isStartingRef.current || isStoppingRef.current) return;
@@ -355,7 +367,6 @@ export default function SanriFlowScreen() {
     }
   }, [busy, lang]);
 
-  // ✅ MIC STOP + TRANSCRIBE
   const stopRec = useCallback(async () => {
     const rec = recordingRef.current;
     if (!rec) return;
@@ -373,7 +384,9 @@ export default function SanriFlowScreen() {
 
       const info = await FileSystem.getInfoAsync(uri);
       const size =
-        info && (info as any).exists && typeof (info as any).size === "number" ? (info as any).size : 0;
+        info && (info as any).exists && typeof (info as any).size === "number"
+          ? (info as any).size
+          : 0;
 
       if (size < 2000) {
         setError(t.audioShort);
@@ -422,6 +435,10 @@ export default function SanriFlowScreen() {
 
       {/* TOP BAR */}
       <View style={styles.topbar}>
+        <Pressable onPress={openMyArea} style={styles.profileBtn} hitSlop={10}>
+          <Text style={styles.profileTxt}>◎</Text>
+        </Pressable>
+
         <View style={{ flex: 1 }}>
           <Text style={styles.topTitle}>{t.title}</Text>
           <Text style={styles.topMeta}>{t.personal}</Text>
@@ -450,6 +467,13 @@ export default function SanriFlowScreen() {
         </Pressable>
       </View>
 
+      {/* NEW CHAT */}
+      <View style={styles.actionRow}>
+        <Pressable onPress={resetChat} style={styles.newChatBtn} hitSlop={10}>
+          <Text style={styles.newChatTxt}>{t.newChat}</Text>
+        </Pressable>
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -463,6 +487,7 @@ export default function SanriFlowScreen() {
         >
           {messages.map((m) => {
             const isUser = m.role === "user";
+
             return (
               <View key={m.id} style={[styles.row, isUser ? styles.rowRight : styles.rowLeft]}>
                 <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
@@ -475,7 +500,13 @@ export default function SanriFlowScreen() {
           {error ? (
             <View style={styles.errWrap}>
               <Text style={styles.errorText}>{error}</Text>
-              <Pressable onPress={retrySend} style={styles.retryBtn} hitSlop={10} disabled={busy}>
+
+              <Pressable
+                onPress={retrySend}
+                style={styles.retryBtn}
+                hitSlop={10}
+                disabled={busy}
+              >
                 <Text style={styles.retryTxt}>{t.retry}</Text>
               </Pressable>
             </View>
@@ -526,156 +557,299 @@ export default function SanriFlowScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
+  root: { flex: 1, backgroundColor: "#05060b" },
 
-  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,8,20,0.45)" },
+  veil: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(6,8,18,0.35)",
+  },
+
   glowA: {
     position: "absolute",
-    width: 520,
-    height: 520,
-    borderRadius: 520,
-    left: -180,
-    top: 40,
-    backgroundColor: "rgba(94,59,255,0.18)",
+    width: 430,
+    height: 430,
+    borderRadius: 999,
+    backgroundColor: "rgba(124, 92, 255, 0.18)",
+    top: 70,
+    left: -120,
   },
+
   glowB: {
     position: "absolute",
-    width: 560,
-    height: 560,
-    borderRadius: 560,
-    right: -200,
-    bottom: -80,
-    backgroundColor: "rgba(140,100,255,0.12)",
+    width: 360,
+    height: 360,
+    borderRadius: 999,
+    backgroundColor: "rgba(124, 92, 255, 0.14)",
+    bottom: 80,
+    right: -70,
   },
 
   topbar: {
-    paddingTop: 14,
-    paddingHorizontal: 16,
+    paddingTop: 54,
+    paddingHorizontal: 14,
     paddingBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
-  topTitle: { color: "white", fontWeight: "900", fontSize: 20 },
-  topMeta: { color: "rgba(255,255,255,0.60)", marginTop: 4 },
 
-  langRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  langChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.06)",
+  profileBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(124,247,216,0.08)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
-  langChipActive: {
-    backgroundColor: "rgba(124,247,216,0.12)",
     borderColor: "rgba(124,247,216,0.28)",
   },
-  langText: { color: "rgba(255,255,255,0.70)", fontWeight: "900", letterSpacing: 1 },
-  langTextActive: { color: "#7cf7d8" },
+
+  profileTxt: {
+    color: "#7cf7d8",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+
+  topTitle: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "900",
+  },
+
+  topMeta: {
+    color: "rgba(255,255,255,0.58)",
+    marginTop: 2,
+    fontSize: 12,
+  },
+
+  langRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+
+  langChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+
+  langChipActive: {
+    backgroundColor: "rgba(124,247,216,0.12)",
+    borderColor: "rgba(124,247,216,0.30)",
+  },
+
+  langText: {
+    color: "rgba(255,255,255,0.8)",
+    fontWeight: "900",
+    fontSize: 13,
+  },
+
+  langTextActive: {
+    color: "#7cf7d8",
+  },
 
   backBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 46,
+    height: 46,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+
+  backBtnText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  actionRow: {
+    paddingHorizontal: 14,
+    paddingBottom: 6,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  newChatBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  backBtnText: { color: "white", fontWeight: "900", fontSize: 18 },
 
-  scroll: { padding: 16, paddingBottom: 18 },
-
-  row: { marginBottom: 10, flexDirection: "row" },
-  rowLeft: { justifyContent: "flex-start" },
-  rowRight: { justifyContent: "flex-end" },
-
-  bubble: {
-    maxWidth: "92%",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    borderWidth: 1,
+  newChatTxt: {
+    color: "#cbbcff",
+    fontWeight: "800",
+    fontSize: 13,
   },
-  bubbleAI: { backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.12)" },
-  bubbleUser: { backgroundColor: "rgba(94,59,255,0.70)", borderColor: "rgba(94,59,255,0.55)" },
-  bubbleText: { color: "white", lineHeight: 20 },
+
+  row: {
+  width: "100%",
+  marginBottom: 12,
+  flexDirection: "row",
+},
+
+rowLeft: {
+  justifyContent: "flex-start",
+},
+
+rowRight: {
+  justifyContent: "flex-end",
+},
+
+scroll: {
+  flex: 1,
+},
+
+scrollContent: {
+  paddingHorizontal: 14,
+  paddingTop: 8,
+  paddingBottom: 20,
+},
+
+bubble: {
+  maxWidth: "88%",
+  borderRadius: 24,
+  paddingHorizontal: 16,
+  paddingVertical: 14,
+  borderWidth: 1,
+},
+  bubbleAI: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+
+  bubbleUser: {
+    backgroundColor: "rgba(94,59,255,0.42)",
+    borderColor: "rgba(94,59,255,0.30)",
+  },
+
+  bubbleText: {
+    color: "white",
+    fontSize: 16,
+    lineHeight: 22,
+  },
 
   errWrap: {
-    marginTop: 6,
-    padding: 12,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,80,120,0.10)",
+    marginTop: 4,
+    marginHorizontal: 14,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,90,90,0.12)",
     borderWidth: 1,
-    borderColor: "rgba(255,80,120,0.22)",
+    borderColor: "rgba(255,120,120,0.18)",
   },
-  errorText: { color: "#ff6b8a", fontWeight: "700" },
+
+  errorText: {
+    color: "#ffd0d0",
+    lineHeight: 20,
+  },
+
   retryBtn: {
-    marginTop: 10,
     alignSelf: "flex-start",
+    marginTop: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
   },
-  retryTxt: { color: "white", fontWeight: "900" },
+
+  retryTxt: {
+    color: "white",
+    fontWeight: "800",
+  },
 
   inputBar: {
     flexDirection: "row",
+    alignItems: "flex-end",
     gap: 10,
-    padding: 12,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 10,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(0,0,0,0.30)",
+    backgroundColor: "rgba(10,12,20,0.72)",
   },
+
   input: {
     flex: 1,
-    minHeight: 46,
+    minHeight: 54,
     maxHeight: 120,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: "white",
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
-    color: "white",
+    fontSize: 16,
   },
 
   micBtn: {
-    width: 64,
-    height: 46,
-    borderRadius: 14,
+    width: 78,
+    height: 54,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  micBtnActive: { backgroundColor: "rgba(255,80,120,0.20)", borderColor: "rgba(255,80,120,0.35)" },
-  micTxt: { color: "white", fontWeight: "900", fontSize: 16, lineHeight: 18 },
-  micHint: { color: "rgba(255,255,255,0.55)", fontSize: 10, marginTop: 2 },
+
+  micBtnActive: {
+    backgroundColor: "rgba(255,80,120,0.25)",
+    borderColor: "rgba(255,80,120,0.35)",
+  },
+
+  micTxt: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  micHint: {
+    color: "rgba(255,255,255,0.68)",
+    fontSize: 11,
+    marginTop: 2,
+  },
 
   sendBtn: {
-    paddingHorizontal: 16,
-    borderRadius: 14,
+    height: 54,
+    paddingHorizontal: 20,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#5e3bff",
+    backgroundColor: "rgba(94,59,255,0.85)",
   },
-  sendText: { color: "white", fontWeight: "900" },
+
+  sendText: {
+    color: "white",
+    fontWeight: "900",
+    fontSize: 16,
+  },
 
   bottomRow: {
-    paddingHorizontal: 14,
-    paddingBottom: 10,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingBottom: 20,
+    paddingTop: 6,
+    backgroundColor: "rgba(10,12,20,0.72)",
   },
-  hintBottom: { flex: 1, color: "rgba(255,255,255,0.45)" },
+
+  hintBottom: {
+    flex: 1,
+    color: "rgba(255,255,255,0.52)",
+    fontSize: 12,
+    lineHeight: 18,
+  },
 });
