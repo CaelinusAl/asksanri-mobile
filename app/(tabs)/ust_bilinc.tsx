@@ -1,4 +1,3 @@
-// app/(tabs)/ust_bilinc.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -8,12 +7,13 @@ import {
   Pressable,
   ImageBackground,
   StatusBar,
+  Alert,
   StyleSheet as RNStyleSheet,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import { hasVipEntitlement } from "../../lib/premium";
-import { WORLD_EVENTS_PINNED_URL } from "../../lib/config";
+import { WORLD_EVENTS_LIST_URL } from "../../lib/config";
 import MatrixRain from "../../lib/MatrixRain";
 import { API, apiGetJson } from "@/lib/apiClient";
 
@@ -72,11 +72,49 @@ const FALLBACK = {
 } as const;
 
 const LEVELS: Level[] = [
-  { id: 1, titleTR: "Level 1 — Gözlemci", titleEN: "Level 1 — Observer", subTR: "Gözlem. Nefes. Basit veri.", subEN: "Observe. Breathe. Simple data.", route: "/(tabs)/observer" },
-  { id: 2, titleTR: "Level 2 — Örüntü", titleEN: "Level 2 — Pattern", subTR: "Tekrarlayan motifleri gör.", subEN: "See repeating motifs.", route: "/(tabs)/pattern" },
-  { id: 3, titleTR: "Level 3 — Sembol 🔒", titleEN: "Level 3 — Symbol 🔒", subTR: "Sembol okuma: olay → mesaj.", subEN: "Symbol reading: event → message.", premium: true, route: "/(tabs)/symbol" },
-  { id: 4, titleTR: "Level 4 — Sistem 🔒", titleEN: "Level 4 — System 🔒", subTR: "Sistem haritası: aktörler, roller.", subEN: "System map: actors, roles.", premium: true, route: "/(tabs)/system_map" },
-  { id: 5, titleTR: "Level 5 — Kod Gözü 🔒", titleEN: "Level 5 — Code Eye 🔒", subTR: "Her şeye 'kod' olarak bak.", subEN: "Look at everything as code.", premium: true, route: "/(tabs)/code_eye" },
+  {
+    id: 1,
+    titleTR: "Level 1 — Gözlemci",
+    titleEN: "Level 1 — Observer",
+    subTR: "Gözlem. Nefes. Basit veri.",
+    subEN: "Observe. Breathe. Simple data.",
+    route: "/(tabs)/observer",
+  },
+  {
+    id: 2,
+    titleTR: "Level 2 — Örüntü",
+    titleEN: "Level 2 — Pattern",
+    subTR: "Tekrarlayan motifleri gör.",
+    subEN: "See repeating motifs.",
+    route: "/(tabs)/pattern",
+  },
+  {
+    id: 3,
+    titleTR: "Level 3 — Sembol 🔒",
+    titleEN: "Level 3 — Symbol 🔒",
+    subTR: "Sembol okuma: olay → mesaj.",
+    subEN: "Symbol reading: event → message.",
+    premium: true,
+    route: "/(tabs)/symbol",
+  },
+  {
+    id: 4,
+    titleTR: "Level 4 — Sistem 🔒",
+    titleEN: "Level 4 — System 🔒",
+    subTR: "Sistem haritası: aktörler, roller.",
+    subEN: "System map: actors, roles.",
+    premium: true,
+    route: "/(tabs)/system_map",
+  },
+  {
+    id: 5,
+    titleTR: "Level 5 — Kod Gözü 🔒",
+    titleEN: "Level 5 — Code Eye 🔒",
+    subTR: "Her şeye 'kod' olarak bak.",
+    subEN: "Look at everything as code.",
+    premium: true,
+    route: "/(tabs)/code_eye",
+  },
 ];
 
 const T = {
@@ -147,12 +185,11 @@ export default function UstBilincScreen() {
     })();
   }, []);
 
-  // pinned fetch (vitrin)
   useEffect(() => {
     let alive = true;
     setLoadingPinned(true);
 
-    fetch(WORLD_EVENTS_PINNED_URL)
+    fetch(WORLD_EVENTS_LIST_URL)
       .then((r) => r.json())
       .then((data) => {
         if (!alive) return;
@@ -170,7 +207,6 @@ export default function UstBilincScreen() {
     };
   }, []);
 
-  // daily stream fetch
   useEffect(() => {
     let alive = true;
     setDailyLoading(true);
@@ -204,30 +240,33 @@ export default function UstBilincScreen() {
     router.push({ pathname: lvl.route, params: { lang } } as any);
   };
 
-  // Haftanın Sembolü text
   const pinnedText =
     lang === "tr"
       ? pinned?.reading_tr || ""
       : pinned?.reading_en || pinned?.reading_tr || "";
 
-  const showcaseTitle =
-    pinned?.title
-      ? lang === "tr"
-        ? "🌻 Haftanın Sembolü"
-        : "🌻 Symbol of the Week"
-      : FALLBACK[lang].title;
+  const showcaseTitle = pinned?.title
+    ? lang === "tr"
+      ? "🌻 Haftanın Sembolü"
+      : "🌻 Symbol of the Week"
+    : FALLBACK[lang].title;
 
   const showcaseSubtitle = pinned?.title ? pinned.title : FALLBACK[lang].subtitle;
   const showcaseText = pinned?.title ? firstLines(pinnedText, 5) : FALLBACK[lang].text;
 
   const onOpenWeekly = () => {
+    if (!pinned?.title) {
+      router.push("/(tabs)/system_feed" as any);
+      return;
+    }
+
     router.push({
-      pathname: "/(tabs)/weekly_symbol",
+      pathname: "/(tabs)/system_feed",
       params: {
         lang,
         kicker: showcaseTitle,
         title: showcaseSubtitle,
-        body: pinned?.title ? pinnedText : FALLBACK[lang].text,
+        body: pinnedText,
         source_url: pinned?.source_url || "",
         created_at: pinned?.created_at || "",
       },
@@ -258,18 +297,14 @@ export default function UstBilincScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      {/* BACKGROUND */}
       <ImageBackground source={BG} style={RNStyleSheet.absoluteFillObject} resizeMode="cover" />
 
-      {/* MATRIX */}
       <View pointerEvents="none" style={RNStyleSheet.absoluteFillObject}>
         <MatrixRain opacity={0.14} />
       </View>
 
-      {/* DARK OVERLAY */}
       <View pointerEvents="none" style={styles.overlay} />
 
-      {/* TOP BAR */}
       <View style={styles.topbar}>
         <Pressable onPress={() => router.replace("/(tabs)/gates")} style={styles.backBtn} hitSlop={10}>
           <Text style={styles.backArrow}>←</Text>
@@ -286,6 +321,7 @@ export default function UstBilincScreen() {
           >
             <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
           </Pressable>
+
           <Pressable
             onPress={() => setLang("en")}
             style={[styles.langChip, lang === "en" && styles.langChipActive]}
@@ -301,7 +337,6 @@ export default function UstBilincScreen() {
         <Text style={styles.h1}>{T[lang].title}</Text>
         <Text style={styles.sub}>{T[lang].subtitle}</Text>
 
-        {/* SHOWCASE (CLICKABLE) */}
         <Pressable onPress={onOpenWeekly} style={styles.showcaseWrap} hitSlop={10}>
           <ImageBackground
             source={AY_CICEGI}
@@ -324,7 +359,6 @@ export default function UstBilincScreen() {
           </ImageBackground>
         </Pressable>
 
-        {/* DAILY STREAM (CLICKABLE) */}
         <Pressable onPress={onOpenDaily} style={styles.dailyCard} hitSlop={10}>
           <Text style={styles.dailyKicker}>{T[lang].dailyKicker}</Text>
           <Text style={styles.dailyTitle}>
@@ -346,7 +380,6 @@ export default function UstBilincScreen() {
           </View>
         </Pressable>
 
-        {/* LEVELS */}
         <View style={styles.levelCard}>
           {LEVELS.map((lvl) => (
             <View key={lvl.id} style={styles.levelRow}>

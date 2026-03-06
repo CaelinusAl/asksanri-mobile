@@ -1,24 +1,25 @@
-// app/(tabs)/world_events.tsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
-  TextInput,
-  Pressable,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
+  Pressable,
+  TextInput,
+  ImageBackground,
+  StatusBar,
   Alert,
-  Share,
+  ActivityIndicator,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import MatrixRain from "../../lib/MatrixRain";
+import { API, apiPostJson } from "@/lib/apiClient";
 
-import { apiGetJson, apiPostJson, API } from "@/lib/apiClient";
+const BG = require("../../assets/sanri_glass_bg.jpg");
 
 type Lang = "tr" | "en";
 
-type Item = {
+type ReadingItem = {
   id: string;
   created_at: number;
   url: string;
@@ -28,143 +29,115 @@ type Item = {
 };
 
 function uid() {
-  return "we_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
-
-const T = {
-  tr: {
-    title: "DÜNYA OLAYLARI",
-    sub: "Link + 1 cümle not. Sanrı üst bilinç / matrix diliyle okur.",
-    url: "Haber Linki",
-    note: "Senin 1 cümle yorumun",
-    read: "Üst Bilinç Oku",
-    saving: "Okunuyor…",
-    today: "Kayıtlar",
-    share: "Paylaş",
-    copy: "Kopyala",
-    del: "Sil",
-    empty: "Henüz kayıt yok.",
-  },
-  en: {
-    title: "WORLD EVENTS",
-    sub: "Link + one sentence. Sanri reads with system / matrix language.",
-    url: "News Link",
-    note: "Your one-sentence note",
-    read: "Read (System View)",
-    saving: "Reading…",
-    today: "Entries",
-    share: "Share",
-    copy: "Copy",
-    del: "Delete",
-    empty: "No entries yet.",
-  },
-} as const;
 
 export default function WorldEventsScreen() {
   const [lang, setLang] = useState<Lang>("tr");
-  const t = T[lang];
-
-  const [items, setItems] = useState<Item[]>([]);
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [items, setItems] = useState<ReadingItem[]>([]);
 
-  const theme = useMemo(() => {
-    return {
-      bg: ["#07080d", "#14072e", "#050610"] as [string, string, string],
-      accent: "#7cf7d8",
-      primary: "rgba(94,59,255,0.85)",
-      card: "rgba(255,255,255,0.06)",
-      stroke: "rgba(255,255,255,0.10)",
-    };
-  }, []);
-
-  const buildInstruction = useCallback(
-    (u: string, n: string) => {
-      if (lang === "tr") {
-        return (
-          "UST BILINC / MATRIX HABER OKUMA\n" +
-          "Kaynak Link: " + u + "\n" +
-          "Kullanici Notu: " + n + "\n\n" +
-          "Soru sorma. Okuma ver.\n" +
-          "Basliklarla yaz:\n" +
-          "1) SINYAL\n" +
-          "2) SEMBOL DECODE\n" +
-          "3) SAYI/HARF AKISI\n" +
-          "4) ROL HARITASI\n" +
-          "5) KOLEKTIF DERS\n" +
-          "6) KISEL UYGULAMA\n" +
-          "7) PAYLASIM METNI\n"
-        );
-      }
-      return (
-        "SYSTEM VIEW / MATRIX NEWS READ\n" +
-        "Source link: " + u + "\n" +
-        "User note: " + n + "\n\n" +
-        "Do not ask questions. Provide the reading.\n" +
-        "Use headings:\n" +
-        "1) SIGNAL\n" +
-        "2) SYMBOL DECODE\n" +
-        "3) NUMBER/LETTER FLOW\n" +
-        "4) ROLE MAP\n" +
-        "5) COLLECTIVE LESSON\n" +
-        "6) ONE ACTION\n" +
-        "7) SHARE TEXT\n"
-      );
-    },
+  const t = useMemo(
+    () =>
+      lang === "tr"
+        ? {
+            title: "DÜNYA OLAYLARI",
+            subtitle: "Haberleri üst bilinç okumasıyla yorumla.",
+            urlLabel: "Haber Linki",
+            urlPlaceholder: "https://...",
+            noteLabel: "1 Cümlelik Not",
+            notePlaceholder: "Bu olay sana neyi düşündürdü?",
+            readNow: "Haberi Yorumla",
+            empty: "Henüz yorum yok.",
+            back: "Geri",
+            loading: "Sanrı okuyor...",
+            needFields: "Link ve 1 cümle not gerekli.",
+            result: "Yorum",
+          }
+        : {
+            title: "WORLD EVENTS",
+            subtitle: "Interpret news through system consciousness.",
+            urlLabel: "News Link",
+            urlPlaceholder: "https://...",
+            noteLabel: "One-line Note",
+            notePlaceholder: "What does this event make you think of?",
+            readNow: "Read the News",
+            empty: "No readings yet.",
+            back: "Back",
+            loading: "Sanri is reading...",
+            needFields: "Link and one sentence note are required.",
+            result: "Reading",
+          },
     [lang]
   );
-
-  const loadList = useCallback(async () => {
-    try {
-      const qs = "?status=published&limit=50";
-      const data: any = await apiGetJson(API.worldEventsList + qs, 30000);
-      const list = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
-      // backend formatın farklıysa burada normalize edebilirsin
-      // şimdilik: UI listesi serverdan değil localden de tutulabilir
-    } catch {
-      // liste fetch zorunlu değil
-    }
-  }, []);
-
-  useEffect(() => {
-    loadList();
-  }, [loadList]);
 
   const readNow = useCallback(async () => {
     const u = url.trim();
     const n = note.trim();
+
     if (!u || !n) {
-      Alert.alert("!", lang === "tr" ? "Link ve 1 cümle not gerekli." : "Link and note required.");
+      Alert.alert("!", t.needFields);
       return;
     }
 
     setBusy(true);
     try {
-      const instruction = buildInstruction(u, n);
+      const instruction =
+        lang === "tr"
+          ? `ÜST BİLİNÇ / MATRIX HABER OKUMA
 
-      const payload: any = {
+Kaynak Link: ${u}
+Kullanıcı Notu: ${n}
+
+Soru sorma. Direkt okuma ver.
+Şu başlıklarla yaz:
+
+1) SİNYAL
+2) SEMBOL DECODE
+3) SAYI / HARF AKIŞI
+4) ROL HARİTASI
+5) KOLEKTİF DERS
+6) KİŞİSEL UYGULAMA
+7) PAYLAŞIM METNİ`
+          : `SYSTEM VIEW / MATRIX NEWS READ
+
+Source Link: ${u}
+User Note: ${n}
+
+Do not ask questions. Provide a direct reading.
+Use these headings:
+
+1) SIGNAL
+2) SYMBOL DECODE
+3) NUMBER / LETTER FLOW
+4) ROLE MAP
+5) COLLECTIVE LESSON
+6) ONE PERSONAL ACTION
+7) SHARE TEXT`;
+
+      const payload = {
         message: instruction,
         session_id: "mobile-default",
-        domain: "world_events",
+        domain: "auto",
         gate_mode: "mirror",
         persona: "user",
         lang,
         context: {
           source: "world_events",
-          intent: "ust_bilinc_matrix_read",
           url: u,
           user_note: n,
-          output_format: "world_event_read_v1",
+          intent: "world_event_read_v1",
         },
       };
 
-      // ✅ kritik: apiPostJson headerları otomatik ekler (X-User-Id vs)
-      const data: any = await apiPostJson(API.worldEventsCreate, payload, 60000);
+      const data: any = await apiPostJson(API.ask, payload, 60000);
 
-      const reading = String(data?.answer || data?.response || "").trim() || "-";
+      const reading =
+        String(data?.answer || data?.response || data?.text || "").trim() || "-";
 
-      const item: Item = {
+      const item: ReadingItem = {
         id: uid(),
         created_at: Date.now(),
         url: u,
@@ -181,173 +154,267 @@ export default function WorldEventsScreen() {
     } finally {
       setBusy(false);
     }
-  }, [buildInstruction, lang, note, url]);
-
-  const shareItem = useCallback(async (it: Item) => {
-    const text =
-      (it.lang === "tr" ? "DÜNYA OLAYI (Üst Bilinç Okuma)\n" : "WORLD EVENT (System View)\n") +
-      it.url +
-      "\n\n" +
-      "Not: " + it.note +
-      "\n\n" +
-      it.reading;
-
-    try {
-      await Share.share({ message: text });
-    } catch {}
-  }, []);
-
-  const deleteItem = useCallback((id: string) => {
-    setItems((prev) => prev.filter((x) => x.id !== id));
-  }, []);
+  }, [url, note, lang, t.needFields]);
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={theme.bg} style={StyleSheet.absoluteFillObject} />
+      <StatusBar barStyle="light-content" />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          <View style={styles.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.h1}>{t.title}</Text>
-              <Text style={styles.sub}>{t.sub}</Text>
-            </View>
+      <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
 
-            <View style={styles.langRow}>
-              <Pressable onPress={() => setLang("tr")} style={styles.langChip}>
-                <Text style={[styles.langText, lang === "tr" && { color: theme.accent }]}>TR</Text>
-              </Pressable>
-              <Pressable onPress={() => setLang("en")} style={styles.langChip}>
-                <Text style={[styles.langText, lang === "en" && { color: theme.accent }]}>EN</Text>
-              </Pressable>
-            </View>
-          </View>
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <MatrixRain opacity={0.12} />
+      </View>
 
-          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.stroke }]}>
-            <Text style={styles.label}>{t.url}</Text>
-            <TextInput
-              value={url}
-              onChangeText={setUrl}
-              placeholder={t.url}
-              placeholderTextColor="rgba(255,255,255,0.35)"
-              style={styles.input}
-              autoCapitalize="none"
-            />
+      <View pointerEvents="none" style={styles.overlay} />
 
-            <Text style={[styles.label, { marginTop: 12 }]}>{t.note}</Text>
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              placeholder={t.note}
-              placeholderTextColor="rgba(255,255,255,0.35)"
-              style={[styles.input, { minHeight: 86 }]}
-              multiline
-            />
+      <View style={styles.topbar}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backTxt}>←</Text>
+          <Text style={styles.backLbl}>{t.back}</Text>
+        </Pressable>
 
-            <Pressable
-              onPress={readNow}
-              disabled={busy}
-              style={[styles.primaryBtn, { backgroundColor: theme.primary }, busy && { opacity: 0.6 }]}
-            >
-              <Text style={styles.primaryText}>{busy ? t.saving : t.read}</Text>
-            </Pressable>
-          </View>
+        <View style={{ flex: 1 }} />
 
-          <Text style={[styles.sectionTitle, { color: theme.accent }]}>{t.today}</Text>
+        <View style={styles.langRow}>
+          <Pressable
+            onPress={() => setLang("tr")}
+            style={[styles.langChip, lang === "tr" && styles.langChipActive]}
+          >
+            <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
+          </Pressable>
 
-          {items.length === 0 ? (
-            <Text style={styles.empty}>{t.empty}</Text>
-          ) : (
-            items.map((it) => (
-              <View key={it.id} style={[styles.itemCard, { backgroundColor: theme.card, borderColor: theme.stroke }]}>
-                <Text style={styles.itemMeta}>{new Date(it.created_at).toLocaleString()}</Text>
+          <Pressable
+            onPress={() => setLang("en")}
+            style={[styles.langChip, lang === "en" && styles.langChipActive]}
+          >
+            <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>EN</Text>
+          </Pressable>
+        </View>
+      </View>
 
-                <Text style={styles.itemUrl}>{it.url}</Text>
-                <Text style={styles.itemNote}>Not: {it.note}</Text>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <Text style={styles.kicker}>SYSTEM TERMINAL</Text>
+        <Text style={styles.h1}>{t.title}</Text>
+        <Text style={styles.sub}>{t.subtitle}</Text>
 
-                <Text style={styles.itemReading} numberOfLines={10}>
-                  {it.reading}
-                </Text>
+        <View style={styles.formCard}>
+          <Text style={styles.label}>{t.urlLabel}</Text>
+          <TextInput
+            value={url}
+            onChangeText={setUrl}
+            placeholder={t.urlPlaceholder}
+            placeholderTextColor="rgba(255,255,255,0.38)"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            style={styles.input}
+          />
 
-                <View style={styles.actionsRow}>
-                  <Pressable onPress={() => shareItem(it)} style={styles.smallBtn}>
-                    <Text style={[styles.smallBtnText, { color: theme.accent }]}>{t.share}</Text>
-                  </Pressable>
-                  <Pressable onPress={() => deleteItem(it.id)} style={styles.smallBtn}>
-                    <Text style={[styles.smallBtnText, { color: "#ff6b8a" }]}>{t.del}</Text>
-                  </Pressable>
-                </View>
+          <Text style={[styles.label, { marginTop: 14 }]}>{t.noteLabel}</Text>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            placeholder={t.notePlaceholder}
+            placeholderTextColor="rgba(255,255,255,0.38)"
+            multiline
+            style={[styles.input, styles.textarea]}
+          />
+
+          <Pressable onPress={readNow} style={styles.submitBtn} disabled={busy}>
+            {busy ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator />
+                <Text style={styles.submitTxt}>{t.loading}</Text>
               </View>
-            ))
-          )}
+            ) : (
+              <Text style={styles.submitTxt}>{t.readNow}</Text>
+            )}
+          </Pressable>
+        </View>
 
-          <View style={{ height: 180 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <View style={{ height: 10 }} />
+
+        {items.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTxt}>{t.empty}</Text>
+          </View>
+        ) : (
+          items.map((item) => (
+            <View key={item.id} style={styles.resultCard}>
+              <Text style={styles.resultTitle}>{t.result}</Text>
+
+              <Text style={styles.metaLine}>
+                {new Date(item.created_at).toLocaleString()}
+              </Text>
+
+              <Text style={styles.linkText}>{item.url}</Text>
+
+              <Text style={styles.noteText}>{item.note}</Text>
+
+              <Text style={styles.resultBody}>{item.reading}</Text>
+            </View>
+          ))
+        )}
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
-  container: { paddingTop: 18, paddingHorizontal: 18 },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.38)" },
 
-  headerRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  h1: { color: "white", fontSize: 28, fontWeight: "900", letterSpacing: 1 },
-  sub: { color: "rgba(255,255,255,0.65)", marginTop: 6, lineHeight: 20 },
-
-  langRow: { flexDirection: "row", gap: 8, marginTop: 4 },
-  langChip: {
+  topbar: {
+    paddingTop: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  backBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
-  langText: { color: "rgba(255,255,255,0.75)", fontWeight: "900" },
-
-  card: {
-    marginTop: 14,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-  },
-  label: { color: "rgba(255,255,255,0.75)", fontWeight: "800", marginBottom: 6 },
-  input: {
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: "rgba(0,0,0,0.25)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    color: "white",
-  },
-  primaryBtn: { marginTop: 14, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  primaryText: { color: "white", fontWeight: "900" },
-
-  sectionTitle: { marginTop: 18, fontWeight: "900", fontSize: 18 },
-  empty: { color: "rgba(255,255,255,0.55)", marginTop: 10 },
-
-  itemCard: {
-    marginTop: 12,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-  },
-  itemMeta: { color: "rgba(255,255,255,0.45)", marginBottom: 8 },
-  itemUrl: { color: "white", fontWeight: "900" },
-  itemNote: { color: "rgba(255,255,255,0.70)", marginTop: 6 },
-  itemReading: { color: "rgba(255,255,255,0.85)", marginTop: 10, lineHeight: 20 },
-
-  actionsRow: { flexDirection: "row", gap: 10, marginTop: 12 },
-  smallBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  smallBtnText: { fontWeight: "900" },
+  backTxt: { color: "#7cf7d8", fontSize: 18, fontWeight: "900" },
+  backLbl: { color: "rgba(255,255,255,0.78)", fontWeight: "800" },
+
+  langRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  langChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  langChipActive: {
+    backgroundColor: "rgba(124,247,216,0.12)",
+    borderColor: "rgba(124,247,216,0.28)",
+  },
+  langTxt: { color: "rgba(255,255,255,0.72)", fontWeight: "900", letterSpacing: 1 },
+  langTxtActive: { color: "#7cf7d8" },
+
+  container: { padding: 18, paddingTop: 6 },
+
+  kicker: {
+    color: "rgba(255,255,255,0.55)",
+    letterSpacing: 2,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+  h1: { color: "white", fontSize: 32, fontWeight: "900", lineHeight: 38 },
+  sub: {
+    color: "rgba(255,255,255,0.72)",
+    marginTop: 10,
+    marginBottom: 18,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+
+  formCard: {
+    borderRadius: 22,
+    padding: 18,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  label: {
+    color: "#7cf7d8",
+    fontWeight: "900",
+    marginBottom: 8,
+    fontSize: 14,
+  },
+  input: {
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: "white",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  textarea: {
+    minHeight: 90,
+    textAlignVertical: "top",
+  },
+
+  submitBtn: {
+    marginTop: 16,
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(94,59,255,0.82)",
+    borderWidth: 1,
+    borderColor: "rgba(94,59,255,0.35)",
+  },
+  submitTxt: {
+    color: "white",
+    fontWeight: "900",
+    fontSize: 15,
+  },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  emptyCard: {
+    borderRadius: 22,
+    padding: 18,
+    marginTop: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  emptyTxt: {
+    color: "rgba(255,255,255,0.62)",
+  },
+
+  resultCard: {
+    borderRadius: 22,
+    padding: 18,
+    marginTop: 12,
+    backgroundColor: "rgba(94,59,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  resultTitle: {
+    color: "#7cf7d8",
+    fontWeight: "900",
+    fontSize: 16,
+  },
+  metaLine: {
+    color: "rgba(255,255,255,0.48)",
+    marginTop: 8,
+    fontSize: 12,
+  },
+  linkText: {
+    color: "rgba(255,255,255,0.9)",
+    marginTop: 10,
+    fontSize: 13,
+    textDecorationLine: "underline",
+  },
+  noteText: {
+    color: "rgba(255,255,255,0.75)",
+    marginTop: 10,
+    fontStyle: "italic",
+  },
+  resultBody: {
+    color: "white",
+    marginTop: 14,
+    lineHeight: 22,
+    fontSize: 14,
+  },
 });
