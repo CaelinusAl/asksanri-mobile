@@ -1,68 +1,127 @@
-import React,{useEffect,useState} from "react"
-import {View,Text,ScrollView,StyleSheet} from "react-native"
-import {API,apiGetJson} from "@/lib/apiClient"
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ImageBackground,
+  StatusBar,
+  Pressable,
+} from "react-native";
+import { router } from "expo-router";
+import MatrixRain from "../../lib/MatrixRain";
 
-export default function RitualHistory(){
+const BG = require("../../assets/sanri_glass_bg.jpg");
 
-const [rituals,setRituals]=useState<any[]>([])
+export default function RitualHistoryScreen() {
+  return (
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" />
 
-useEffect(()=>{
-load()
-},[])
+      <ImageBackground
+        source={BG}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
 
-async function load(){
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <MatrixRain opacity={0.12} />
+      </View>
 
-const data:any = await apiGetJson(`${API.base}/ritual-history`,20000)
+      <View pointerEvents="none" style={styles.overlay} />
 
-setRituals(data || [])
+      <View style={styles.topbar}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backTxt}>←</Text>
+        </Pressable>
 
-}
+        <Text style={styles.title}>Ritüel Geçmişim</Text>
+      </View>
 
-return(
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Sanrı Ritüelleri</Text>
+          <Text style={styles.cardText}>
+            Sana önerilen ritüeller burada görünecek.
+          </Text>
+        </View>
 
-<ScrollView style={styles.container}>
-
-<Text style={styles.title}>
-Ritüel Geçmişim
-</Text>
-
-{rituals.map((r,i)=>(
-
-<View key={i} style={styles.card}>
-
-<Text style={styles.name}>
-{r.title}
-</Text>
-
-<Text style={styles.desc}>
-{r.text}
-</Text>
-
-</View>
-
-))}
-
-</ScrollView>
-
-)
-
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Ses + Metin Akışları</Text>
+          <Text style={styles.cardText}>
+            Geçmiş ritüel kayıtların bu alanda tutulacak.
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#07080d",
+  },
 
-container:{flex:1,padding:20,backgroundColor:"#07080d"},
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
 
-title:{color:"white",fontSize:30,fontWeight:"900",marginBottom:20},
+  topbar: {
+    paddingTop: 54,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
 
-card:{
-backgroundColor:"rgba(255,255,255,0.06)",
-padding:18,
-borderRadius:18,
-marginBottom:12
-},
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
 
-name:{color:"#7cf7d8",fontWeight:"900",marginBottom:6},
+  backTxt: {
+    color: "#7cf7d8",
+    fontSize: 20,
+    fontWeight: "900",
+  },
 
-desc:{color:"white"}
+  title: {
+    color: "white",
+    fontSize: 28,
+    fontWeight: "900",
+  },
 
-})
+  container: {
+    padding: 18,
+    gap: 14,
+  },
+
+  card: {
+    borderRadius: 22,
+    padding: 18,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+
+  cardTitle: {
+    color: "#7cf7d8",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 8,
+  },
+
+  cardText: {
+    color: "rgba(255,255,255,0.82)",
+    lineHeight: 22,
+  },
+});
