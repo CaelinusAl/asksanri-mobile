@@ -1,59 +1,67 @@
-import React, {useState} from "react"
+import React, {useEffect, useState} from "react"
 import {View,Text,TextInput,Pressable,StyleSheet} from "react-native"
-import {apiPostJson,API} from "@/lib/apiClient"
+import {API, apiGetJson, apiPostJson} from "@/lib/apiClient"
 
-export default function ProfileScreen(){
+export default function Profile(){
 
-const [name,setName]=useState("")
-const [bio,setBio]=useState("")
-const [intention,setIntention]=useState("")
+const [profile,setProfile] = useState<any>({})
 
-const save=async()=>{
- await apiPostJson(API.base+"/profile/update",{
-   name,
-   bio,
-   intention,
-   language:"tr"
- })
+useEffect(()=>{
+ load()
+},[])
+
+async function load(){
+ const data = await apiGetJson(API.base + "/profile")
+ setProfile(data)
+}
+
+async function save(){
+
+ await apiPostJson(API.base + "/profile/update",profile)
+
+ alert("Kaydedildi")
 }
 
 return(
+
 <View style={styles.root}>
 
 <Text style={styles.title}>Profil</Text>
 
 <TextInput
-placeholder="Adın"
-value={name}
-onChangeText={setName}
-style={styles.input}
+placeholder="İsim"
+value={profile.name}
+onChangeText={v=>setProfile({...profile,name:v})}
 />
 
 <TextInput
-placeholder="Kendini tanıt"
-value={bio}
-onChangeText={setBio}
-style={styles.input}
+placeholder="Email"
+value={profile.email}
+onChangeText={v=>setProfile({...profile,email:v})}
 />
 
 <TextInput
-placeholder="Niyetin"
-value={intention}
-onChangeText={setIntention}
-style={styles.input}
+placeholder="Bio"
+value={profile.bio}
+onChangeText={v=>setProfile({...profile,bio:v})}
 />
 
-<Pressable style={styles.btn} onPress={save}>
+<TextInput
+placeholder="Niyet"
+value={profile.intention}
+onChangeText={v=>setProfile({...profile,intention:v})}
+/>
+
+<Pressable onPress={save}>
 <Text>Kaydet</Text>
 </Pressable>
 
 </View>
 )
+
 }
 
-const styles=StyleSheet.create({
+const styles = StyleSheet.create({
 root:{flex:1,padding:20},
-title:{fontSize:28,fontWeight:"bold"},
-input:{borderWidth:1,padding:10,marginTop:10},
-btn:{marginTop:20,padding:15,backgroundColor:"#7cf7d8"}
+title:{fontSize:32,fontWeight:"bold"}
 })
