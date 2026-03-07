@@ -1,4 +1,3 @@
-// app/city/[code].tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -24,7 +23,6 @@ import VipSheet from "../../components/VipSheet";
 import { consumeVipJustActivated } from "@/lib/vipPulse";
 
 const KEY_BG = require("../../assets/key_holo.jpg");
-// Eğer assets'te varsa kullan (yoksa build patlar). Dosya sende var demiştin.
 const DOOR_IMG = require("../../assets/door_holo.jpg");
 
 export default function CityCodeScreen() {
@@ -40,9 +38,11 @@ export default function CityCodeScreen() {
   const [isVip, setIsVip] = useState(false);
   const [vipOpen, setVipOpen] = useState(false);
   const [vipRain, setVipRain] = useState(false);
+  const [pendingDeepAsk, setPendingDeepAsk] = useState(false);
 
-  // === KEY background breathe ===
   const breathe = useRef(new Animated.Value(0)).current;
+  const doorAnim = useRef(new Animated.Value(0)).current;
+  const [doorOpen, setDoorOpen] = useState(false);
 
   useEffect(() => {
     Animated.loop(
@@ -66,10 +66,6 @@ export default function CityCodeScreen() {
   const keyScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
   const keyOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.26] });
 
-  // === DOOR OPEN animation ===
-  const doorAnim = useRef(new Animated.Value(0)).current;
-  const [doorOpen, setDoorOpen] = useState(false);
-
   const playDoorOpen = useCallback(() => {
     setDoorOpen(true);
     doorAnim.setValue(0);
@@ -79,7 +75,6 @@ export default function CityCodeScreen() {
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start(() => {
-      // kısa “afterglow”
       setTimeout(() => {
         setDoorOpen(false);
         doorAnim.setValue(0);
@@ -90,10 +85,8 @@ export default function CityCodeScreen() {
   const doorOpacity = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.85] });
   const doorScale = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.02] });
   const doorLift = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] });
-
   const glowOpacity = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
 
-  // VIP check
   useEffect(() => {
     (async () => {
       try {
@@ -105,7 +98,6 @@ export default function CityCodeScreen() {
     })();
   }, []);
 
-  // VIP satın alma sonrası “yağmur patlaması” (global pulse)
   useEffect(() => {
     if (consumeVipJustActivated()) {
       setVipRain(true);
@@ -119,7 +111,6 @@ export default function CityCodeScreen() {
   }, [cityCode]);
 
   const headerTitle = useMemo(() => `${cityCode} · ${cityName}`, [cityCode, cityName]);
-
   const content = getCityContent(cityCode, appLang, layer);
 
   const deepenSub =
@@ -132,6 +123,26 @@ export default function CityCodeScreen() {
       ? '"wake up" is not a command — it is a remembrance.'
       : '"wake up" bir komut değil — bir hatırlayış.';
 
+  const goToSanri = useCallback(
+    (gateMode: "mirror" | "divine") => {
+      router.push({
+        pathname: "/(tabs)/sanri_flow",
+        params: {
+          lang: appLang,
+          code: cityCode,
+          city: cityName,
+          layer,
+          title: headerTitle,
+          source: "city_detail",
+          domain: "city",
+          gateMode,
+          intent: gateMode === "divine" ? "deep_city_reading" : "city_reading",
+        },
+      } as any);
+    },
+    [router, appLang, cityCode, cityName, layer, headerTitle]
+  );
+
   const onPressDeepen = useCallback(async () => {
     try {
       const ok = await hasVipEntitlement();
@@ -140,31 +151,57 @@ export default function CityCodeScreen() {
         return;
       }
       setIsVip(true);
-      playDoorOpen(); // ✅ kapı animasyonu
+      playDoorOpen();
       setTimeout(() => setLayer("deepC"), 520);
     } catch {
       setVipOpen(true);
     }
   }, [playDoorOpen]);
 
-  const onPressAsk = useCallback(() => {
-    // Sanri flow senin dosyada params: code / city / layer bekliyor gibi ayarladık.
-    router.push({
-      pathname: "/(tabs)/sanri_flow",
-      params: {
-        lang: appLang,
-        code: cityCode,
-        city: cityName,
-        layer: layer,
-        title: headerTitle,
-        source: "city_detail",
-      },
-    } as any);
-  }, [router, appLang, cityCode, cityName, layer, headerTitle]);
+  const onPressAsk = useCallback(async () => {
+    const wantsDeep = layer === "deepC";
+
+    if (!wantsDeep) {
+      goToSanri("mirror");
+      return;
+    }
+
+    try {
+      const ok = await hasVipEntitlement();
+      if (!ok) {
+        setPendingDeepAsk(true);
+        setVipOpen(true);
+        return;
+      }
+
+      setIsVip(true);
+      goToSanri("divine");
+    } catch {
+      setPendingDeepAsk(true);
+      setVipOpen(true);
+    }
+  }, [layer, goToSanri]);
+
+  const onSubscribeSuccess = useCallback(async () => {
+    setIsVip(true);
+    setVipOpen(false);
+
+    playDoorOpen();
+    setTimeout(() => setLayer("deepC"), 520);
+
+    setVipRain(true);
+    setTimeout(() => setVipRain(false), 3500);
+
+    if (pendingDeepAsk) {
+      setPendingDeepAsk(false);
+      setTimeout(() => {
+        goToSanri("divine");
+      }, 720);
+    }
+  }, [pendingDeepAsk, playDoorOpen, goToSanri]);
 
   return (
     <View style={styles.root}>
-      {/* Key hologram background */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -175,14 +212,12 @@ export default function CityCodeScreen() {
         <Image source={KEY_BG} style={styles.keyBg} resizeMode="cover" />
       </Animated.View>
 
-      {/* VIP rain burst */}
       {vipRain ? (
         <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
           <MatrixRain opacity={0.18} />
         </View>
       ) : null}
 
-      {/* Door open overlay */}
       {doorOpen ? (
         <Animated.View
           pointerEvents="none"
@@ -202,10 +237,8 @@ export default function CityCodeScreen() {
         </Animated.View>
       ) : null}
 
-      {/* Soft veil */}
       <View pointerEvents="none" style={styles.veil} />
 
-      {/* TOP BAR */}
       <View style={styles.top}>
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
           <Text style={styles.backTxt}>←</Text>
@@ -224,29 +257,18 @@ export default function CityCodeScreen() {
         </View>
       </View>
 
-      {/* VIP Sheet */}
       <VipSheet
         open={vipOpen}
         lang={appLang as any}
         priceTry="693 TL / ay"
         priceUsd="39 USD / mo"
-        onClose={() => setVipOpen(false)}
-        onSubscribe={async () => {
-          // ✅ Burayı RevenueCat başarı callback’i yapınca “real” olacak.
-          setIsVip(true);
+        onClose={() => {
           setVipOpen(false);
-
-          // Kapı açılıyor hissi
-          playDoorOpen();
-          setTimeout(() => setLayer("deepC"), 520);
-
-          // küçük yağmur patlaması
-          setVipRain(true);
-          setTimeout(() => setVipRain(false), 3500);
+          setPendingDeepAsk(false);
         }}
+        onSubscribe={onSubscribeSuccess}
       />
 
-      {/* SCROLL */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -254,16 +276,14 @@ export default function CityCodeScreen() {
       >
         <Text style={styles.h1}>{headerTitle}</Text>
 
-        {/* BİLİNÇ KAPISI */}
         <Pressable onPress={onPressDeepen} style={styles.vipGlass} hitSlop={10}>
           <View style={{ flex: 1 }}>
             <Text style={styles.vipTitle}>BİLİNÇ KAPISI</Text>
-            <Text style={styles.vipSub}>{isVip ? deepenSub : deepenSub}</Text>
+            <Text style={styles.vipSub}>{deepenSub}</Text>
           </View>
           <Text style={styles.vipArrow}>›</Text>
         </Pressable>
 
-        {/* CONTENT */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{content.title}</Text>
           <Text style={styles.story}>
@@ -274,11 +294,14 @@ export default function CityCodeScreen() {
           </Text>
         </View>
 
-        {/* ASK SANRI GO */}
         <Pressable onPress={onPressAsk} style={styles.askGlass} hitSlop={10}>
           <Text style={styles.askTitle}>ASK SANRI GO</Text>
           <Text style={styles.askSub}>
-            {appLang === "en"
+            {layer === "deepC"
+              ? appLang === "en"
+                ? "Deep city analysis will open through Sanri Elite."
+                : "Derin şehir analizi Sanrı Elite üzerinden açılır."
+              : appLang === "en"
               ? "Write one sentence. The system reflects meaning, not answers."
               : "Bir cümle yaz. Sistem cevap değil, anlam yansıtır."}
           </Text>
@@ -303,7 +326,6 @@ const styles = StyleSheet.create({
   keyBg: { width: "100%", height: "100%" },
   veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.48)" },
 
-  // Door overlay
   doorWrap: {
     position: "absolute",
     left: 0,
@@ -383,7 +405,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  // Bilinç Kapısı (VIP glass)
   vipGlass: {
     marginHorizontal: 18,
     borderRadius: 22,
@@ -414,7 +435,6 @@ const styles = StyleSheet.create({
   cardTitle: { color: "#7cf7d8", fontSize: 20, fontWeight: "900", marginBottom: 12 },
   story: { color: "rgba(255,255,255,0.88)", fontSize: 16, lineHeight: 24 },
 
-  // Ask Sanri Go glass
   askGlass: {
     marginHorizontal: 18,
     marginTop: 14,

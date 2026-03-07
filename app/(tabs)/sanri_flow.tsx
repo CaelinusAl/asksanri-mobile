@@ -103,13 +103,16 @@ export default function SanriFlowScreen() {
   const router = useRouter();
 
   const params = useLocalSearchParams<{
-    lang?: string;
-    title?: string;
-    seed?: string;
-    code?: string;
-    city?: string;
-    layer?: string;
-  }>();
+  lang?: string;
+  title?: string;
+  seed?: string;
+  code?: string;
+  city?: string;
+  layer?: string;
+  domain?: string;
+  gateMode?: string;
+  intent?: string;
+}>();
 
   const initialLang: Lang = safeStr(params.lang).toLowerCase() === "en" ? "en" : "tr";
   const [lang, setLang] = useState<Lang>(initialLang);
@@ -246,21 +249,22 @@ export default function SanriFlowScreen() {
         }
 
         const payload = {
-          message: text,
-          session_id: "mobile-default",
-          domain: "auto",
-          gate_mode: "mirror",
-          persona: "user",
-          lang,
-          context: {
-            source: "personal_field",
-            title: params.title ? safeStr(params.title) : undefined,
-            seed: params.seed ? safeStr(params.seed) : undefined,
-            city_code: params.code ? safeStr(params.code) : undefined,
-            city: params.city ? safeStr(params.city) : undefined,
-            layer: params.layer ? safeStr(params.layer) : undefined,
-          },
-        };
+           message: text,
+           session_id: "mobile-default",
+           domain: safeStr(params.domain || "auto") || "auto",
+           gate_mode: safeStr(params.gateMode || "mirror") || "mirror",
+           persona: "user",
+           lang,
+           context: {
+             source: "personal_field",
+             title: params.title ? safeStr(params.title) : undefined,
+             seed: params.seed ? safeStr(params.seed) : undefined,
+             city_code: params.code ? safeStr(params.code) : undefined,
+             city: params.city ? safeStr(params.city) : undefined,
+             layer: params.layer ? safeStr(params.layer) : undefined,
+             intent: params.intent ? safeStr(params.intent) : undefined,
+  },
+};
 
         console.log("SANRI_SEND", { text, lang });
 
