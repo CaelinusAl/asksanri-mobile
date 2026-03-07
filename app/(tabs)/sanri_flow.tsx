@@ -340,104 +340,116 @@ export default function SanriFlowScreen() {
   }, [sendText, busy]);
 
   const startRec = useCallback(async () => {
-    if (busy) return;
-    if (isStartingRef.current || isStoppingRef.current) return;
-    if (recordingRef.current) return;
+  if (busy) return;
+  if (isStartingRef.current || isStoppingRef.current) return;
+  if (recordingRef.current) return;
 
-    isStartingRef.current = true;
-    setError("");
+  isStartingRef.current = true;
+  setError("");
 
-    try {
-      const perm = await Audio.requestPermissionsAsync();
-      if (!perm.granted) {
-        setError(lang === "tr" ? "Mikrofon izni yok." : "Microphone permission missing.");
-        return;
-      }
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-      });
-
-      const rec = new Audio.Recording();
-      await rec.prepareToRecordAsync(RECORDING_OPTIONS);
-      await rec.startAsync();
-
-      recordingRef.current = rec;
-      setIsRecording(true);
-
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch {}
-    } catch (e: any) {
-      setError("Hata: " + safeStr(e?.message || e));
-      try {
-        await recordingRef.current?.stopAndUnloadAsync();
-      } catch {}
-      recordingRef.current = null;
-      setIsRecording(false);
-    } finally {
-      isStartingRef.current = false;
+  try {
+    const perm = await Audio.requestPermissionsAsync();
+    if (!perm.granted) {
+      setError(lang === "tr" ? "Mikrofon izni yok." : "Microphone permission missing.");
+      return;
     }
-  }, [busy, lang]);
 
-  const stopRec = useCallback(async () => {
-    const rec = recordingRef.current;
-    if (!rec) return;
-    if (isStoppingRef.current) return;
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+    });
 
-    isStoppingRef.current = true;
+    const rec = new Audio.Recording();
+    await rec.prepareToRecordAsync(RECORDING_OPTIONS);
+    await rec.startAsync();
+
+    recordingRef.current = rec;
+    setIsRecording(true);
 
     try {
-      setIsRecording(false);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {}
+  } catch (e: any) {
+    setError("Hata: " + safeStr(e?.message || e));
+    recordingRef.current = null;
+    setIsRecording(false);
+  } finally {
+    isStartingRef.current = false;
+  }
+}, [busy, lang]);
+
+const stopRec = useCallback(async () => {
+  if (isStoppingRef.current) return;
+
+  const rec = recordingRef.current;
+  if (!rec) return;
+
+  isStoppingRef.current = true;
+  setIsRecording(false);
+
+  try {
+    recordingRef.current = null;
+
+    const status: any = await rec.getStatusAsync().catch(() => null);
+
+    if (status?.isRecording) {
       await rec.stopAndUnloadAsync();
-      const uri = rec.getURI();
-      recordingRef.current = null;
-
-      if (!uri) return;
-
-      const info = await FileSystem.getInfoAsync(uri);
-      const size =
-        info && (info as any).exists && typeof (info as any).size === "number"
-          ? (info as any).size
-          : 0;
-
-      if (size < 2000) {
-        setError(t.audioShort);
-        return;
-      }
-
-      const form = new FormData();
-      form.append("lang", lang);
-      form.append(
-        "file",
-        {
-          uri: String(uri),
-          name: "voice.m4a",
-          type: "audio/m4a",
-        } as any
-      );
-
-      const voice: any = await apiPostForm(API.transcribe, form, 60000);
-      const outText = safeStr(voice?.text).trim();
-
-      if (!outText) {
-        setError(t.audioEmpty);
-        return;
-      }
-
-      setInput((prev) => (prev ? prev + " " : "") + outText);
-    } catch (e: any) {
-      const msg = safeStr(e?.message || e);
-      if (msg === "TIMEOUT" || msg.toLowerCase().includes("abort")) setError(t.timeout);
-      else if (msg.toLowerCase().includes("network request failed")) setError(t.netfail);
-      else setError("Hata: " + msg);
-    } finally {
-      isStoppingRef.current = false;
-      scrollToEnd();
     }
-  }, [lang, t.audioShort, t.audioEmpty, t.timeout, t.netfail, scrollToEnd]);
+
+    const uri = rec.getURI();
+    if (!uri) return;
+
+    const info = await FileSystem.getInfoAsync(uri);
+    const size =
+      info && (info as any).exists && typeof (info as any).size === "number"
+        ? (info as any).size
+        : 0;
+
+    if (size < 2000) {
+      setError(t.audioShort);
+      return;
+    }
+
+    const form = new FormData();
+    form.append("lang", lang);
+    form.append(
+      "file",
+      {
+        uri: String(uri),
+        name: "voice.m4a",
+        type: "audio/m4a",
+      } as any
+    );
+
+    const voice: any = await apiPostForm(API.transcribe, form, 60000);
+    const outText = safeStr(voice?.text).trim();
+
+    if (!outText) {
+      setError(t.audioEmpty);
+      return;
+    }
+
+    setInput((prev) => (prev ? prev + " " : "") + outText);
+  } catch (e: any) {
+    const msg = safeStr(e?.message || e);
+
+    if (msg.includes("already been unloaded")) {
+      return;
+    }
+
+    if (msg === "TIMEOUT" || msg.toLowerCase().includes("abort")) {
+      setError(t.timeout);
+    } else if (msg.toLowerCase().includes("network request failed")) {
+      setError(t.netfail);
+    } else {
+      setError("Hata: " + msg);
+    }
+  } finally {
+    isStoppingRef.current = false;
+    scrollToEnd();
+  }
+}, [lang, scrollToEnd, t.audioEmpty, t.audioShort, t.netfail, t.timeout]);  
 
   return (
     <View style={styles.root}>
@@ -560,12 +572,17 @@ export default function SanriFlowScreen() {
           </BlurView>
 
           <Pressable
-            onPressIn={startRec}
-            onPressOut={stopRec}
-            style={[styles.micBtn, isRecording && styles.micBtnActive, busy && { opacity: 0.5 }]}
-            hitSlop={10}
-            disabled={busy}
+             onPressIn={startRec}
+             onPressOut={() => {
+             if (recordingRef.current && !isStoppingRef.current) {
+            stopRec();
+          }
+        }}
+          style={[styles.micBtn, isRecording && styles.micBtnActive, busy && { opacity: 0.5 }]}
+          hitSlop={10}
+          disabled={busy}
           >
+          
             <BlurView intensity={24} tint="dark" style={styles.micInner}>
               <Text style={styles.micTxt}>{isRecording ? "■" : "🎙"}</Text>
               <Text style={styles.micHint}>{t.micHold}</Text>
