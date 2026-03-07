@@ -23,9 +23,9 @@ import MatrixRain from "../../lib/MatrixRain";
 import VipSheet from "../../components/VipSheet";
 import { consumeVipJustActivated } from "@/lib/vipPulse";
 
-const KEY_BG = require("../../assets/key_holo.png");
+const KEY_BG = require("../../assets/key_holo.jpg");
 // Eğer assets'te varsa kullan (yoksa build patlar). Dosya sende var demiştin.
-const DOOR_IMG = require("../../assets/door_holo.png");
+const DOOR_IMG = require("../../assets/door_holo.jpg");
 
 export default function CityCodeScreen() {
   const router = useRouter();

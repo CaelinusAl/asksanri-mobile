@@ -28,8 +28,8 @@ type Props = {
 };
 
 const BG = require("../assets/sanri_glass_bg.jpg");
-const KEY_IMG = require("../assets/key_holo.png");
-const DOOR_IMG = require("../assets/door_holo.png");
+const KEY_IMG = require("../assets/key_holo.jpg");
+const DOOR_IMG = require("../assets/door_holo.jpg");
 
 const COPY = {
   tr: {
