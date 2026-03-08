@@ -8,9 +8,11 @@ import {
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   StatusBar,
   ImageBackground,
+  Share,
+  Platform,
+  
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -20,6 +22,8 @@ import { BlurView } from "expo-blur";
 
 import { apiPostJson, apiPostForm, API } from "@/lib/apiClient";
 import ConsciousMenu from "../../components/ConsciousMenu";
+import SanriShareButtons from "../../components/SanriShareButtons";
+
 
 type Lang = "tr" | "en";
 type Role = "user" | "assistant";
@@ -35,6 +39,10 @@ function uid(prefix?: string) {
 function safeStr(x: any) {
   return String(x == null ? "" : x);
 }
+
+const IOS_STORE_URL = "https://apps.apple.com/app/idBURAYA_APP_ID";
+const ANDROID_STORE_URL = "https://play.google.com/store/apps/details?id=com.caelinusai.asksanri";
+const FALLBACK_URL = "https://asksanri.com";
 
 const BG = require("../../assets/sanri_bg.jpg");
 
@@ -114,6 +122,8 @@ export default function SanriFlowScreen() {
   intent?: string;
 }>();
 
+
+
   const initialLang: Lang = safeStr(params.lang).toLowerCase() === "en" ? "en" : "tr";
   const [lang, setLang] = useState<Lang>(initialLang);
   const t = useMemo(() => T[lang], [lang]);
@@ -147,6 +157,23 @@ export default function SanriFlowScreen() {
       return prev;
     });
   }, [lang]);
+
+  const openShare = async (text: string) => {
+  const storeUrl =
+    Platform.OS === "ios"
+      ? IOS_STORE_URL
+      : Platform.OS === "android"
+      ? ANDROID_STORE_URL
+      : FALLBACK_URL;
+
+  try {
+    await Share.share({
+      message: `Sanrı dedi ki:\n\n"${text}"\n\nSanrı — Ask and Remember\n${storeUrl}`,
+    });
+  } catch (e) {
+    console.log("share error", e);
+  }
+};
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
@@ -249,25 +276,11 @@ export default function SanriFlowScreen() {
         }
 
         const payload = {
-           message: text,
-           session_id: "mobile-default",
-           domain: safeStr(params.domain || "auto") || "auto",
-           gate_mode: safeStr(params.gateMode || "mirror") || "mirror",
-           persona: "user",
-           lang,
-           context: {
-             source: "personal_field",
-             title: params.title ? safeStr(params.title) : undefined,
-             seed: params.seed ? safeStr(params.seed) : undefined,
-             city_code: params.code ? safeStr(params.code) : undefined,
-             city: params.city ? safeStr(params.city) : undefined,
-             layer: params.layer ? safeStr(params.layer) : undefined,
-             intent: params.intent ? safeStr(params.intent) : undefined,
-  },
+  message: raw,
+  session_id: "mobile-default",
+  lang,
 };
-
-        console.log("SANRI_SEND", { text, lang });
-
+        console.log("SANRI_SEND", payload);
         const data: any = await apiPostJson(API.ask, payload, 60000);
 
         console.log("SANRI_RAW_RESPONSE", data);
@@ -275,6 +288,7 @@ export default function SanriFlowScreen() {
           console.log("SANRI_KEYS", Object.keys(data || {}));
         } catch {}
 
+  
         const answer =
           safeStr(data?.answer || data?.response).trim() ||
           (lang === "tr" ? "Buradayım." : "I’m here.");
@@ -282,12 +296,20 @@ export default function SanriFlowScreen() {
         setIsWaking(false);
         await typeIntoLoader(loaderId, answer);
       } catch (e: any) {
-        const msg = safeStr(e?.message || e);
 
-        if (loaderIdRef.current) {
-          removeLoader(loaderIdRef.current);
-        }
+  console.log("SANRI_RAW_ERROR", e);
+  console.log("SANRI_RESPONSE_DATA", e?.response?.data);
 
+  const msg =
+    e?.response?.data?.detail?.error ||
+    e?.response?.data?.detail ||
+    e?.response?.data?.error ||
+    e?.message ||
+    JSON.stringify(e);
+
+  if (loaderIdRef.current) {
+    removeLoader(loaderIdRef.current);
+  }
         if (msg === "TIMEOUT" || msg.toLowerCase().includes("abort")) {
           setError(t.timeout);
         } else if (msg === "INVALID_JSON" || msg === "NON_JSON_RESPONSE") {
@@ -375,12 +397,13 @@ export default function SanriFlowScreen() {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch {}
   } catch (e: any) {
-    setError("Hata: " + safeStr(e?.message || e));
-    recordingRef.current = null;
-    setIsRecording(false);
-  } finally {
-    isStartingRef.current = false;
-  }
+  console.log("SANRI ERROR:", e);
+  setError(
+    e?.response?.data?.detail?.error ||
+    e?.message ||
+    JSON.stringify(e)
+  );
+}
 }, [busy, lang]);
 
 const stopRec = useCallback(async () => {
@@ -529,19 +552,34 @@ const stopRec = useCallback(async () => {
 
             return (
               <View key={m.id} style={[styles.row, isUser ? styles.rowRight : styles.rowLeft]}>
-                <View style={styles.bubbleWrap}>
-                  {isUser ? <View style={styles.userGlow} /> : null}
-                  <BlurView
-                    intensity={24}
-                    tint="dark"
-                    style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}
-                  >
-                    <Text style={styles.bubbleText}>{m.text}</Text>
-                  </BlurView>
-                </View>
-              </View>
-            );
-          })}
+
+              <View style={styles.bubbleWrap}>
+               {isUser ? <View style={styles.userGlow} /> : null}
+
+               <BlurView
+                intensity={24}
+                tint="dark"
+                style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}
+        >
+
+          <Text style={styles.bubbleText}>{m.text}</Text>
+
+        </BlurView>
+
+        {!isUser && (
+          <Pressable
+            style={styles.shareBtn}
+            onPress={() => openShare(m.text)}
+          >
+            <Text style={styles.shareIcon}>↗</Text>
+          </Pressable>
+        )}
+
+      </View>
+
+    </View>
+  );
+})}
 
           {error ? (
             <View style={styles.errWrap}>
@@ -593,16 +631,20 @@ const stopRec = useCallback(async () => {
             </BlurView>
           </Pressable>
 
-          <Pressable
-            onPress={send}
-            style={[styles.sendBtn, (!input.trim() || busy) && { opacity: 0.6 }]}
-            hitSlop={10}
-            disabled={!input.trim() || busy}
-          >
-            <BlurView intensity={30} tint="dark" style={styles.sendInner}>
-              <Text style={styles.sendText}>{t.send}</Text>
-            </BlurView>
-          </Pressable>
+<Pressable
+  onPress={() => {
+    console.log("SEND PRESSED");
+    send();
+  }}
+  style={[styles.sendBtn, (!input.trim() || busy) && { opacity: 0.6 }]}
+  hitSlop={10}
+  disabled={false}
+>
+  <BlurView intensity={24} tint="dark" style={styles.sendInner}>
+    <View style={styles.sendGlow} />
+    <Text style={styles.sendTxt}>✦</Text>
+  </BlurView>
+</Pressable>
         </View>
 
         <View style={styles.bottomRow}>
@@ -925,26 +967,42 @@ const styles = StyleSheet.create({
   },
 
   sendBtn: {
-    width: 132,
-    height: 64,
-    borderRadius: 22,
-    overflow: "hidden",
-  },
+  width: 68,
+  height: 68,
+  borderRadius: 22,
+  overflow: "hidden",
+  marginLeft: 10,
+},
 
-  sendInner: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(104,76,255,0.42)",
-    borderWidth: 1,
-    borderColor: "rgba(170,150,255,0.24)",
-  },
+sendInner: {
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  borderWidth: 1,
+  borderColor: "rgba(180,160,255,0.20)",
+  backgroundColor: "rgba(20,16,34,0.28)",
+},
 
-  sendText: {
-    color: "white",
-    fontWeight: "900",
-    fontSize: 17,
-  },
+sendGlow: {
+  position: "absolute",
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  backgroundColor: "rgba(142, 109, 255, 0.22)",
+  shadowColor: "#8e6dff",
+  shadowOpacity: 0.35,
+  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 0 },
+},
+
+sendTxt: {
+  color: "#efeaff",
+  fontSize: 22,
+  fontWeight: "700",
+  textShadowColor: "rgba(180,160,255,0.35)",
+  textShadowOffset: { width: 0, height: 0 },
+  textShadowRadius: 10,
+},
 
   bottomRow: {
     paddingHorizontal: 16,
@@ -961,4 +1019,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+
+  shareRow: {
+  marginTop: 6,
+  alignItems: "flex-end"
+},
+
+shareBtn: {
+  position: "absolute",
+  right: -18,
+  bottom: 0,
+  backgroundColor: "rgba(20,20,30,0.6)",
+  borderRadius: 20,
+  paddingHorizontal: 6,
+  paddingVertical: 4,
+},
+
+shareIcon: {
+  color: "#9ee7d7",
+  fontSize: 14,
+},
 });

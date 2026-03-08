@@ -25,6 +25,7 @@ export const API = {
   worldEventsCreate: "",
   worldEventsList: "",
   systemFeed: "",
+  deviceRegister: "/device/register",
 };
 
 API.ask = API.base + "/bilinc-alani/ask";

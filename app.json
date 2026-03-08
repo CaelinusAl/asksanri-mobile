@@ -16,7 +16,8 @@
       "bundleIdentifier": "com.caelinusai.asksanri",
       "supportsTablet": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Sanrı voice input için mikrofon kullanır."
+        "NSMicrophoneUsageDescription": "Sanrı voice input için mikrofon kullanır.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -32,7 +33,8 @@
     },
     "plugins": [
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-notifications"
     ],
     "extra": {
       "EXPO_PUBLIC_API_BASE": "https://api.asksanri.com",
