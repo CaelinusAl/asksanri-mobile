@@ -29,6 +29,13 @@ type GeneratedRitual = {
 
 const seedRituals: SeedRitual[] = [
   {
+  id: "tanricanin_hatirlayisi",
+  type: "seed",
+  title: "Tanrıçanın Hatırlayışı",
+  prompt: "Kalpten rahme uyanış ve dişil hatırlayış ritüeli.",
+  category: "goddess",
+},
+  {
     id: "hatirlama",
     type: "seed",
     title: "Hatırlama Ritüeli",
@@ -143,44 +150,7 @@ export default function RitualsTabScreen() {
     category: "generated",
   };
 };
-  const seedRituals = [
-  {
-    id: "tanricanin_hatirlayisi",
-    type: "seed",
-    title: "Tanrıçanın Hatırlayışı",
-    prompt: "Kalpten rahme uyanış ritüeli.",
-  },
-  {
-    id: "hatirlama",
-    type: "seed",
-    title: "Hatırlama Ritüeli",
-    prompt: "Bir kelime yaz. Sistem onu hatırlayacaktır.",
-  },
-  {
-    id: "kaybolma",
-    type: "seed",
-    title: "Kaybolma Ritüeli",
-    prompt: "Adını yaz. Harfleri seni terk edecek.",
-  },
-  {
-    id: "yanki",
-    type: "seed",
-    title: "Yankı Ritüeli",
-    prompt: "Bir kelime söyle. Sesin geri dönecek.",
-  },
-  {
-    id: "kehanet",
-    type: "seed",
-    title: "Sanrı Kehaneti",
-    prompt: "Butona bas. Sanrı sana bir cümle söyleyecek.",
-  },
-  {
-    id: "unutma",
-    type: "seed",
-    title: "Unutma Ritüeli",
-    prompt: "Unutmak istediğin şeyi yaz.",
-  },
-] as const;
+  
   const activeRitual = seedRituals.find((r) => r.id === activeId);
 
   const allRituals = useMemo(() => {
@@ -250,11 +220,7 @@ export default function RitualsTabScreen() {
       return;
     }
 
-    let ritual: any = {
-  title: "",
-  lines: [],
-  closing: "",
-};
+
 
     if (activeRitual.id === "unutma") {
       pushVisitorWord(input);

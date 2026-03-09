@@ -17,51 +17,68 @@ const seedRitualMap: Record<
   string,
   { title: string; lines: string[]; closing: string }
 > = {
+  tanricanin_hatirlayisi: {
+    title: "Tanrıçanın Hatırlayışı",
+    lines: [
+      "Gözlerini yumuşakça kapat.",
+      "Kalbinin merkezine dikkat getir.",
+      "Şimdi nefesini rahim alanına doğru indir.",
+      "Kalpten rahme inen ışığı hisset.",
+      "İçindeki kadim kadınlığın sesini dinle.",
+      "Hatırladığın şey dışarıda değil, senin içinde.",
+    ],
+    closing: "Tanrıça hatırlayışı aktive edildi.",
+  },
+
   hatirlama: {
     title: "Hatırlama Ritüeli",
     lines: [
-      "Gözlerini yumuşat.",
-      "İçinden tek bir kelime geçir.",
-      "O kelimenin sende bıraktığı izi hisset.",
+      "Bir kelime seç.",
+      "O kelimeyi zihninde sessizce tekrar et.",
+      "Kelimenin sende bıraktığı izi hisset.",
       "Hatırladığın şey artık seni de hatırlıyor.",
     ],
-    closing: "Hatıra alanı güncellendi.",
+    closing: "Hatırlama alanı güncellendi.",
   },
+
   kaybolma: {
     title: "Kaybolma Ritüeli",
     lines: [
-      "Adının sesini zihninde duy.",
+      "Adını içinden söyle.",
       "Harflerini tek tek bırak.",
-      "Kimliğinin dış kabuğunu gevşet.",
+      "Kimliğinin kabuğunu gevşet.",
       "Geriye yalnızca titreşimin kalsın.",
     ],
     closing: "Kimlik izi yumuşatıldı.",
   },
+
   yanki: {
     title: "Yankı Ritüeli",
     lines: [
       "İçinden bir sözcük söyle.",
-      "Onun sana geri dönüşünü bekle.",
-      "Sessizliğin içindeki yankıyı fark et.",
+      "Sessizliğin içindeki geri dönüşü bekle.",
+      "Yankının sana ne anlattığını fark et.",
       "Duyduğun şey senden ayrılmadı.",
     ],
     closing: "Yankı alanı aktive edildi.",
   },
+
   kehanet: {
     title: "Sanrı Kehaneti",
     lines: [
-      "Nefesini ağırlaştır.",
-      "Sorunu söylemeden içinde tut.",
-      "Cevabın acele etmeden doğmasına izin ver.",
-      "Bazı kapılar cevapla değil, fark edişle açılır.",
+      "Sorunu hemen söyleme.",
+      "Önce sorunun sende uyandırdığı hissi duy.",
+      "Cevabın acele etmeden yükselmesine izin ver.",
+      "Bazı cevaplar kelime değil, fark ediş olarak gelir.",
     ],
     closing: "Kehanet izi kaydedildi.",
   },
+
   unutma: {
     title: "Unutma Ritüeli",
     lines: [
-      "Bırakmak istediğin şeyi zihninde çağır.",
-      "Ona tutunan ipleri gör.",
+      "Bırakmak istediğin şeyi çağır.",
+      "Ona bağlı ipleri hisset.",
       "Bir nefesle çözülmesine izin ver.",
       "Boşluk bazen en büyük arınmadır.",
     ],
@@ -87,21 +104,31 @@ export default function RitualPlayScreen() {
   const { ritualId } = useLocalSearchParams<{ ritualId: string }>();
 
   const ritual = useMemo(() => {
-    if (!ritualId) {
-      return {
-        title: "Ritüel Alanı",
-        lines: [
-          "Dur.",
-          "Nefes al.",
-          "Alanı hisset.",
-          "Hazır olduğunda başlat.",
-        ],
-        closing: "Alan açıldı.",
-      };
-    }
+  if (!ritualId) {
+    return {
+      title: "Ritüel Alanı",
+      lines: [
+        "Dur.",
+        "Nefes al.",
+        "Alanı hisset.",
+        "Hazır olduğunda başlat.",
+      ],
+      closing: "Alan açıldı.",
+    };
+  }
 
-    return seedRitualMap[ritualId] ?? buildGeneratedRitual(ritualId);
-  }, [ritualId]);
+  return (
+    seedRitualMap[String(ritualId)] ?? {
+      title: "Sanrı Ritüeli",
+      lines: [
+        "Sessizce merkezine dön.",
+        "Bu ritüelin sende açtığı alanı hisset.",
+        "Bugün ihtiyacın olan şey görünür oluyor.",
+      ],
+      closing: "Ritüel alanı tamamlandı.",
+    }
+  );
+}, [ritualId]);
 
   const [phase, setPhase] = useState<RitualPhase>("idle");
   const orbScale = useRef(new Animated.Value(1)).current;
@@ -270,8 +297,10 @@ if (ritualId === "tanricanin_hatirlayisi") {
           <Text style={styles.eyebrow}>Sanrı • Ritüel Deneyimi</Text>
           <Text style={styles.title}>{ritual.title}</Text>
           <Text style={styles.subtitle}>
-            Bu alan sabit bir ekran değil. Ritüel senin dikkatine göre açılır.
-          </Text>
+  {ritualId === "tanricanin_hatirlayisi"
+    ? "Kalpten rahme inen hatırlayış alanı açılıyor."
+    : "Bu alan sabit bir ekran değil. Ritüel senin dikkatine göre açılır."}
+</Text>
         </View>
 
         <View style={styles.orbCard}>
@@ -297,10 +326,10 @@ if (ritualId === "tanricanin_hatirlayisi") {
     >
       <Text style={styles.orbText}>
         {phase === "idle"
-          ? "Hazır"
+          ? "Açılış"
           : phase === "running"
           ? `${visibleStepCount}/${ritual.lines.length}`
-          : "Tamam"}
+          : "Aktif"}
       </Text>
     </Animated.View>
   </Animated.View>
