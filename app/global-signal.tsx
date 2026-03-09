@@ -34,6 +34,15 @@ type EchoData = {
   items: EchoItem[];
 };
 
+type NotificationItem = {
+  id: number;
+  title: string;
+  message: string;
+  items: EchoItem[];
+  is_read: boolean;
+  created_at: string;
+};
+
 const MAP_POINTS: Record<
   string,
   { top: string; left: string; size?: number }
@@ -149,8 +158,8 @@ export default function GlobalSignalScreen() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [echo, setEcho] = useState<EchoData | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [userId] = useState("selin-device");
-  const [notifications, setNotifications] = useState<any[]>([]);
 
   const loadStream = async () => {
     try {
@@ -166,6 +175,16 @@ export default function GlobalSignalScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const res = await fetch(
+        `${API_BASE}/global-signal/notifications?user_id=${userId}`
+      );
+      const data = await res.json();
+      setNotifications(Array.isArray(data?.items) ? data.items : []);
+    } catch (e) {}
   };
 
   const sendSignal = async () => {
@@ -187,7 +206,6 @@ export default function GlobalSignalScreen() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ text: clean, user_id: userId }),
-
       });
 
       const data = await res.json();
@@ -200,6 +218,9 @@ export default function GlobalSignalScreen() {
       setEcho(data?.echo || null);
       setText("");
       await loadStream();
+
+      // v2 test için manuel processor tetikle
+      
     } catch (e) {
       setError("Sinyal gönderilemedi.");
     } finally {
@@ -224,21 +245,15 @@ export default function GlobalSignalScreen() {
       return value;
     }
   };
-
-  const loadNotifications = async () => {
-  try {
-    const res = await fetch(
-      `${API_BASE}/global-signal/notifications?user_id=${userId}`
-    );
-    const data = await res.json();
-    setNotifications(Array.isArray(data?.items) ? data.items : []);
-  } catch (e) {}
-}; 
-
-
-  useEffect(() => {
+useEffect(() => {
   loadStream();
   loadNotifications();
+
+  const interval = setInterval(() => {
+    loadNotifications();
+  }, 30000);
+
+  return () => clearInterval(interval);
 }, []);
 
   return (
@@ -266,24 +281,25 @@ export default function GlobalSignalScreen() {
               Dünyaya tek bir cümle bırak. Sinyalin ortak alana düşsün.
             </Text>
           </View>
-          {!!notifications.length && (
-           <View style={styles.inboxCard}>
-           <Text style={styles.inboxEyebrow}>ECHO INBOX</Text>
-           <Text style={styles.inboxTitle}>Your signal echoed.</Text>
-           <Text style={styles.inboxSubtitle}>
-              Alanın başka yerlerinde benzer hisler belirdi.
-          </Text>
 
-    {notifications[0]?.items?.map((item: any, index: number) => (
-      <View key={`${item.country}-${index}`} style={styles.inboxItem}>
-        <View style={styles.inboxCountryBadge}>
-          <Text style={styles.inboxCountryText}>{item.country}</Text>
-        </View>
-        <Text style={styles.inboxItemText}>{item.text}</Text>
-      </View>
-    ))}
-  </View>
-)}
+          {!!notifications.length && (
+            <View style={styles.inboxCard}>
+              <Text style={styles.inboxEyebrow}>ECHO INBOX</Text>
+              <Text style={styles.inboxTitle}>Your signal echoed.</Text>
+              <Text style={styles.inboxSubtitle}>
+                Alanın başka yerlerinde benzer hisler belirdi.
+              </Text>
+
+              {notifications[0]?.items?.map((item, index) => (
+                <View key={`${item.country}-${index}`} style={styles.inboxItem}>
+                  <View style={styles.inboxCountryBadge}>
+                    <Text style={styles.inboxCountryText}>{item.country}</Text>
+                  </View>
+                  <Text style={styles.inboxItemText}>{item.text}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={styles.mapCard}>
             <Text style={styles.mapEyebrow}>GLOBAL MAP</Text>
@@ -354,7 +370,13 @@ export default function GlobalSignalScreen() {
             <View style={styles.headerRow}>
               <Text style={styles.sectionTitle}>Global Stream</Text>
 
-              <Pressable style={styles.refreshButton} onPress={loadStream}>
+              <Pressable
+                style={styles.refreshButton}
+                onPress={async () => {
+                  await loadStream();
+                  await loadNotifications();
+                }}
+              >
                 <Text style={styles.refreshText}>Yenile</Text>
               </Pressable>
             </View>
@@ -466,6 +488,62 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.82)",
     fontSize: 15,
     lineHeight: 24,
+  },
+  inboxCard: {
+    borderRadius: 28,
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: "rgba(89, 64, 198, 0.30)",
+    borderWidth: 1,
+    borderColor: "rgba(196,181,253,0.24)",
+  },
+  inboxEyebrow: {
+    color: "#D8C8FF",
+    fontSize: 12,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 6,
+    fontWeight: "800",
+  },
+  inboxTitle: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  inboxSubtitle: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 14,
+  },
+  inboxItem: {
+    borderRadius: 18,
+    padding: 14,
+    marginTop: 10,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.09)",
+  },
+  inboxCountryBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    marginBottom: 10,
+  },
+  inboxCountryText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+  },
+  inboxItemText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "600",
   },
   mapCard: {
     borderRadius: 28,
@@ -703,60 +781,4 @@ const styles = StyleSheet.create({
   bottomSpace: {
     height: 18,
   },
-  inboxCard: {
-  borderRadius: 28,
-  padding: 16,
-  marginBottom: 16,
-  backgroundColor: "rgba(89, 64, 198, 0.30)",
-  borderWidth: 1,
-  borderColor: "rgba(196,181,253,0.24)",
-},
-inboxEyebrow: {
-  color: "#D8C8FF",
-  fontSize: 12,
-  letterSpacing: 1.2,
-  textTransform: "uppercase",
-  marginBottom: 6,
-  fontWeight: "800",
-},
-inboxTitle: {
-  color: "#FFFFFF",
-  fontSize: 22,
-  fontWeight: "800",
-  marginBottom: 6,
-},
-inboxSubtitle: {
-  color: "rgba(255,255,255,0.78)",
-  fontSize: 14,
-  lineHeight: 22,
-  marginBottom: 14,
-},
-inboxItem: {
-  borderRadius: 18,
-  padding: 14,
-  marginTop: 10,
-  backgroundColor: "rgba(255,255,255,0.06)",
-  borderWidth: 1,
-  borderColor: "rgba(255,255,255,0.09)",
-},
-inboxCountryBadge: {
-  alignSelf: "flex-start",
-  paddingHorizontal: 10,
-  paddingVertical: 6,
-  borderRadius: 999,
-  backgroundColor: "rgba(255,255,255,0.08)",
-  marginBottom: 10,
-},
-inboxCountryText: {
-  color: "#FFFFFF",
-  fontSize: 12,
-  fontWeight: "800",
-  letterSpacing: 0.6,
-},
-inboxItemText: {
-  color: "#FFFFFF",
-  fontSize: 15,
-  lineHeight: 22,
-  fontWeight: "600",
-},
 });
