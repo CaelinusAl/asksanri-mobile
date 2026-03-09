@@ -1,3 +1,5 @@
+// app/rituals/live.tsx
+
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -21,6 +23,40 @@ type LiveRitualResponse = {
   closing?: string;
 };
 
+function parseRitualResponse(data: any) {
+  const rawResponse = String(data?.response || "").trim();
+
+  if (Array.isArray(data?.steps) && data.steps.length > 0) {
+    return {
+      title: data?.title || "Sanrı Ritüeli",
+      message: data?.message || data?.response || "Sanrı seni duydu.",
+      steps: data.steps,
+      closing: data?.closing || "Ritüel alanı tamamlandı.",
+    };
+  }
+
+  const lines = rawResponse
+    .split("\n")
+    .map((x: string) => x.trim())
+    .filter(Boolean);
+
+  if (lines.length >= 2) {
+    return {
+      title: data?.title || data?.answer || "Sanrı Ritüeli",
+      message: lines[0] || "Sanrı seni duydu.",
+      steps: lines.slice(1),
+      closing: data?.closing || "Alan açıldı.",
+    };
+  }
+
+  return {
+    title: data?.title || data?.answer || "Sanrı Ritüeli",
+    message: rawResponse || "Sanrı seni duydu.",
+    steps: [],
+    closing: data?.closing || "Ritüel alanı tamamlandı.",
+  };
+}
+
 export default function LiveRitualScreen() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,20 +77,22 @@ export default function LiveRitualScreen() {
 
     try {
       const data = await askSanri({
-       message: `ritual: ${clean}`,
-       domain: "ritual",
-       persona: "sanri",
-       gate_mode: "ritual",
-       session_id: "mobile",
-    });
+        message: `ritual: ${clean}`,
+        domain: "ritual",
+        persona: "sanri",
+        gate_mode: "ritual",
+        session_id: "mobile",
+      });
+
+      const parsed = parseRitualResponse(data);
 
       setRitual({
         ok: true,
         type: "ritual-generate",
-        title: data?.title || "Sanrı Ritüeli",
-        message: data?.message || "Sanrı seni duydu.",
-        steps: Array.isArray(data?.steps) ? data.steps : [],
-        closing: data?.closing || "Ritüel alanı tamamlandı.",
+        title: parsed.title,
+        message: parsed.message,
+        steps: parsed.steps,
+        closing: parsed.closing,
       });
     } catch (e: any) {
       setError(e?.message || "Sanrı cevap vermedi.");
@@ -72,6 +110,8 @@ export default function LiveRitualScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
+          <View style={styles.heroGlowA} />
+          <View style={styles.heroGlowB} />
           <Text style={styles.eyebrow}>Sanrı • Canlı Ritüel</Text>
           <Text style={styles.title}>İçindekini Yaz</Text>
           <Text style={styles.subtitle}>
@@ -124,20 +164,27 @@ export default function LiveRitualScreen() {
 
             {!!ritual.steps?.length && (
               <View style={styles.stepsWrap}>
-               {ritual.steps.map((step, index) => (
-                <View key={`${step}-${index}`} style={styles.stepCard}>
-                 <Text style={styles.stepIndex}>
-                  {String(index + 1).padStart(2, "0")}
-              </Text>
-            <Text style={styles.stepText}>{step}</Text>
-          </View>
-        ))}
-      </View>
-     )}
+                {ritual.steps.map((step, index) => (
+                  <View key={`${step}-${index}`} style={styles.stepCard}>
+                    <Text style={styles.stepIndex}>
+                      {String(index + 1).padStart(2, "0")}
+                    </Text>
+                    <Text style={styles.stepText}>{step}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
 
             <View style={styles.closingCard}>
               <Text style={styles.closingTitle}>Kapanış</Text>
               <Text style={styles.closingText}>{ritual.closing}</Text>
+            </View>
+
+            <View style={styles.shareHintCard}>
+              <Text style={styles.shareHintTitle}>İpucu</Text>
+              <Text style={styles.shareHintText}>
+                Ritüel bittiğinde ilk hissettiğin kelimeyi not al.
+              </Text>
             </View>
           </View>
         )}
@@ -160,6 +207,7 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   hero: {
+    overflow: "hidden",
     borderRadius: 28,
     padding: 20,
     marginTop: 12,
@@ -167,6 +215,24 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 1,
     borderColor: "rgba(196,181,253,0.16)",
+  },
+  heroGlowA: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 999,
+    backgroundColor: "rgba(168,85,247,0.16)",
+    top: -80,
+    right: -40,
+  },
+  heroGlowB: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 999,
+    backgroundColor: "rgba(96,165,250,0.10)",
+    bottom: -40,
+    left: -20,
   },
   eyebrow: {
     color: "rgba(255,255,255,0.55)",
@@ -311,6 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(168,85,247,0.12)",
     borderWidth: 1,
     borderColor: "rgba(196,181,253,0.18)",
+    marginBottom: 12,
   },
   closingTitle: {
     color: "#fff",
@@ -320,6 +387,23 @@ const styles = StyleSheet.create({
   },
   closingText: {
     color: "rgba(255,255,255,0.82)",
+    lineHeight: 22,
+  },
+  shareHintCard: {
+    borderRadius: 18,
+    padding: 14,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  shareHintTitle: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  shareHintText: {
+    color: "rgba(255,255,255,0.76)",
     lineHeight: 22,
   },
 });

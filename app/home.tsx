@@ -12,8 +12,6 @@ type Lang = "tr" | "en";
 const RABBIT = require("../assets/rabbit.jpg");
 const MATRIX_BG = require("../assets/matrix_rain.jpg");
 
-console.log("HOME_TEST_777");
-
 const COPY = {
   tr: {
     chips: { tr: "TR", en: "EN" },

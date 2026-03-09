@@ -10,6 +10,7 @@ import {
 import { router } from "expo-router";
 import { generateRitual } from "../../lib/ritualGenerator";
 
+
 type SeedRitual = {
   id: string;
   type: "seed";

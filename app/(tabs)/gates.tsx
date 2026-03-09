@@ -31,6 +31,7 @@ const COPY = {
       { title: "RİTÜEL ALANI", sub: "Okunur ve hissedilir · ses + metin", route: "/(tabs)/rituals" },
       { title: "DÜNYA OLAYLARI", sub: "Haber → mesaj okuması", route: "/(tabs)/world" },
       { title: "SYSTEM FEED", sub: "Sanrı günlük bilinç akışı", route: "/(tabs)/system_feed" },
+      { title: "GLOBAL SIGNAL", sub: "Dünyaya tek bir cümle bırak", route: "/global-signal" },
     ],
   },
   en: {
@@ -43,6 +44,7 @@ const COPY = {
       { title: "HIGHER MIND", sub: "Levels 1–5 layers", route: "/(tabs)/ust_bilinc" },
       { title: "RITUAL SPACE", sub: "Read + feel · audio + text", route: "/(tabs)/rituals" },
       { title: "WORLD EVENTS", sub: "News → meaning reading", route: "/(tabs)/world" },
+      { title: "GLOBAL SIGNAL", sub: "Leave one sentence to the world", route: "/global-signal" },
     ],
   },
 } as const;

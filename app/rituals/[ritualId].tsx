@@ -1,3 +1,5 @@
+// app/rituals/[ritualId].tsx
+
 import { useLocalSearchParams, router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -10,6 +12,7 @@ import {
   Text,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 
 type RitualPhase = "idle" | "running" | "complete";
 
@@ -20,16 +23,17 @@ const seedRitualMap: Record<
   tanricanin_hatirlayisi: {
     title: "Tanrıçanın Hatırlayışı",
     lines: [
-      "Gözlerini yumuşakça kapat.",
-      "Kalbinin merkezine dikkat getir.",
-      "Şimdi nefesini rahim alanına doğru indir.",
-      "Kalpten rahme inen ışığı hisset.",
-      "İçindeki kadim kadınlığın sesini dinle.",
-      "Hatırladığın şey dışarıda değil, senin içinde.",
+      "Gözlerini yavaşça kapat.",
+      "Bir nefes al ve kalbinin merkezine dön.",
+      "Şimdi nefesi rahim alanına gönder.",
+      "Bedeninin içinde eski bir bilgelik var.",
+      "Onu zorlamadan hisset.",
+      "Hatırladığın şey yeni değil.",
+      "Sadece sana geri dönüyor.",
+      "Sen zaten buradaydın.",
     ],
-    closing: "Tanrıça hatırlayışı aktive edildi.",
+    closing: "Tanrıça hatırlayışı aktive edildi. Bu alan artık seninle.",
   },
-
   hatirlama: {
     title: "Hatırlama Ritüeli",
     lines: [
@@ -40,7 +44,6 @@ const seedRitualMap: Record<
     ],
     closing: "Hatırlama alanı güncellendi.",
   },
-
   kaybolma: {
     title: "Kaybolma Ritüeli",
     lines: [
@@ -51,7 +54,6 @@ const seedRitualMap: Record<
     ],
     closing: "Kimlik izi yumuşatıldı.",
   },
-
   yanki: {
     title: "Yankı Ritüeli",
     lines: [
@@ -62,7 +64,6 @@ const seedRitualMap: Record<
     ],
     closing: "Yankı alanı aktive edildi.",
   },
-
   kehanet: {
     title: "Sanrı Kehaneti",
     lines: [
@@ -73,7 +74,6 @@ const seedRitualMap: Record<
     ],
     closing: "Kehanet izi kaydedildi.",
   },
-
   unutma: {
     title: "Unutma Ritüeli",
     lines: [
@@ -107,12 +107,7 @@ export default function RitualPlayScreen() {
     if (!ritualId) {
       return {
         title: "Ritüel Alanı",
-        lines: [
-          "Dur.",
-          "Nefes al.",
-          "Alanı hisset.",
-          "Hazır olduğunda başlat.",
-        ],
+        lines: ["Dur.", "Nefes al.", "Alanı hisset.", "Hazır olduğunda başlat."],
         closing: "Alan açıldı.",
       };
     }
@@ -124,6 +119,7 @@ export default function RitualPlayScreen() {
 
   const [phase, setPhase] = useState<RitualPhase>("idle");
   const [visibleStepCount, setVisibleStepCount] = useState(0);
+  const [readyToComplete, setReadyToComplete] = useState(false);
 
   const orbScale = useRef(new Animated.Value(1)).current;
   const orbGlow = useRef(new Animated.Value(0.7)).current;
@@ -132,21 +128,29 @@ export default function RitualPlayScreen() {
     if (phase !== "running") return;
 
     setVisibleStepCount(0);
+    setReadyToComplete(false);
 
     let current = 0;
     const interval = setInterval(() => {
       current += 1;
       setVisibleStepCount(current);
 
+      try {
+        Haptics.selectionAsync();
+      } catch {}
+
       if (current >= ritual.lines.length) {
         clearInterval(interval);
+        setReadyToComplete(true);
+
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {}
       }
-    }, 2000);
+    }, 3200);
 
     return () => clearInterval(interval);
   }, [phase, ritual.lines]);
-
-  const visibleLines = ritual.lines.slice(0, visibleStepCount);
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation;
@@ -241,14 +245,44 @@ export default function RitualPlayScreen() {
     };
   }, [phase, orbGlow, orbScale]);
 
-  const restartRitual = () => {
+  const visibleLines = ritual.lines.slice(0, visibleStepCount);
+
+  const restartRitual = async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+
     setVisibleStepCount(0);
+    setReadyToComplete(false);
     setPhase("idle");
   };
 
-  const startRitual = () => {
+  const startRitual = async () => {
     setVisibleStepCount(0);
+    setReadyToComplete(false);
     setPhase("running");
+
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+  };
+
+  const completeRitual = async () => {
+    try {
+      await Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success
+      );
+    } catch {}
+
+    setPhase("complete");
+  };
+
+  const goBackToRituals = async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+    } catch {}
+
+    router.back();
   };
 
   return (
@@ -331,7 +365,7 @@ export default function RitualPlayScreen() {
 
                 <Pressable
                   style={styles.secondaryButton}
-                  onPress={() => router.back()}
+                  onPress={goBackToRituals}
                 >
                   <Text style={styles.secondaryButtonText}>Geri Dön</Text>
                 </Pressable>
@@ -357,11 +391,8 @@ export default function RitualPlayScreen() {
                   <Text style={styles.secondaryButtonText}>Sıfırla</Text>
                 </Pressable>
 
-                {visibleStepCount >= ritual.lines.length && (
-                  <Pressable
-                    style={styles.primaryButton}
-                    onPress={() => setPhase("complete")}
-                  >
+                {readyToComplete && (
+                  <Pressable style={styles.primaryButton} onPress={completeRitual}>
                     <Text style={styles.primaryButtonText}>Devam Et</Text>
                   </Pressable>
                 )}
@@ -383,13 +414,20 @@ export default function RitualPlayScreen() {
 
                 <Pressable
                   style={styles.secondaryButton}
-                  onPress={() => router.back()}
+                  onPress={goBackToRituals}
                 >
                   <Text style={styles.secondaryButtonText}>Ritüellere Dön</Text>
                 </Pressable>
               </View>
             </>
           )}
+        </View>
+
+        <View style={styles.footerHintCard}>
+          <Text style={styles.footerHintTitle}>Ritüel İpucu</Text>
+          <Text style={styles.footerHintText}>
+            Son satırdan sonra gelen ilk his, ritüelin sana bıraktığı izdir.
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -611,5 +649,23 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: "#FFFFFF",
     fontWeight: "700",
+  },
+  footerHintCard: {
+    marginTop: 16,
+    borderRadius: 20,
+    padding: 14,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  footerHintTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  footerHintText: {
+    color: "rgba(255,255,255,0.76)",
+    lineHeight: 22,
   },
 });

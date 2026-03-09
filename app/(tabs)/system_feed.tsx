@@ -1,325 +1,354 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  ImageBackground,
   ActivityIndicator,
+  ImageBackground,
+  Pressable,
+  RefreshControl,
+  ScrollView,
   StatusBar,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { router } from "expo-router";
+import { API_BASE } from "../../lib/config";
 import MatrixRain from "../../lib/MatrixRain";
 
-const BG = require("../../assets/sanri_glass_bg.jpg");
+type RawSystemFeed = {
+  id?: number | string;
+  created_at?: string | null;
+  kind?: string;
+  title?: string;
+  subtitle?: string;
+  body_tr?: string;
+  body_en?: string;
+  source_url?: string;
+  tags?: string;
+  warning?: string;
+};
 
-type Lang = "tr" | "en";
+type UiSystemFeed = {
+  signal: string;
+  symbol: string;
+  message: string;
+  action: string;
+  share: string;
+};
 
-type ApiFeed = {
-  id?: number | string
-  created_at?: string
-  kind?: string
-  title?: string
-  subtitle?: string
-  body_tr?: string
-  body_en?: string
-  source_url?: string
-  tags?: string
-}
+const MATRIX_BG = require("../../assets/sanri_glass_bg.jpg")
 
-type Feed = {
-  signal: string
-  symbol: string
-  message: string
-  action: string
-  share: string
+function normalizeFeed(data: RawSystemFeed, lang: "tr" | "en"): UiSystemFeed {
+  const title = String(data?.title || "").trim();
+  const subtitle = String(data?.subtitle || "").trim();
+  const message =
+    lang === "tr"
+      ? String(data?.body_tr || "").trim()
+      : String(data?.body_en || "").trim();
+  const tags = String(data?.tags || "").trim();
+  const sourceUrl = String(data?.source_url || "").trim();
+
+  return {
+    signal: title || (lang === "tr" ? "Sinyal alındı." : "Signal received."),
+    symbol:
+      subtitle ||
+      (lang === "tr"
+        ? "Sistem yeni bir katman açıyor."
+        : "System is opening a new layer."),
+    message:
+      message ||
+      (lang === "tr"
+        ? "Bugün sistem senden netlik istiyor."
+        : "Today the system asks for clarity."),
+    action:
+      tags ||
+      (lang === "tr"
+        ? "Bir cümle yaz. Bir karar seç. Bir adım at."
+        : "Write one sentence. Choose one decision. Take one step."),
+    share:
+      sourceUrl ||
+      (lang === "tr"
+        ? "Bugünün sinyalini kendinle paylaş."
+        : "Share today's signal with yourself."),
+  };
 }
 
 export default function SystemFeedScreen() {
+  const [lang, setLang] = useState<"tr" | "en">("tr");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [rawFeed, setRawFeed] = useState<RawSystemFeed | null>(null);
 
-  const [lang, setLang] = useState<Lang>("tr")
-  const [feed, setFeed] = useState<Feed | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const feed = useMemo(() => normalizeFeed(rawFeed || {}, lang), [rawFeed, lang]);
 
-  const loadFeed = useCallback(async () => {
+  const fetchFeed = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
 
-    setLoading(true)
-    setError("")
+    setError("");
 
     try {
+      const res = await fetch(`${API_BASE}/content/system-feed?lang=${lang}`);
+      const text = await res.text();
 
-      const url = `https://api.asksanri.com/content/system-feed?lang=${lang}`
-
-      const res = await fetch(url)
-
-      if (!res.ok) {
-        throw new Error("HTTP " + res.status)
+      let data: RawSystemFeed = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("System feed JSON dönmedi.");
       }
 
-      const data: ApiFeed = await res.json()
+      if (!res.ok) {
+        throw new Error("SYSTEM_FEED_HTTP_ERROR");
+      }
 
-      const body =
-        lang === "tr"
-          ? data.body_tr || data.body_en || ""
-          : data.body_en || data.body_tr || ""
-
-      const tags =
-        (data.tags || "")
-          .split(",")
-          .map(x => x.trim())
-          .filter(Boolean)
-
-      setFeed({
-        signal: data.title || "",
-        symbol: data.subtitle || "",
-        message: body || "",
-        action: tags[0] || "",
-        share: tags.slice(1).join(" • ") || "",
-      })
-
+      setRawFeed(data);
     } catch (e: any) {
-
-      setError(String(e))
-      setFeed(null)
-
+      setError(e?.message || "System feed alınamadı.");
     } finally {
-
-      setLoading(false)
-
+      setLoading(false);
+      setRefreshing(false);
     }
-
-  }, [lang])
+  }, [lang]);
 
   useEffect(() => {
-    loadFeed()
-  }, [loadFeed])
-
-
-  return (
-
-    <View style={styles.root}>
-
-      <StatusBar barStyle="light-content"/>
-
-      <ImageBackground
-        source={BG}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
-
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.14}/>
-      </View>
-
-      <View style={styles.overlay}/>
-
-      {/* TOP BAR */}
-
-      <View style={styles.topbar}>
-
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backText}>Back</Text>
-        </Pressable>
-
-        <View style={{flex:1}}/>
-
-        <View style={styles.langRow}>
-
-          <Pressable
-            onPress={() => setLang("tr")}
-            style={[styles.langChip, lang==="tr" && styles.langActive]}
-          >
-            <Text style={styles.langText}>TR</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setLang("en")}
-            style={[styles.langChip, lang==="en" && styles.langActive]}
-          >
-            <Text style={styles.langText}>EN</Text>
-          </Pressable>
-
-        </View>
-
-      </View>
-
-
-      <ScrollView contentContainerStyle={styles.container}>
-
-        <Text style={styles.kicker}>SYSTEM TERMINAL</Text>
-        <Text style={styles.title}>SYSTEM FEED</Text>
-
-        {loading && (
-          <View style={styles.card}>
-            <ActivityIndicator/>
-            <Text style={styles.text}>Loading system feed...</Text>
-          </View>
-        )}
-
-        {error !== "" && (
-          <View style={styles.card}>
-            <Text style={styles.error}>Error</Text>
-            <Text style={styles.text}>{error}</Text>
-          </View>
-        )}
-
-        {feed && (
-          <>
-            <Card title="SIGNAL" text={feed.signal}/>
-            <Card title="SYMBOL" text={feed.symbol}/>
-            <Card title="MESSAGE" text={feed.message}/>
-            <Card title="ACTION" text={feed.action}/>
-            <Card title="SHARE" text={feed.share}/>
-          </>
-        )}
-
-        <Pressable
-          onPress={loadFeed}
-          style={styles.refreshBtn}
-        >
-          <Text style={styles.refreshText}>Refresh Feed</Text>
-        </Pressable>
-
-        <View style={{height:120}}/>
-
-      </ScrollView>
-
-    </View>
-  )
-}
-
-
-
-function Card({title, text}:{title:string,text:string}) {
+    fetchFeed(false);
+  }, [fetchFeed]);
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={styles.text}>{text}</Text>
+    <View style={styles.screen}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      <ImageBackground source={MATRIX_BG} style={styles.bg} resizeMode="cover">
+        <View style={styles.darkOverlay} />
+        <View style={styles.greenTint} />
+        <View style={styles.purpleGlow} />
+
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => fetchFeed(true)}
+              tintColor="#ffffff"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.topRow}>
+            <Pressable onPress={() => router.back()}>
+              <Text style={styles.backText}>Back</Text>
+            </Pressable>
+
+            <View style={styles.langRow}>
+              <Pressable
+                style={[styles.langButton, lang === "tr" && styles.langButtonActive]}
+                onPress={() => setLang("tr")}
+              >
+                <Text
+                  style={[
+                    styles.langButtonText,
+                    lang === "tr" && styles.langButtonTextActive,
+                  ]}
+                >
+                  TR
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.langButton, lang === "en" && styles.langButtonActive]}
+                onPress={() => setLang("en")}
+              >
+                <Text
+                  style={[
+                    styles.langButtonText,
+                    lang === "en" && styles.langButtonTextActive,
+                  ]}
+                >
+                  EN
+                </Text>
+              </Pressable>
+            </View>
+            <MatrixRain opacity={0.16} />
+          </View>
+
+          <Text style={styles.eyebrow}>SYSTEM TERMINAL</Text>
+          <Text style={styles.title}>SYSTEM FEED</Text>
+
+          {loading ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator />
+              <Text style={styles.loadingText}>Sistem akışı yükleniyor...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>ERROR</Text>
+              <Text style={styles.cardText}>{error}</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>SIGNAL</Text>
+                <Text style={styles.cardText}>{feed.signal}</Text>
+              </View>
+
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>SYMBOL</Text>
+                <Text style={styles.cardText}>{feed.symbol}</Text>
+              </View>
+
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>MESSAGE</Text>
+                <Text style={styles.cardText}>{feed.message}</Text>
+              </View>
+
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>ACTION</Text>
+                <Text style={styles.cardText}>{feed.action}</Text>
+              </View>
+
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>SHARE</Text>
+                <Text style={styles.cardText}>{feed.share}</Text>
+              </View>
+
+              <Pressable style={styles.bigButton} onPress={() => fetchFeed(false)}>
+                <Text style={styles.bigButtonText}>Refresh Feed</Text>
+              </Pressable>
+            </>
+          )}
+        </ScrollView>
+      </ImageBackground>
     </View>
-  )
+  );
 }
-
-
 
 const styles = StyleSheet.create({
-
-  root:{
-    flex:1,
-    backgroundColor:"#07080d"
+  screen: {
+    flex: 1,
+    backgroundColor: "#02030A",
   },
-
-  overlay:{
+  bg: {
+    flex: 1,
+  },
+  darkOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor:"rgba(0,0,0,0.35)"
+    backgroundColor: "rgba(2,4,12,0.60)",
   },
-
-  topbar:{
-    flexDirection:"row",
-    alignItems:"center",
-    paddingHorizontal:14,
-    paddingTop:10,
-    paddingBottom:8
+  greenTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,255,170,0.06)",
   },
-
-  backBtn:{
-    flexDirection:"row",
-    alignItems:"center",
-    gap:6
+  purpleGlow: {
+    position: "absolute",
+    width: 320,
+    height: 320,
+    borderRadius: 999,
+    backgroundColor: "rgba(140,80,255,0.18)",
+    bottom: -80,
+    left: -40,
   },
-
-  backArrow:{
-    color:"#7cf7d8",
-    fontSize:20
+  container: {
+    flex: 1,
   },
-
-  backText:{
-    color:"#7cf7d8",
-    fontWeight:"700"
+  content: {
+    padding: 18,
+    paddingTop: 24,
+    paddingBottom: 80,
   },
-
-  langRow:{
-    flexDirection:"row",
-    gap:8
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 22,
   },
-
-  langChip:{
-    paddingHorizontal:10,
-    paddingVertical:6,
-    borderRadius:10,
-    backgroundColor:"rgba(255,255,255,0.1)"
+  backText: {
+    color: "#D8FFF6",
+    fontSize: 16,
+    fontWeight: "700",
   },
-
-  langActive:{
-    backgroundColor:"rgba(124,247,216,0.2)"
+  langRow: {
+    flexDirection: "row",
+    gap: 10,
   },
-
-  langText:{
-    color:"#7cf7d8",
-    fontWeight:"700"
+  langButton: {
+    minWidth: 56,
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
-
-  container:{
-    padding:20
+  langButtonActive: {
+    backgroundColor: "rgba(255,255,255,0.14)",
   },
-
-  kicker:{
-    color:"rgba(255,255,255,0.6)",
-    letterSpacing:2,
-    marginBottom:8
+  langButtonText: {
+    color: "rgba(255,255,255,0.78)",
+    fontWeight: "800",
   },
-
-  title:{
-    color:"white",
-    fontSize:34,
-    fontWeight:"900",
-    marginBottom:20
+  langButtonTextActive: {
+    color: "#C2FFF3",
   },
-
-  card:{
-    backgroundColor:"rgba(255,255,255,0.06)",
-    padding:18,
-    borderRadius:20,
-    marginBottom:14,
-    borderWidth:1,
-    borderColor:"rgba(255,255,255,0.1)"
+  eyebrow: {
+    color: "rgba(255,255,255,0.70)",
+    fontSize: 14,
+    letterSpacing: 2.4,
+    marginBottom: 10,
   },
-
-  cardTitle:{
-    color:"#7cf7d8",
-    fontWeight:"900",
-    marginBottom:8,
-    fontSize:18
+  title: {
+    color: "#FFFFFF",
+    fontSize: 32,
+    fontWeight: "900",
+    marginBottom: 18,
   },
-
-  text:{
-    color:"white",
-    lineHeight:22
+  loadingCard: {
+    borderRadius: 26,
+    padding: 24,
+    marginTop: 10,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
-
-  error:{
-    color:"#ff5c7a",
-    fontWeight:"900",
-    marginBottom:6
+  loadingText: {
+    color: "#EAFBF6",
+    marginTop: 12,
+    textAlign: "center",
   },
-
-  refreshBtn:{
-    marginTop:8,
-    padding:14,
-    borderRadius:16,
-    backgroundColor:"rgba(94,59,255,0.7)",
-    alignItems:"center"
+  card: {
+    borderRadius: 28,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    marginBottom: 18,
+    backgroundColor: "rgba(16,18,30,0.72)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
-
-  refreshText:{
-    color:"white",
-    fontWeight:"900"
-  }
-
-})
+  cardLabel: {
+    color: "#8BFFF1",
+    fontSize: 16,
+    fontWeight: "900",
+    marginBottom: 10,
+  },
+  cardText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    lineHeight: 28,
+    fontWeight: "700",
+  },
+  bigButton: {
+    marginTop: 8,
+    backgroundColor: "#5D3CF2",
+    borderRadius: 22,
+    paddingVertical: 18,
+    alignItems: "center",
+  },
+  bigButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "900",
+  },
+});
