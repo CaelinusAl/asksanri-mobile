@@ -41,12 +41,12 @@ export default function LiveRitualScreen() {
 
     try {
       const data = await askSanri({
-        message: clean,
-        domain: "ritual",
-        persona: "sanri",
-        gate_mode: "ritual",
-        session_id: "mobile",
-      });
+       message: `ritual: ${clean}`,
+       domain: "ritual",
+       persona: "sanri",
+       gate_mode: "ritual",
+       session_id: "mobile",
+    });
 
       setRitual({
         ok: true,
@@ -122,16 +122,18 @@ export default function LiveRitualScreen() {
             <Text style={styles.resultTitle}>{ritual.title}</Text>
             <Text style={styles.resultMessage}>{ritual.message}</Text>
 
-            <View style={styles.stepsWrap}>
-              {(ritual.steps || []).map((step, index) => (
+            {!!ritual.steps?.length && (
+              <View style={styles.stepsWrap}>
+               {ritual.steps.map((step, index) => (
                 <View key={`${step}-${index}`} style={styles.stepCard}>
-                  <Text style={styles.stepIndex}>
-                    {String(index + 1).padStart(2, "0")}
-                  </Text>
-                  <Text style={styles.stepText}>{step}</Text>
-                </View>
-              ))}
-            </View>
+                 <Text style={styles.stepIndex}>
+                  {String(index + 1).padStart(2, "0")}
+              </Text>
+            <Text style={styles.stepText}>{step}</Text>
+          </View>
+        ))}
+      </View>
+     )}
 
             <View style={styles.closingCard}>
               <Text style={styles.closingTitle}>Kapanış</Text>

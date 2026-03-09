@@ -1,9 +1,9 @@
 import { useLocalSearchParams, router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Pressable,
   Animated,
-  Easing, 
+  Easing,
+  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -94,7 +94,7 @@ function buildGeneratedRitual(ritualId: string) {
       "Sessizce merkezine dön.",
       "Bu ritüelin sende açtığı alanı hisset.",
       "Cümlenin senden geçmesine izin ver.",
-      "Bugün ihtiyacın olan şey, tam burada görünür oluyor.",
+      "Bugün ihtiyacın olan şey görünür oluyor.",
     ],
     closing: "Generated ritual alanı kaydedildi.",
   };
@@ -104,170 +104,142 @@ export default function RitualPlayScreen() {
   const { ritualId } = useLocalSearchParams<{ ritualId: string }>();
 
   const ritual = useMemo(() => {
-  if (!ritualId) {
-    return {
-      title: "Ritüel Alanı",
-      lines: [
-        "Dur.",
-        "Nefes al.",
-        "Alanı hisset.",
-        "Hazır olduğunda başlat.",
-      ],
-      closing: "Alan açıldı.",
-    };
-  }
-
-  return (
-    seedRitualMap[String(ritualId)] ?? {
-      title: "Sanrı Ritüeli",
-      lines: [
-        "Sessizce merkezine dön.",
-        "Bu ritüelin sende açtığı alanı hisset.",
-        "Bugün ihtiyacın olan şey görünür oluyor.",
-      ],
-      closing: "Ritüel alanı tamamlandı.",
+    if (!ritualId) {
+      return {
+        title: "Ritüel Alanı",
+        lines: [
+          "Dur.",
+          "Nefes al.",
+          "Alanı hisset.",
+          "Hazır olduğunda başlat.",
+        ],
+        closing: "Alan açıldı.",
+      };
     }
-  );
-}, [ritualId]);
+
+    return (
+      seedRitualMap[String(ritualId)] ?? buildGeneratedRitual(String(ritualId))
+    );
+  }, [ritualId]);
 
   const [phase, setPhase] = useState<RitualPhase>("idle");
-  const orbScale = useRef(new Animated.Value(1)).current;
-  const orbGlow = useRef(new Animated.Value(0.7)).current;
   const [visibleStepCount, setVisibleStepCount] = useState(0);
 
+  const orbScale = useRef(new Animated.Value(1)).current;
+  const orbGlow = useRef(new Animated.Value(0.7)).current;
+
   useEffect(() => {
-  if (phase !== "running") return;
+    if (phase !== "running") return;
 
-  setVisibleStepCount(0);
+    setVisibleStepCount(0);
 
-  let current = 0;
-  const interval = setInterval(() => {
-    current += 1;
-    setVisibleStepCount(current);
+    let current = 0;
+    const interval = setInterval(() => {
+      current += 1;
+      setVisibleStepCount(current);
 
-    if (current >= ritual.lines.length) {
-      clearInterval(interval);
+      if (current >= ritual.lines.length) {
+        clearInterval(interval);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [phase, ritual.lines]);
+
+  const visibleLines = ritual.lines.slice(0, visibleStepCount);
+
+  useEffect(() => {
+    let animation: Animated.CompositeAnimation;
+
+    if (phase === "running") {
+      animation = Animated.loop(
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(orbScale, {
+              toValue: 1.08,
+              duration: 1400,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(orbScale, {
+              toValue: 0.96,
+              duration: 1400,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(orbGlow, {
+              toValue: 1,
+              duration: 1400,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(orbGlow, {
+              toValue: 0.72,
+              duration: 1400,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+          ]),
+        ])
+      );
+    } else if (phase === "complete") {
+      animation = Animated.parallel([
+        Animated.timing(orbScale, {
+          toValue: 1.02,
+          duration: 700,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(orbGlow, {
+          toValue: 0.88,
+          duration: 700,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]);
+    } else {
+      animation = Animated.loop(
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(orbScale, {
+              toValue: 1.03,
+              duration: 2200,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(orbScale, {
+              toValue: 0.98,
+              duration: 2200,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(orbGlow, {
+              toValue: 0.82,
+              duration: 2200,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(orbGlow, {
+              toValue: 0.68,
+              duration: 2200,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+          ]),
+        ])
+      );
     }
-  }, 2000);
 
-  return () => clearInterval(interval);
-}, [phase, ritual.lines]);
+    animation.start();
 
-  useEffect(() => {
-  let animation: Animated.CompositeAnimation;
-
-  if (phase === "running") {
-    animation = Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(orbScale, {
-            toValue: 1.08,
-            duration: 1400,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(orbScale, {
-            toValue: 0.96,
-            duration: 1400,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(orbGlow, {
-            toValue: 1,
-            duration: 1400,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(orbGlow, {
-            toValue: 0.72,
-            duration: 1400,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      ])
-    );
-      let ritual: any = {
-  title: "Ritüel Alanı",
-  lines: [
-    "Dur.",
-    "Nefes al.",
-    "Alanı hisset.",
-    "Hazır olduğunda başlat.",
-  ],
-  closing: "Alan açıldı.",
-};
-
-if (ritualId === "tanricanin_hatirlayisi") {
-  ritual = {
-    title: "Tanrıçanın Hatırlayışı",
-    lines: [
-      "Kalbini hisset.",
-      "Rahim alanına nefes gönder.",
-      "İçindeki kadim sesi dinle.",
-      "Hatırladığın şey sensin.",
-    ],
-    closing: "Tanrıça hatırlayışı aktive edildi.",
-  };
-}
-  } else if (phase === "complete") {
-    animation = Animated.parallel([
-      Animated.timing(orbScale, {
-        toValue: 1.02,
-        duration: 700,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(orbGlow, {
-        toValue: 0.88,
-        duration: 700,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-    ]);
-  } else {
-    animation = Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(orbScale, {
-            toValue: 1.03,
-            duration: 2200,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(orbScale, {
-            toValue: 0.98,
-            duration: 2200,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(orbGlow, {
-            toValue: 0.82,
-            duration: 2200,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(orbGlow, {
-            toValue: 0.68,
-            duration: 2200,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      ])
-    );
-  }
-
-  animation.start();
-
-  return () => {
-    animation.stop();
-  };
-}, [phase, orbGlow, orbScale]);
+    return () => {
+      animation.stop();
+    };
+  }, [phase, orbGlow, orbScale]);
 
   const restartRitual = () => {
     setVisibleStepCount(0);
@@ -278,8 +250,6 @@ if (ritualId === "tanricanin_hatirlayisi") {
     setVisibleStepCount(0);
     setPhase("running");
   };
-
-  const visibleLines = ritual.lines.slice(0, visibleStepCount);
 
   return (
     <View style={styles.screen}>
@@ -297,49 +267,53 @@ if (ritualId === "tanricanin_hatirlayisi") {
           <Text style={styles.eyebrow}>Sanrı • Ritüel Deneyimi</Text>
           <Text style={styles.title}>{ritual.title}</Text>
           <Text style={styles.subtitle}>
-  {ritualId === "tanricanin_hatirlayisi"
-    ? "Kalpten rahme inen hatırlayış alanı açılıyor."
-    : "Bu alan sabit bir ekran değil. Ritüel senin dikkatine göre açılır."}
-</Text>
+            {ritualId === "tanricanin_hatirlayisi"
+              ? "Kalpten rahme inen hatırlayış alanı açılıyor."
+              : "Bu alan sabit bir ekran değil. Ritüel senin dikkatine göre açılır."}
+          </Text>
         </View>
 
         <View style={styles.orbCard}>
-  <Animated.View
-    style={[
-      styles.orbOuter,
-      {
-        transform: [{ scale: orbScale }],
-        opacity: orbGlow,
-      },
-    ]}
-  >
-    <Animated.View
-      style={[
-        styles.orbInner,
-        {
-          transform: [{ scale: orbScale.interpolate({
-            inputRange: [0.96, 1.08],
-            outputRange: [0.99, 1.03],
-          }) }],
-        },
-      ]}
-    >
-      <Text style={styles.orbText}>
-        {phase === "idle"
-          ? "Açılış"
-          : phase === "running"
-          ? `${visibleStepCount}/${ritual.lines.length}`
-          : "Aktif"}
-      </Text>
-    </Animated.View>
-  </Animated.View>
+          <Animated.View
+            style={[
+              styles.orbOuter,
+              {
+                transform: [{ scale: orbScale }],
+                opacity: orbGlow,
+              },
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.orbInner,
+                {
+                  transform: [
+                    {
+                      scale: orbScale.interpolate({
+                        inputRange: [0.96, 1.08],
+                        outputRange: [0.99, 1.03],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Text style={styles.orbText}>
+                {phase === "idle"
+                  ? "Açılış"
+                  : phase === "running"
+                  ? `${visibleStepCount}/${ritual.lines.length}`
+                  : "Aktif"}
+              </Text>
+            </Animated.View>
+          </Animated.View>
 
-  <Text style={styles.stateText}>
-    {phase === "idle" && "Ritüel henüz başlamadı"}
-    {phase === "running" && "Alan akıyor"}
-    {phase === "complete" && "Ritüel tamamlandı"}
-  </Text>
-</View>
+          <Text style={styles.stateText}>
+            {phase === "idle" && "Ritüel henüz başlamadı"}
+            {phase === "running" && "Alan akıyor"}
+            {phase === "complete" && "Ritüel tamamlandı"}
+          </Text>
+        </View>
 
         <View style={styles.playerCard}>
           <Text style={styles.sectionEyebrow}>Akış</Text>
@@ -366,34 +340,35 @@ if (ritualId === "tanricanin_hatirlayisi") {
           )}
 
           {phase === "running" && (
-  <>
-    <View style={styles.linesWrap}>
-      {visibleLines.map((line, index) => (
-        <View key={`${line}-${index}`} style={styles.lineCard}>
-          <Text style={styles.lineIndex}>
-            {String(index + 1).padStart(2, "0")}
-          </Text>
-          <Text style={styles.lineText}>{line}</Text>
-        </View>
-      ))}
-    </View>
+            <>
+              <View style={styles.linesWrap}>
+                {visibleLines.map((line, index) => (
+                  <View key={`${line}-${index}`} style={styles.lineCard}>
+                    <Text style={styles.lineIndex}>
+                      {String(index + 1).padStart(2, "0")}
+                    </Text>
+                    <Text style={styles.lineText}>{line}</Text>
+                  </View>
+                ))}
+              </View>
 
-    <View style={styles.buttonRow}>
-      <Pressable style={styles.secondaryButton} onPress={restartRitual}>
-        <Text style={styles.secondaryButtonText}>Sıfırla</Text>
-      </Pressable>
+              <View style={styles.buttonRow}>
+                <Pressable style={styles.secondaryButton} onPress={restartRitual}>
+                  <Text style={styles.secondaryButtonText}>Sıfırla</Text>
+                </Pressable>
 
-      {visibleStepCount >= ritual.lines.length && (
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => setPhase("complete")}
-        >
-          <Text style={styles.primaryButtonText}>Devam Et</Text>
-        </Pressable>
-      )}
-    </View>
-  </>
-)}
+                {visibleStepCount >= ritual.lines.length && (
+                  <Pressable
+                    style={styles.primaryButton}
+                    onPress={() => setPhase("complete")}
+                  >
+                    <Text style={styles.primaryButtonText}>Devam Et</Text>
+                  </Pressable>
+                )}
+              </View>
+            </>
+          )}
+
           {phase === "complete" && (
             <>
               <View style={styles.completeCard}>
@@ -506,30 +481,30 @@ const styles = StyleSheet.create({
     borderColor: "rgba(196,181,253,0.14)",
   },
   orbOuter: {
-  width: 128,
-  height: 128,
-  borderRadius: 999,
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "rgba(168,85,247,0.16)",
-  borderWidth: 1,
-  borderColor: "rgba(196,181,253,0.24)",
-  shadowColor: "#A855F7",
-  shadowOpacity: 0.35,
-  shadowRadius: 24,
-  shadowOffset: { width: 0, height: 0 },
-  elevation: 10,
-},
- orbInner: {
-  width: 92,
-  height: 92,
-  borderRadius: 999,
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "rgba(255,255,255,0.10)",
-  borderWidth: 1,
-  borderColor: "rgba(255,255,255,0.18)",
-},
+    width: 128,
+    height: 128,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(168,85,247,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(196,181,253,0.24)",
+    shadowColor: "#A855F7",
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
+  },
+  orbInner: {
+    width: 92,
+    height: 92,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
   orbText: {
     color: "#FFFFFF",
     fontSize: 20,
