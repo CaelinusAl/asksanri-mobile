@@ -1,5 +1,6 @@
 // app/(tabs)/matrix.tsx
 import React, { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import {
   View,
   Text,
@@ -76,6 +77,11 @@ export default function MatrixScreen() {
   const [dob, setDob] = useState<string>("");
 
   const cycle = "22.02.2026";
+
+  const { user } = useAuth();
+
+  const isPremium = !!user?.isPremium;
+  const matrixRoleUnlocked = !!user?.matrixRoleUnlocked;
 
   const onBack = () => {
     if (router.canGoBack()) router.back();
@@ -245,9 +251,24 @@ export default function MatrixScreen() {
 
           <View style={styles.payRight}>
             <Text style={styles.priceTag}>$119</Text>
-            <Pressable onPress={() => goVip("role")} style={styles.ghostBtn} hitSlop={10}>
-              <Text style={styles.ghostBtnTxt}>{t.roleBtn}</Text>
-            </Pressable>
+            <Pressable
+  onPress={() => {
+    if (matrixRoleUnlocked) {
+      Alert.alert("Sanrı", lang === "tr" ? "Rol katmanı zaten açık." : "Role layer is already unlocked.");
+      return;
+    }
+    router.push({
+      pathname: "/(tabs)/vip",
+      params: { lang, source: "role" },
+    } as any);
+  }}
+  style={styles.ghostBtn}
+  hitSlop={10}
+>
+  <Text style={styles.ghostBtnTxt}>
+    {matrixRoleUnlocked ? (lang === "tr" ? "Rol Açıldı" : "Unlocked") : t.roleBtn}
+  </Text>
+</Pressable>
           </View>
         </View>
 
@@ -260,9 +281,24 @@ export default function MatrixScreen() {
 
           <View style={styles.payRight}>
             <Text style={styles.priceTag}>{lang === "tr" ? priceTry : priceUsd}</Text>
-            <Pressable onPress={() => goVip("premium_monthly")} style={styles.ghostBtn} hitSlop={10}>
-              <Text style={styles.ghostBtnTxt}>{t.premiumBtn}</Text>
-            </Pressable>
+            <Pressable
+  onPress={() => {
+    if (isPremium) {
+      Alert.alert("Sanrı", lang === "tr" ? "Premium aktif." : "Premium is active.");
+      return;
+    }
+    router.push({
+      pathname: "/(tabs)/vip",
+      params: { lang, source: "premium_monthly" },
+    } as any);
+  }}
+  style={styles.ghostBtn}
+  hitSlop={10}
+>
+  <Text style={styles.ghostBtnTxt}>
+    {isPremium ? (lang === "tr" ? "Premium Aktif" : "Premium Active") : t.premiumBtn}
+  </Text>
+</Pressable>
           </View>
         </View>
 

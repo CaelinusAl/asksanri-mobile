@@ -46,7 +46,7 @@ export default function VipScreen() {
 
       const res = await Purchases.purchasePackage(pkg);
 
-      if (res.customerInfo.entitlements.active["vip"]) {
+      if (res.customerInfo.entitlements.active["vip_access"]) {
         alert("VIP aktif!");
 
         if (params.target) {

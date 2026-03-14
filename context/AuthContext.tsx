@@ -5,6 +5,10 @@ type User = {
   id: string;
   email?: string;
   phone?: string;
+  role?: "free" | "premium";
+  isPremium?: boolean;
+  premiumUntil?: string | null;
+  matrixRoleUnlocked?: boolean;
 };
 
 type AuthContextValue = {
