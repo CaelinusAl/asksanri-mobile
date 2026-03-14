@@ -3,7 +3,7 @@
     "name": "AskSanri",
     "slug": "asksanri",
     "scheme": "asksanri",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "dark",
@@ -12,14 +12,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
-    "ios": {
-      "bundleIdentifier": "com.caelinusai.asksanri",
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSMicrophoneUsageDescription": "Sanrı voice input için mikrofon kullanır.",
-        "ITSAppUsesNonExemptEncryption": false
-      }
-    },
+   "ios": {
+  "bundleIdentifier": "com.caelinusai.asksanri",
+  "buildNumber": "3",
+  "supportsTablet": true,
+  "infoPlist": {
+    "NSMicrophoneUsageDescription": "AskSanri uses the microphone only when the user chooses voice input to convert speech into text for the AI assistant.",
+    "ITSAppUsesNonExemptEncryption": false
+  }
+},
     "android": {
       "package": "com.caelinusai.asksanri",
       "versionCode": 16,

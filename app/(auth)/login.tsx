@@ -1,5 +1,5 @@
 // app/(auth)/login.tsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { BlurView } from "expo-blur";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../context/AuthContext";
+import MatrixRain from "../../lib/MatrixRain";
 
 type Lang = "tr" | "en";
 type Mode = "email" | "phone";
@@ -51,14 +52,29 @@ const COPY = {
 
 export default function LoginScreen() {
   const { setUser } = useAuth();
-  const params = useLocalSearchParams<{ next?: string }>();
+  const params = useLocalSearchParams<{ next?: string; lang?: string }>();
   const nextRoute = params.next ? String(params.next) : "/(tabs)/gates";
 
-  const [lang, setLang] = useState<Lang>("tr");
+  const [lang, setLang] = useState<Lang>((params.lang as Lang) || "tr");
   const [mode, setMode] = useState<Mode>("email");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [pass, setPass] = useState("");
+
+  const [matrixBoost, setMatrixBoost] = useState(false);
+  const [passPulse, setPassPulse] = useState(false);
+  const passTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerPassPulse = () => {
+  if (passTimerRef.current) clearTimeout(passTimerRef.current);
+
+  setPassPulse(true);
+
+  passTimerRef.current = setTimeout(() => {
+    setPassPulse(false);
+  }, 2200);
+};
+  const matrixTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const t = useMemo(() => COPY[lang], [lang]);
 
@@ -69,6 +85,23 @@ export default function LoginScreen() {
     return !phone.trim();
   }, [mode, email, phone, pass]);
 
+  const triggerMatrixBoost = () => {
+    if (matrixTimerRef.current) clearTimeout(matrixTimerRef.current);
+
+    setMatrixBoost(true);
+
+    matrixTimerRef.current = setTimeout(() => {
+      setMatrixBoost(false);
+    }, 6000);
+  };
+
+  useEffect(() => {
+  return () => {
+    if (matrixTimerRef.current) clearTimeout(matrixTimerRef.current);
+    if (passTimerRef.current) clearTimeout(passTimerRef.current);
+  };
+}, []);
+
   const onSubmit = async () => {
     if (disabled) return;
     try {
@@ -76,7 +109,6 @@ export default function LoginScreen() {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch {}
 
-      // ✅ Şimdilik local login (backend auth bağlayınca burada API login/register olacak)
       const id = Date.now().toString(16) + "_" + Math.random().toString(16).slice(2);
       await setUser({
         id,
@@ -99,6 +131,14 @@ export default function LoginScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
       <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+
+      {/* Matrix rain */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <MatrixRain
+             opacity={matrixBoost ? 0.42 : 0.14}
+             speedMs={matrixBoost ? 3200 : 9000}
+/>
+      </View>
 
       {/* filmic veil */}
       <View pointerEvents="none" style={styles.veil} />
@@ -146,21 +186,29 @@ export default function LoginScreen() {
               onPress={() => setMode("email")}
               style={[styles.modeChip, mode === "email" && styles.modeChipActive]}
             >
-              <Text style={[styles.modeTxt, mode === "email" && styles.modeTxtActive]}>{t.email}</Text>
+              <Text style={[styles.modeTxt, mode === "email" && styles.modeTxtActive]}>
+                {t.email}
+              </Text>
             </Pressable>
 
             <Pressable
               onPress={() => setMode("phone")}
               style={[styles.modeChip, mode === "phone" && styles.modeChipActive]}
             >
-              <Text style={[styles.modeTxt, mode === "phone" && styles.modeTxtActive]}>{t.phone}</Text>
+              <Text style={[styles.modeTxt, mode === "phone" && styles.modeTxtActive]}>
+                {t.phone}
+              </Text>
             </Pressable>
           </View>
 
           {/* GLASS CARD */}
           <View style={styles.cardOuter}>
             <LinearGradient
-              colors={["rgba(255,255,255,0.14)", "rgba(255,255,255,0.06)", "rgba(124,247,216,0.06)"]}
+              colors={[
+                "rgba(255,255,255,0.14)",
+                "rgba(255,255,255,0.06)",
+                "rgba(124,247,216,0.06)",
+              ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.cardGrad}
@@ -168,14 +216,24 @@ export default function LoginScreen() {
               <BlurView intensity={24} tint="dark" style={styles.cardGlass}>
                 {mode === "email" ? (
                   <TextInput
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder={t.emailPh}
-                    placeholderTextColor="rgba(203,188,255,0.35)"
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    style={styles.input}
-                  />
+  value={email}
+  onChangeText={(value) => {
+    const wasEmpty = email.trim().length === 0;
+    setEmail(value);
+
+    if (wasEmpty && value.trim().length > 0) {
+      triggerMatrixBoost();
+    }
+  }}
+  placeholder={t.emailPh}
+  placeholderTextColor="rgba(203,188,255,0.35)"
+  autoCapitalize="none"
+  keyboardType="email-address"
+  style={[
+    styles.input,
+    matrixBoost && styles.inputBoost
+  ]}
+/>
                 ) : (
                   <TextInput
                     value={phone}
@@ -189,17 +247,35 @@ export default function LoginScreen() {
 
                 <TextInput
                   value={pass}
-                  onChangeText={setPass}
-                  placeholder={t.passPh}
-                  placeholderTextColor="rgba(203,188,255,0.35)"
-                  secureTextEntry
-                  style={styles.input}
-                />
+                  onChangeText={(value) => {
+                  const wasEmpty = pass.trim().length === 0;
+                  setPass(value);
+
+                 if (wasEmpty && value.trim().length > 0) {
+                 triggerPassPulse();
+                }
+  }}
+               placeholder={t.passPh}
+               placeholderTextColor="rgba(203,188,255,0.35)"
+               secureTextEntry
+               style={[
+               styles.input,
+               passPulse && styles.passInputPulse
+  ]}
+/>
 
                 {/* CTA GLASS */}
-                <Pressable onPress={onSubmit} disabled={disabled} style={[styles.ctaOuter, disabled && { opacity: 0.55 }]}>
+                <Pressable
+                  onPress={onSubmit}
+                  disabled={disabled}
+                  style={[styles.ctaOuter, disabled && { opacity: 0.55 }]}
+                >
                   <LinearGradient
-                    colors={["rgba(169,112,255,0.42)", "rgba(94,59,255,0.30)", "rgba(124,247,216,0.10)"]}
+                    colors={[
+                      "rgba(169,112,255,0.42)",
+                      "rgba(94,59,255,0.30)",
+                      "rgba(124,247,216,0.10)",
+                    ]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.ctaGrad}
@@ -338,6 +414,25 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
+  inputBoost: {
+  borderColor: "rgba(124,247,216,0.65)",
+  shadowColor: "#7cf7d8",
+  shadowOpacity: 0.45,
+  shadowRadius: 18,
+  shadowOffset: { width: 0, height: 0 },
+  elevation: 8,
+},
+
+passInputPulse: {
+  borderColor: "rgba(179,136,255,0.78)",
+  shadowColor: "#b388ff",
+  shadowOpacity: 0.55,
+  shadowRadius: 20,
+  shadowOffset: { width: 0, height: 0 },
+  elevation: 10,
+  backgroundColor: "rgba(169,112,255,0.10)",
+},
+
   ctaOuter: { marginTop: 10, borderRadius: 22, overflow: "hidden" },
   ctaGrad: { borderRadius: 22, padding: 1 },
   ctaGlass: {
@@ -361,4 +456,5 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.55)",
     textAlign: "center",
   },
+
 });
