@@ -1,7 +1,4 @@
-// app/rabbit.tsx  (veya app/(tabs)/rabbit.tsx)
-// ConsciousGateScreen – Rabbit Gate (TR/EN + MatrixRain + Glass Button)
-
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,21 +7,17 @@ import {
   StatusBar,
   Image,
   ImageBackground,
+  ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-
-// Eğer path sende farklıysa düzelt:
-import MatrixRain from "../lib/MatrixRain"; // (eğer bu dosya app/ altındaysa)
-// import MatrixRain from "../../lib/MatrixRain"; // (eğer bu dosya app/(tabs)/ altındaysa)
+import MatrixRain from "../lib/MatrixRain";
+import { useAuth } from "../context/AuthContext";
 
 type Lang = "tr" | "en";
 
-const BG = require("../assets/sanri_glass_bg.jpg"); // (app/ altındaysa)
-// const BG = require("../../assets/sanri_glass_bg.jpg"); // (app/(tabs)/ altındaysa)
-
+const BG = require("../assets/sanri_glass_bg.jpg");
 const RABBIT = require("../assets/rabbit.jpg");
-// const RABBIT = require("../../assets/rabbit.jpg");
 
 const COPY = {
   tr: {
@@ -39,6 +32,7 @@ const COPY = {
     ctaTitle: "Frekans Alanı Aç",
     ctaSub: "Dokun → Kapı açılır",
     footer: "Soru değil. Tek cümle.",
+    loading: "Oturum kontrol ediliyor...",
   },
   en: {
     kicker: "FOLLOW THE RABBIT",
@@ -52,6 +46,7 @@ const COPY = {
     ctaTitle: "Open Frequency Field",
     ctaSub: "Touch → The gate opens",
     footer: "Not a question. One sentence.",
+    loading: "Checking session...",
   },
 } as const;
 
@@ -59,9 +54,26 @@ export default function ConsciousGateScreen() {
   const [lang, setLang] = useState<Lang>("tr");
   const t = useMemo(() => COPY[lang], [lang]);
 
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (user) {
+      router.replace("/(tabs)/gates");
+    }
+  }, [user, isLoading]);
+
   const onOpen = () => {
-    // burada login'e gönder
-    router.push({ pathname: "/(auth)/login", params: { lang } } as any);
+    if (user) {
+      router.replace("/(tabs)/gates");
+      return;
+    }
+
+    router.push({
+      pathname: "/(auth)/login",
+      params: { lang, next: "/(tabs)/gates" },
+    } as any);
   };
 
   return (
@@ -69,15 +81,12 @@ export default function ConsciousGateScreen() {
       <StatusBar barStyle="light-content" />
 
       <ImageBackground source={BG} style={styles.root} resizeMode="cover">
-        {/* Matrix Rain layer */}
         <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
           <MatrixRain opacity={0.18} />
         </View>
 
-        {/* Soft dark overlay */}
         <View pointerEvents="none" style={styles.overlay} />
 
-        {/* Top right lang */}
         <View style={styles.langRow}>
           <Pressable
             onPress={() => setLang("tr")}
@@ -96,9 +105,7 @@ export default function ConsciousGateScreen() {
           </Pressable>
         </View>
 
-        {/* Content */}
         <View style={styles.container}>
-          {/* Rabbit card */}
           <View style={styles.rabbitCard}>
             <View style={styles.rabbitInner}>
               <Image source={RABBIT} style={styles.rabbitImg} resizeMode="cover" />
@@ -122,34 +129,40 @@ export default function ConsciousGateScreen() {
             {t.desc2}
           </Text>
 
-          {/* Glass CTA */}
-          <Pressable onPress={onOpen} style={styles.ctaWrap} hitSlop={12}>
-            <LinearGradient
-              colors={[
-                "rgba(124,247,216,0.20)",
-                "rgba(94,59,255,0.18)",
-                "rgba(94,59,255,0.12)",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGlass}
-            >
-              <View style={styles.ctaLeft}>
-                <View style={styles.keyCircle}>
-                  <Text style={styles.keyIcon}>🔑</Text>
+          {isLoading ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="small" color="#7cf7d8" />
+              <Text style={styles.loadingTxt}>{t.loading}</Text>
+            </View>
+          ) : (
+            <Pressable onPress={onOpen} style={styles.ctaWrap} hitSlop={12}>
+              <LinearGradient
+                colors={[
+                  "rgba(124,247,216,0.20)",
+                  "rgba(94,59,255,0.18)",
+                  "rgba(94,59,255,0.12)",
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ctaGlass}
+              >
+                <View style={styles.ctaLeft}>
+                  <View style={styles.keyCircle}>
+                    <Text style={styles.keyIcon}>🔑</Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={{ flex: 1 }}>
-                <Text style={styles.ctaTitle}>{t.ctaTitle}</Text>
-                <Text style={styles.ctaSub}>{t.ctaSub}</Text>
-              </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.ctaTitle}>{t.ctaTitle}</Text>
+                  <Text style={styles.ctaSub}>{t.ctaSub}</Text>
+                </View>
 
-              <View style={styles.ctaRight}>
-                <Text style={styles.chev}>›</Text>
-              </View>
-            </LinearGradient>
-          </Pressable>
+                <View style={styles.ctaRight}>
+                  <Text style={styles.chev}>›</Text>
+                </View>
+              </LinearGradient>
+            </Pressable>
+          )}
 
           <Text style={styles.footer}>{t.footer}</Text>
         </View>
@@ -232,6 +245,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 12,
     lineHeight: 22,
+  },
+
+  loadingBox: {
+    width: "100%",
+    marginTop: 18,
+    borderRadius: 22,
+    paddingVertical: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  loadingTxt: {
+    color: "rgba(255,255,255,0.75)",
+    fontWeight: "700",
   },
 
   ctaWrap: { width: "100%", marginTop: 18 },

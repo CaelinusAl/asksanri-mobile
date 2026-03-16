@@ -6,6 +6,7 @@ import {
   Pressable,
   Modal,
   ImageBackground,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -15,25 +16,14 @@ import { setVipJustActivated } from "@/lib/vipPulse";
 type Lang = "tr" | "en";
 
 type Props = {
-  // yeni kullanım
   open?: boolean;
-
-  // eski kullanım
   visible?: boolean;
-
   lang?: Lang;
   priceTry?: string;
   priceUsd?: string;
-
   onClose: () => void;
-
-  // eski akış
   onSubscribe?: () => Promise<void> | void;
-
-  // yeni akış: city/code.tsx bunu kullanıyor
   onSubscribeSuccess?: () => Promise<void> | void;
-
-  // opsiyonel yönlendirme
   onGoVip?: () => void;
 };
 
@@ -46,8 +36,11 @@ const COPY = {
     sub: "Derin katmanlar + tam erişim. Kapı “Derinleş” ile açılır.",
     priceTitle: "Ücret",
     cta: "Bilinç Kapısını Aç",
+    loading: "Bağlanıyor...",
     later: "Şimdi değil",
     hint: "VIP ile: Derinleş aktif olur, kapılar daha fazla konuşur.",
+    purchaseError: "Satın alma hatası",
+    missingHandler: "Satın alma sistemi henüz bağlanmamış.",
   },
   en: {
     kicker: "SYSTEM TERMINAL",
@@ -55,8 +48,11 @@ const COPY = {
     sub: "Deep layers + full access. The gate opens via “Deepen”.",
     priceTitle: "Price",
     cta: "Open the Gate",
+    loading: "Connecting...",
     later: "Not now",
     hint: "With VIP: Deepen unlocks, gates speak deeper.",
+    purchaseError: "Purchase error",
+    missingHandler: "Purchase flow is not connected yet.",
   },
 } as const;
 
@@ -80,21 +76,30 @@ export default function VipSheet(props: Props) {
     setBusy(true);
 
     try {
-      // 1) Eski satın alma / RevenueCat / custom akış
-      if (props.onSubscribe) {
-        await Promise.resolve(props.onSubscribe());
+      if (!props.onSubscribe) {
+        Alert.alert("Alert", t.missingHandler);
+        return;
       }
 
-      // 2) VIP pulse tetikle
+      await Promise.resolve(props.onSubscribe());
+
       setVipJustActivated(true);
 
-      // 3) Yeni success callback varsa çalıştır
       if (props.onSubscribeSuccess) {
         await Promise.resolve(props.onSubscribeSuccess());
       } else {
-        // eski fallback
         props.onClose();
       }
+    } catch (e: any) {
+      console.log("VipSheet purchase error:", e);
+
+      let message = t.purchaseError;
+
+      if (typeof e?.message === "string" && e.message.trim()) {
+        message = e.message;
+      }
+
+      Alert.alert("Alert", message);
     } finally {
       setBusy(false);
     }
@@ -131,7 +136,7 @@ export default function VipSheet(props: Props) {
               end={{ x: 1, y: 1 }}
               style={styles.ctaGlass}
             >
-              <Text style={styles.ctaTxt}>{busy ? "..." : t.cta}</Text>
+              <Text style={styles.ctaTxt}>{busy ? t.loading : t.cta}</Text>
             </LinearGradient>
           </Pressable>
 
@@ -151,12 +156,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
   },
-
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.35)",
   },
-
   sheet: {
     padding: 18,
     borderTopLeftRadius: 26,
@@ -165,27 +168,23 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
     backgroundColor: "rgba(10,10,18,0.55)",
   },
-
   kicker: {
     color: "rgba(255,255,255,0.6)",
     letterSpacing: 2,
     fontWeight: "900",
     fontSize: 12,
   },
-
   title: {
     color: "white",
     fontWeight: "900",
     fontSize: 28,
     marginTop: 6,
   },
-
   sub: {
     color: "rgba(255,255,255,0.75)",
     marginTop: 8,
     lineHeight: 20,
   },
-
   priceCard: {
     marginTop: 14,
     borderRadius: 22,
@@ -194,30 +193,25 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
     backgroundColor: "rgba(255,255,255,0.06)",
   },
-
   priceTitle: {
     color: "rgba(255,255,255,0.7)",
     fontWeight: "800",
   },
-
   priceMain: {
     color: "#7cf7d8",
     fontWeight: "900",
     fontSize: 22,
     marginTop: 6,
   },
-
   priceAlt: {
     color: "rgba(255,255,255,0.65)",
     marginTop: 4,
   },
-
   ctaBtn: {
     marginTop: 14,
     borderRadius: 20,
     overflow: "hidden",
   },
-
   ctaGlass: {
     paddingVertical: 16,
     alignItems: "center",
@@ -225,25 +219,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(140,100,255,0.35)",
   },
-
   ctaTxt: {
     color: "white",
     fontWeight: "900",
     fontSize: 18,
     letterSpacing: 1,
   },
-
   laterBtn: {
     marginTop: 10,
     alignItems: "center",
     paddingVertical: 10,
   },
-
   laterTxt: {
     color: "rgba(255,255,255,0.65)",
     fontWeight: "800",
   },
-
   hint: {
     marginTop: 6,
     color: "rgba(180,255,230,0.55)",

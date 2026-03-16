@@ -1,6 +1,6 @@
 // app/(tabs)/vip.tsx
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,12 +11,14 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 
 import { router, useLocalSearchParams } from "expo-router";
-import Purchases from "react-native-purchases";
 
 import MatrixRain from "../../lib/MatrixRain";
+import { buySanriPremium, getCustomerInfo } from "../../lib/revenuecat";
+import { setVipJustActivated } from "../../lib/vipPulse";
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 const RABBIT = require("../../assets/rabbit.jpg");
@@ -31,43 +33,55 @@ export default function VipScreen() {
 
   const [loading, setLoading] = useState(false);
 
+  const goAfterSuccess = () => {
+    setVipJustActivated(true);
+
+    if (params.target) {
+      router.replace({
+        pathname: params.target as any,
+        params: {
+          code: params.code || "",
+          city: params.city || "",
+          lang: params.lang || "tr",
+        },
+      } as any);
+      return;
+    }
+
+    router.back();
+  };
+
   const onPurchase = async () => {
+    if (loading) return;
+
     try {
       setLoading(true);
 
-      const offerings = await Purchases.getOfferings();
+      await buySanriPremium();
 
-      if (!offerings.current) {
-        alert("Offer bulunamadı");
+      const info = await getCustomerInfo();
+      const hasVip = Boolean(info.entitlements.active["vip_access"]);
+
+      if (!hasVip) {
+        Alert.alert("Alert", "VIP erişimi doğrulanamadı");
         return;
       }
 
-      const pkg = offerings.current.availablePackages[0];
-
-      const res = await Purchases.purchasePackage(pkg);
-
-      if (res.customerInfo.entitlements.active["vip_access"]) {
-        alert("VIP aktif!");
-
-        if (params.target) {
-          router.replace({
-            pathname: params.target as any,
-            params: {
-              code: params.code || "",
-              city: params.city || "",
-              lang: params.lang || "tr",
-            },
-          } as any);
-
-          return;
-        }
-
-        router.back();
-      }
+      Alert.alert("Alert", "VIP aktif!");
+      goAfterSuccess();
     } catch (e: any) {
-      if (!e.userCancelled) {
-        alert("Satın alma hatası");
+      console.log("VIP purchase error:", e);
+
+      if (e?.userCancelled) {
+        return;
       }
+
+      const msg =
+        typeof e?.message === "string" && e.message.trim()
+          ? e.message
+          : "Satın alma hatası";
+
+      Alert.alert("Alert", msg);
     } finally {
       setLoading(false);
     }
@@ -90,7 +104,6 @@ export default function VipScreen() {
       <View pointerEvents="none" style={styles.overlay} />
 
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Rabbit visual */}
         <View style={styles.rabbitWrap}>
           <View style={styles.rabbitFrame}>
             <ImageBackground
@@ -105,7 +118,6 @@ export default function VipScreen() {
           <Text style={styles.rabbitSub}>WHITE RABBIT PROTOCOL</Text>
         </View>
 
-        {/* Main card */}
         <View style={styles.card}>
           <Text style={styles.kicker}>SYSTEM TERMINAL</Text>
 
@@ -124,7 +136,11 @@ export default function VipScreen() {
             <Text style={styles.bullet}>• Gelecek katmanlar</Text>
           </View>
 
-          <Pressable style={styles.cta} onPress={onPurchase}>
+          <Pressable
+            style={[styles.cta, loading && styles.ctaDisabled]}
+            onPress={onPurchase}
+            disabled={loading}
+          >
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
@@ -134,7 +150,7 @@ export default function VipScreen() {
 
           <Text style={styles.alt}>693 TL / ay</Text>
 
-          <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()} disabled={loading}>
             <Text style={styles.backTxt}>Şimdi değil</Text>
           </Pressable>
         </View>
@@ -248,6 +264,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     backgroundColor: "rgba(94,59,255,0.90)",
+  },
+
+  ctaDisabled: {
+    opacity: 0.7,
   },
 
   ctaText: {

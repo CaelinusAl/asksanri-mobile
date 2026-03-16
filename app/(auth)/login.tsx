@@ -99,58 +99,117 @@ export default function LoginScreen() {
     };
   }, []);
 
-  const onSubmit = async () => {
-    if (disabled) return;
+ const onSubmit = async () => {
+  if (disabled) return;
 
+  const loginValue = mode === "email" ? email.trim() : phone.trim();
+  const passwordValue = pass.trim();
+
+  const showError = (data: any, fallback: string) => {
+    const detail = data?.detail;
+
+    if (typeof detail === "string") {
+      alert(detail);
+      return;
+    }
+
+    if (Array.isArray(detail) && detail.length > 0) {
+      alert(detail[0]?.msg || fallback);
+      return;
+    }
+
+    if (detail && typeof detail === "object") {
+      alert(JSON.stringify(detail));
+      return;
+    }
+
+    alert(fallback);
+  };
+
+  const doLogin = async () => {
+    const res = await fetch("https://api.asksanri.com/auth/email/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: loginValue,
+        password: passwordValue,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  };
+
+  const doRegister = async () => {
+    const res = await fetch("https://api.asksanri.com/auth/email/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: loginValue,
+        password: passwordValue,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  };
+
+  try {
     try {
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch {}
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {}
 
-      const loginValue = mode === "email" ? email.trim() : phone.trim();
+    let loginResult = await doLogin();
 
-      const res = await fetch("https://api.asksanri.com/auth/email/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: loginValue,
-          password: pass.trim(),
-        }),
-      });
+    if (loginResult.res.status === 401) {
+      const registerResult = await doRegister();
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
+      if (registerResult.res.ok) {
+        loginResult = await doLogin();
+      } else if (registerResult.res.status !== 409) {
         triggerPassPulse();
-        alert(String((data as any)?.detail || "Login failed"));
+        showError(registerResult.data, "Register failed");
+        return;
+      } else {
+        triggerPassPulse();
+        showError(loginResult.data, "Invalid credentials");
         return;
       }
-
-      if (data?.token) {
-        await setToken(String(data.token));
-      }
-
-      await setUser({
-        id: String(data.user_id),
-        email: mode === "email" ? loginValue : undefined,
-        phone: mode === "phone" ? loginValue : undefined,
-      });
-
-      triggerMatrixBoost();
-      router.replace(nextRoute as any);
-    } catch (err) {
-      console.log("login error:", err);
-      alert("Connection error");
     }
-  };
 
+    if (!loginResult.res.ok) {
+      triggerPassPulse();
+      showError(loginResult.data, "Login failed");
+      return;
+    }
+
+    const data = loginResult.data;
+
+    if (data?.token) {
+      await setToken(String(data.token));
+    }
+
+    await setUser({
+      id: String(data.user_id),
+      email: mode === "email" ? loginValue : undefined,
+      phone: mode === "phone" ? loginValue : undefined,
+    });
+
+    triggerMatrixBoost();
+    router.replace(nextRoute as any);
+  } catch (err) {
+    console.log("login error:", err);
+    alert("Connection error");
+  }
+};
   const onBack = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace("/(tabs)/gates");
-  };
-
+  if (router.canGoBack()) router.back();
+  else router.replace("/rabbit" as any);
+}
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />

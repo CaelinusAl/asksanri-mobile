@@ -1,10 +1,8 @@
-// lib/premium.ts
-import Purchases from "react-native-purchases";
+import { getCustomerInfo } from "./revenuecat";
 
-export async function hasVipEntitlement(): Promise<boolean> {
+export async function hasVipEntitlement() {
   try {
-    const info = await Purchases.getCustomerInfo();
-    // RevenueCat entitlement identifier: "vip_access"
+    const info = await getCustomerInfo();
     return Boolean(info.entitlements.active["vip_access"]);
   } catch {
     return false;
