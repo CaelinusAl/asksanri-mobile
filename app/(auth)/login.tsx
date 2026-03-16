@@ -1,4 +1,3 @@
-// app/(auth)/login.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -17,6 +16,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../context/AuthContext";
 import MatrixRain from "../../lib/MatrixRain";
+import { setToken } from "../../lib/auth";
 
 type Lang = "tr" | "en";
 type Mode = "email" | "phone";
@@ -63,17 +63,8 @@ export default function LoginScreen() {
 
   const [matrixBoost, setMatrixBoost] = useState(false);
   const [passPulse, setPassPulse] = useState(false);
+
   const passTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const triggerPassPulse = () => {
-  if (passTimerRef.current) clearTimeout(passTimerRef.current);
-
-  setPassPulse(true);
-
-  passTimerRef.current = setTimeout(() => {
-    setPassPulse(false);
-  }, 2200);
-};
   const matrixTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const t = useMemo(() => COPY[lang], [lang]);
@@ -85,40 +76,73 @@ export default function LoginScreen() {
     return !phone.trim();
   }, [mode, email, phone, pass]);
 
+  const triggerPassPulse = () => {
+    if (passTimerRef.current) clearTimeout(passTimerRef.current);
+    setPassPulse(true);
+    passTimerRef.current = setTimeout(() => {
+      setPassPulse(false);
+    }, 2200);
+  };
+
   const triggerMatrixBoost = () => {
     if (matrixTimerRef.current) clearTimeout(matrixTimerRef.current);
-
     setMatrixBoost(true);
-
     matrixTimerRef.current = setTimeout(() => {
       setMatrixBoost(false);
     }, 6000);
   };
 
   useEffect(() => {
-  return () => {
-    if (matrixTimerRef.current) clearTimeout(matrixTimerRef.current);
-    if (passTimerRef.current) clearTimeout(passTimerRef.current);
-  };
-}, []);
+    return () => {
+      if (matrixTimerRef.current) clearTimeout(matrixTimerRef.current);
+      if (passTimerRef.current) clearTimeout(passTimerRef.current);
+    };
+  }, []);
 
   const onSubmit = async () => {
     if (disabled) return;
+
     try {
       try {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch {}
 
-      const id = Date.now().toString(16) + "_" + Math.random().toString(16).slice(2);
-      await setUser({
-        id,
-        email: mode === "email" ? email.trim() : undefined,
-        phone: mode === "phone" ? phone.trim() : undefined,
+      const loginValue = mode === "email" ? email.trim() : phone.trim();
+
+      const res = await fetch("https://api.asksanri.com/auth/email/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginValue,
+          password: pass.trim(),
+        }),
       });
 
-     router.replace("/(tabs)/gates");
-    } catch (e) {
-      // sessiz fail: ileride toast ekleriz
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        triggerPassPulse();
+        alert(String((data as any)?.detail || "Login failed"));
+        return;
+      }
+
+      if (data?.token) {
+        await setToken(String(data.token));
+      }
+
+      await setUser({
+        id: String(data.user_id),
+        email: mode === "email" ? loginValue : undefined,
+        phone: mode === "phone" ? loginValue : undefined,
+      });
+
+      triggerMatrixBoost();
+      router.replace(nextRoute as any);
+    } catch (err) {
+      console.log("login error:", err);
+      alert("Connection error");
     }
   };
 
