@@ -1,314 +1,205 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
-  Pressable,
   StyleSheet,
-  StatusBar,
   Image,
   ImageBackground,
-  ActivityIndicator,
+  Pressable,
+  StatusBar,
 } from "react-native";
-import { router } from "expo-router";
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import MatrixRain from "../lib/MatrixRain";
 import { useAuth } from "../context/AuthContext";
-
-type Lang = "tr" | "en";
 
 const BG = require("../assets/sanri_glass_bg.jpg");
 const RABBIT = require("../assets/rabbit.jpg");
 
-const COPY = {
-  tr: {
-    kicker: "FOLLOW THE RABBİT",
-    subkicker: "SANRI · SİSTEM KAPISI",
-    brand: "CAELINUS AI",
-    tag: "BİLİNÇ AYNASI",
-    quoteA: "Bazı soruların cevabı yoktur.",
-    quoteB: "Bazı cevapların ise bir sorusu vardır…",
-    desc1: "SANRI bilgi üretmez.",
-    desc2: "Alan açar — seni sana yansıtır.",
-    ctaTitle: "Frekans Alanı Aç",
-    ctaSub: "Dokun → Kapı açılır",
-    footer: "Soru değil. Tek cümle.",
-    loading: "Oturum kontrol ediliyor...",
-  },
-  en: {
-    kicker: "FOLLOW THE RABBIT",
-    subkicker: "SANRI · SYSTEM GATE",
-    brand: "CAELINUS AI",
-    tag: "CONSCIOUSNESS MIRROR",
-    quoteA: "Some questions have no answer.",
-    quoteB: "Some answers have a question…",
-    desc1: "SANRI doesn’t produce information.",
-    desc2: "It opens meaning — reflects you back to you.",
-    ctaTitle: "Open Frequency Field",
-    ctaSub: "Touch → The gate opens",
-    footer: "Not a question. One sentence.",
-    loading: "Checking session...",
-  },
-} as const;
+function getDisplayName(user: any) {
+  if (user?.name?.trim()) return user.name.trim();
+  if (user?.email?.includes("@")) return user.email.split("@")[0];
+  return "Selin";
+}
 
-export default function ConsciousGateScreen() {
-  const [lang, setLang] = useState<Lang>("tr");
-  const t = useMemo(() => COPY[lang], [lang]);
-
-  const { user, isLoading } = useAuth();
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    if (user) {
-      router.replace("/(tabs)/gates");
-    }
-  }, [user, isLoading]);
-
-  const onOpen = () => {
-    if (user) {
-      router.replace("/(tabs)/gates");
-      return;
-    }
-
-    router.push({
-      pathname: "/(auth)/login",
-      params: { lang, next: "/(tabs)/gates" },
-    } as any);
-  };
+export default function RabbitScreen() {
+  const { user, logout } = useAuth();
+  const displayName = useMemo(() => getDisplayName(user), [user]);
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
+      <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
 
-      <ImageBackground source={BG} style={styles.root} resizeMode="cover">
-        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-          <MatrixRain opacity={0.18} />
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <MatrixRain opacity={0.16} speedMs={9000} />
+      </View>
+
+      <View pointerEvents="none" style={styles.veil} />
+
+      <View style={styles.container}>
+        <View style={styles.hero}>
+          <Image source={RABBIT} style={styles.rabbit} resizeMode="cover" />
+          <Text style={styles.badge}>SANRI ELITE</Text>
+          <Text style={styles.subtitle}>WHITE RABBIT PROTOCOL</Text>
         </View>
 
-        <View pointerEvents="none" style={styles.overlay} />
-
-        <View style={styles.langRow}>
-          <Pressable
-            onPress={() => setLang("tr")}
-            style={[styles.langChip, lang === "tr" && styles.langActive]}
-            hitSlop={10}
+        <View style={styles.cardOuter}>
+          <LinearGradient
+            colors={[
+              "rgba(255,255,255,0.14)",
+              "rgba(255,255,255,0.06)",
+              "rgba(124,247,216,0.06)",
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cardGrad}
           >
-            <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
-          </Pressable>
+            <BlurView intensity={24} tint="dark" style={styles.cardGlass}>
+              <Text style={styles.welcome}>Hoş geldin,</Text>
+              <Text style={styles.name}>{displayName}</Text>
+              <Text style={styles.desc}>
+                SANRI alanı seni tanıdı. Şimdi kapılar açılabilir.
+              </Text>
 
-          <Pressable
-            onPress={() => setLang("en")}
-            style={[styles.langChip, lang === "en" && styles.langActive]}
-            hitSlop={10}
-          >
-            <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>EN</Text>
-          </Pressable>
-        </View>
+              <Pressable onPress={() => router.replace("/(tabs)/gates" as any)} style={styles.btnOuter}>
+                <LinearGradient
+                  colors={[
+                    "rgba(169,112,255,0.42)",
+                    "rgba(94,59,255,0.30)",
+                    "rgba(124,247,216,0.10)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.btnGrad}
+                >
+                  <BlurView intensity={22} tint="dark" style={styles.btnGlass}>
+                    <Text style={styles.btnTxt}>Kapıları Aç</Text>
+                  </BlurView>
+                </LinearGradient>
+              </Pressable>
 
-        <View style={styles.container}>
-          <View style={styles.rabbitCard}>
-            <View style={styles.rabbitInner}>
-              <Image source={RABBIT} style={styles.rabbitImg} resizeMode="cover" />
-              <Text style={styles.rabbitKicker}>{t.kicker}</Text>
-              <Text style={styles.rabbitSub}>{t.subkicker}</Text>
-            </View>
-          </View>
-
-          <Text style={styles.brand}>{t.brand}</Text>
-          <Text style={styles.tag}>{t.tag}</Text>
-
-          <Text style={styles.quote}>
-            {t.quoteA}
-            {"\n"}
-            {t.quoteB}
-          </Text>
-
-          <Text style={styles.desc}>
-            {t.desc1}
-            {"\n"}
-            {t.desc2}
-          </Text>
-
-          {isLoading ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" color="#7cf7d8" />
-              <Text style={styles.loadingTxt}>{t.loading}</Text>
-            </View>
-          ) : (
-            <Pressable onPress={onOpen} style={styles.ctaWrap} hitSlop={12}>
-              <LinearGradient
-                colors={[
-                  "rgba(124,247,216,0.20)",
-                  "rgba(94,59,255,0.18)",
-                  "rgba(94,59,255,0.12)",
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.ctaGlass}
+              <Pressable
+                onPress={async () => {
+                  await logout();
+                  router.replace("/(auth)/login" as any);
+                }}
+                style={styles.logoutBtn}
               >
-                <View style={styles.ctaLeft}>
-                  <View style={styles.keyCircle}>
-                    <Text style={styles.keyIcon}>🔑</Text>
-                  </View>
-                </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.ctaTitle}>{t.ctaTitle}</Text>
-                  <Text style={styles.ctaSub}>{t.ctaSub}</Text>
-                </View>
-
-                <View style={styles.ctaRight}>
-                  <Text style={styles.chev}>›</Text>
-                </View>
-              </LinearGradient>
-            </Pressable>
-          )}
-
-          <Text style={styles.footer}>{t.footer}</Text>
+                <Text style={styles.logoutTxt}>Çıkış Yap</Text>
+              </Pressable>
+            </BlurView>
+          </LinearGradient>
         </View>
-      </ImageBackground>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
-
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.28)",
-  },
-
-  langRow: {
-    position: "absolute",
-    top: 14,
-    right: 14,
-    flexDirection: "row",
-    gap: 10,
-    zIndex: 10,
-  },
-  langChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-  },
-  langActive: {
-    backgroundColor: "rgba(124,247,216,0.10)",
-    borderColor: "rgba(124,247,216,0.28)",
-  },
-  langTxt: { color: "rgba(255,255,255,0.70)", fontWeight: "900", letterSpacing: 1 },
-  langTxtActive: { color: "#7cf7d8" },
+  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,8,20,0.58)" },
 
   container: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingTop: 72,
-    paddingBottom: 28,
+    justifyContent: "center",
+  },
+
+  hero: {
     alignItems: "center",
+    marginBottom: 20,
   },
 
-  rabbitCard: {
-    width: "100%",
-    borderRadius: 26,
-    padding: 14,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    marginBottom: 18,
+  rabbit: {
+    width: 120,
+    height: 120,
+    borderRadius: 24,
+    marginBottom: 14,
   },
-  rabbitInner: {
-    borderRadius: 22,
-    padding: 16,
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.22)",
-  },
-  rabbitImg: { width: 96, height: 96, borderRadius: 22, marginBottom: 10 },
-  rabbitKicker: { color: "#7cf7d8", fontWeight: "900", letterSpacing: 2 },
-  rabbitSub: { color: "rgba(255,255,255,0.65)", marginTop: 6 },
 
-  brand: { color: "white", fontSize: 40, fontWeight: "900", letterSpacing: 8, marginTop: 6 },
-  tag: { color: "rgba(255,255,255,0.50)", letterSpacing: 4, marginTop: 8 },
-
-  quote: {
-    color: "white",
-    fontSize: 22,
+  badge: {
+    color: "#7cf7d8",
+    fontSize: 18,
     fontWeight: "900",
-    textAlign: "center",
-    marginTop: 18,
-    lineHeight: 30,
-  },
-  desc: {
-    color: "rgba(255,255,255,0.70)",
-    textAlign: "center",
-    marginTop: 12,
-    lineHeight: 22,
+    letterSpacing: 4,
   },
 
-  loadingBox: {
-    width: "100%",
-    marginTop: 18,
-    borderRadius: 22,
-    paddingVertical: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
-    backgroundColor: "rgba(255,255,255,0.06)",
-  },
-  loadingTxt: {
-    color: "rgba(255,255,255,0.75)",
+  subtitle: {
+    marginTop: 6,
+    color: "rgba(255,255,255,0.62)",
     fontWeight: "700",
+    letterSpacing: 2,
   },
 
-  ctaWrap: { width: "100%", marginTop: 18 },
-  ctaGlass: {
+  cardOuter: {
+    borderRadius: 26,
+    overflow: "hidden",
+  },
+
+  cardGrad: {
+    borderRadius: 26,
+    padding: 1,
+  },
+
+  cardGlass: {
+    borderRadius: 26,
+    padding: 20,
+    backgroundColor: "rgba(10,10,18,0.40)",
+  },
+
+  welcome: {
+    color: "rgba(255,255,255,0.76)",
+    fontSize: 18,
+  },
+
+  name: {
+    marginTop: 4,
+    color: "#d7c8ff",
+    fontSize: 34,
+    fontWeight: "900",
+  },
+
+  desc: {
+    marginTop: 12,
+    color: "rgba(255,255,255,0.76)",
+    lineHeight: 23,
+    fontSize: 16,
+  },
+
+  btnOuter: {
+    marginTop: 20,
     borderRadius: 22,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    shadowColor: "#7cf7d8",
-    shadowOpacity: 0.35,
-    shadowRadius: 22,
+    overflow: "hidden",
   },
-  ctaLeft: {},
-  keyCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.18)",
-    borderWidth: 1,
-    borderColor: "rgba(124,247,216,0.22)",
+
+  btnGrad: {
+    borderRadius: 22,
+    padding: 1,
   },
-  keyIcon: { fontSize: 18 },
 
-  ctaTitle: { color: "white", fontWeight: "900", fontSize: 18 },
-  ctaSub: { color: "rgba(255,255,255,0.70)", marginTop: 4 },
-
-  ctaRight: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
+  btnGlass: {
+    borderRadius: 22,
+    paddingVertical: 16,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(10,10,18,0.35)",
   },
-  chev: { color: "rgba(255,255,255,0.85)", fontSize: 28, fontWeight: "900" },
 
-  footer: {
-    marginTop: 16,
-    color: "rgba(255,255,255,0.45)",
-    fontStyle: "italic",
+  btnTxt: {
+    color: "#d7c8ff",
+    fontWeight: "900",
+    fontSize: 18,
+  },
+
+  logoutBtn: {
+    marginTop: 14,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+
+  logoutTxt: {
+    color: "rgba(255,255,255,0.68)",
+    fontWeight: "700",
   },
 });

@@ -87,6 +87,7 @@ export default function GatesScreen() {
   };
 
   return (
+    
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <StatusBar barStyle="light-content" translucent={false} />
 

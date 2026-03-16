@@ -44,6 +44,17 @@ export default function CityCodeScreen() {
   const doorAnim = useRef(new Animated.Value(0)).current;
   const [doorOpen, setDoorOpen] = useState(false);
 
+  const refreshVipStatus = useCallback(async () => {
+    try {
+      const ok = await hasVipEntitlement();
+      setIsVip(Boolean(ok));
+      return Boolean(ok);
+    } catch {
+      setIsVip(false);
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -111,23 +122,19 @@ export default function CityCodeScreen() {
   });
 
   useEffect(() => {
-    (async () => {
-      try {
-        const ok = await hasVipEntitlement();
-        setIsVip(Boolean(ok));
-      } catch {
-        setIsVip(false);
-      }
-    })();
-  }, []);
+    refreshVipStatus();
+  }, [refreshVipStatus]);
 
   useEffect(() => {
-    if (consumeVipJustActivated()) {
-      setVipRain(true);
-      const t = setTimeout(() => setVipRain(false), 9000);
-      return () => clearTimeout(t);
-    }
-  }, []);
+    const justActivated = consumeVipJustActivated();
+    if (!justActivated) return;
+
+    setVipRain(true);
+    refreshVipStatus();
+
+    const t = setTimeout(() => setVipRain(false), 9000);
+    return () => clearTimeout(t);
+  }, [refreshVipStatus]);
 
   useEffect(() => {
     logEvent("screen_view", "awakened_cities", {
@@ -169,24 +176,22 @@ export default function CityCodeScreen() {
     [router, appLang, cityCode, cityName, layer, headerTitle]
   );
 
+  const openVipPaywall = useCallback((deepAsk = false) => {
+    setPendingDeepAsk(deepAsk);
+    setVipOpen(true);
+  }, []);
+
   const onPressDeepen = useCallback(async () => {
-    try {
-      const ok = await hasVipEntitlement();
+    const ok = await refreshVipStatus();
 
-      if (!ok) {
-        setPendingDeepAsk(false);
-        setVipOpen(true);
-        return;
-      }
-
-      setIsVip(true);
-      playDoorOpen();
-      setTimeout(() => setLayer("deepC"), 520);
-    } catch {
-      setPendingDeepAsk(false);
-      setVipOpen(true);
+    if (!ok) {
+      openVipPaywall(false);
+      return;
     }
-  }, [playDoorOpen]);
+
+    playDoorOpen();
+    setTimeout(() => setLayer("deepC"), 520);
+  }, [openVipPaywall, playDoorOpen, refreshVipStatus]);
 
   const onPressAsk = useCallback(async () => {
     const wantsDeep = layer === "deepC";
@@ -196,25 +201,18 @@ export default function CityCodeScreen() {
       return;
     }
 
-    try {
-      const ok = await hasVipEntitlement();
+    const ok = await refreshVipStatus();
 
-      if (!ok) {
-        setPendingDeepAsk(true);
-        setVipOpen(true);
-        return;
-      }
-
-      setIsVip(true);
-      goToSanri("divine");
-    } catch {
-      setPendingDeepAsk(true);
-      setVipOpen(true);
+    if (!ok) {
+      openVipPaywall(true);
+      return;
     }
-  }, [layer, goToSanri]);
+
+    goToSanri("divine");
+  }, [layer, goToSanri, openVipPaywall, refreshVipStatus]);
 
   const onSubscribeSuccess = useCallback(async () => {
-    setIsVip(true);
+    await refreshVipStatus();
     setVipOpen(false);
 
     if (pendingDeepAsk) {
@@ -225,7 +223,7 @@ export default function CityCodeScreen() {
 
     playDoorOpen();
     setTimeout(() => setLayer("deepC"), 520);
-  }, [pendingDeepAsk, goToSanri, playDoorOpen]);
+  }, [pendingDeepAsk, goToSanri, playDoorOpen, refreshVipStatus]);
 
   const onBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -271,6 +269,7 @@ export default function CityCodeScreen() {
 
           <Text style={styles.cityCode}>{cityCode}</Text>
           <Text style={styles.cityName}>{cityName}</Text>
+
           <Text style={styles.layerBadge}>
             {layer === "deepC"
               ? appLang === "en"
@@ -298,6 +297,7 @@ export default function CityCodeScreen() {
               <Text style={styles.deepTitle}>
                 {appLang === "en" ? "Open Consciousness Gate" : "Bilinç Kapısını Aç"}
               </Text>
+
               <Text style={styles.deepSub}>{deepenSub}</Text>
 
               <Pressable onPress={onPressDeepen} style={styles.deepBtn}>
@@ -317,6 +317,7 @@ export default function CityCodeScreen() {
               <Text style={styles.deepUnlockedTitle}>
                 {appLang === "en" ? "Deep Layer Active" : "Derin Katman Aktif"}
               </Text>
+
               <Text style={styles.deepUnlockedText}>
                 {appLang === "en"
                   ? "The city is now speaking from its deeper code."
@@ -329,6 +330,7 @@ export default function CityCodeScreen() {
             <Text style={styles.askTitle}>
               {appLang === "en" ? "Ask SANRI" : "SANRI'ye Sor"}
             </Text>
+
             <Text style={styles.askText}>{hint}</Text>
 
             <Pressable onPress={onPressAsk} style={styles.askBtn}>
@@ -364,6 +366,7 @@ export default function CityCodeScreen() {
 
       <VipSheet
         open={vipOpen}
+        lang={appLang}
         onClose={() => {
           setVipOpen(false);
           setPendingDeepAsk(false);
@@ -541,16 +544,16 @@ const styles = StyleSheet.create({
   deepBtnText: {
     color: "white",
     fontWeight: "900",
-    letterSpacing: 0.4,
+    fontSize: 15,
   },
 
   deepUnlockedCard: {
     marginTop: 18,
     borderRadius: 22,
     padding: 16,
-    backgroundColor: "rgba(94,59,255,0.14)",
+    backgroundColor: "rgba(94,59,255,0.12)",
     borderWidth: 1,
-    borderColor: "rgba(196,181,253,0.22)",
+    borderColor: "rgba(203,188,255,0.20)",
   },
 
   deepUnlockedTitle: {
@@ -563,6 +566,7 @@ const styles = StyleSheet.create({
   deepUnlockedText: {
     color: "rgba(255,255,255,0.82)",
     lineHeight: 22,
+    fontSize: 15,
   },
 
   askCard: {
@@ -582,8 +586,9 @@ const styles = StyleSheet.create({
   },
 
   askText: {
-    color: "rgba(255,255,255,0.74)",
+    color: "rgba(255,255,255,0.76)",
     lineHeight: 22,
+    fontSize: 14,
   },
 
   askBtn: {
@@ -591,14 +596,15 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 14,
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(124,247,216,0.14)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(124,247,216,0.22)",
   },
 
   askBtnText: {
-    color: "white",
-    fontWeight: "800",
+    color: "#7cf7d8",
+    fontWeight: "900",
+    fontSize: 15,
   },
 
   doorOverlay: {
@@ -608,17 +614,15 @@ const styles = StyleSheet.create({
   },
 
   doorImg: {
-    width: 260,
-    height: 420,
+    width: "84%",
+    height: "72%",
     borderRadius: 28,
-    opacity: 0.96,
   },
 
   doorGlow: {
     position: "absolute",
-    width: 320,
-    height: 460,
-    borderRadius: 32,
-    backgroundColor: "rgba(124,247,216,0.08)",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(124,247,216,0.10)",
   },
-});
+}); 

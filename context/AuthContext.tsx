@@ -1,159 +1,136 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import * as SecureStore from "expo-secure-store";
-import { getToken, clearToken } from "../lib/auth";
 
 type User = {
   id: string;
+  name?: string;
   email?: string;
   phone?: string;
+  isVerified?: boolean;
   role?: "free" | "premium";
   isPremium?: boolean;
   premiumUntil?: string | null;
   matrixRoleUnlocked?: boolean;
 };
 
+type SessionPayload = {
+  user: User;
+  token: string;
+};
+
 type AuthContextValue = {
   user: User | null;
+  token: string | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
+  bootstrapAuth: () => Promise<void>;
+  setSession: (payload: SessionPayload) => Promise<void>;
   setUser: (u: User | null) => Promise<void>;
   logout: () => Promise<void>;
-  refreshMe: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const KEY = "sanri_user_v1";
-const ME_URL = "https://api.asksanri.com/auth/me";
-const LOGOUT_URL = "https://api.asksanri.com/auth/logout";
+const USER_KEY = "sanri_user_v2";
+const TOKEN_KEY = "sanri_token_v2";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, _setUser] = useState<User | null>(null);
+  const [token, _setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const setUser = async (u: User | null) => {
-    _setUser(u);
-    try {
-      if (!u) {
-        await SecureStore.deleteItemAsync(KEY);
-      } else {
-        await SecureStore.setItemAsync(KEY, JSON.stringify(u));
-      }
-    } catch {
-      // ignore
-    }
+  const clearSessionStorage = async () => {
+    await SecureStore.deleteItemAsync(USER_KEY);
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
   };
 
-  const clearAllAuth = async () => {
-    _setUser(null);
+  const bootstrapAuth = async () => {
     try {
-      await SecureStore.deleteItemAsync(KEY);
-    } catch {
-      // ignore
-    }
-    try {
-      await clearToken();
-    } catch {
-      // ignore
-    }
-  };
+      setIsLoading(true);
 
-  const refreshMe = async () => {
-    try {
-      const token = await getToken();
+      const [rawUser, rawToken] = await Promise.all([
+        SecureStore.getItemAsync(USER_KEY),
+        SecureStore.getItemAsync(TOKEN_KEY),
+      ]);
 
-      if (!token) {
-        await clearAllAuth();
+      if (!rawUser || !rawToken) {
+        _setUser(null);
+        _setToken(null);
         return;
       }
 
-      const res = await fetch(ME_URL, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const parsedUser = JSON.parse(rawUser) as User;
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        await clearAllAuth();
-        return;
-      }
-
-      const authenticated =
-        Boolean((data as any)?.authenticated) ||
-        Boolean((data as any)?.user_id) ||
-        Boolean((data as any)?.id);
-
-      if (!authenticated) {
-        await clearAllAuth();
-        return;
-      }
-
-      const nextUser: User = {
-        id: String((data as any)?.user_id ?? (data as any)?.id ?? ""),
-        email: (data as any)?.email ?? undefined,
-        phone: (data as any)?.phone ?? undefined,
-        role:
-          ((data as any)?.plan === "premium" || (data as any)?.role === "premium")
-            ? "premium"
-            : "free",
-        isPremium: Boolean((data as any)?.is_premium ?? (data as any)?.isPremium ?? false),
-        premiumUntil: (data as any)?.premium_until ?? (data as any)?.premiumUntil ?? null,
-        matrixRoleUnlocked: Boolean((data as any)?.matrix_role_unlocked ?? false),
-      };
-
-      await setUser(nextUser);
-    } catch {
-      await clearAllAuth();
+      _setUser(parsedUser);
+      _setToken(rawToken);
+    } catch (e) {
+      console.log("bootstrapAuth error:", e);
+      _setUser(null);
+      _setToken(null);
+      await clearSessionStorage();
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const raw = await SecureStore.getItemAsync(KEY);
-        if (raw) {
-          try {
-            _setUser(JSON.parse(raw));
-          } catch {
-            await SecureStore.deleteItemAsync(KEY);
-          }
-        }
-
-        await refreshMe();
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+    bootstrapAuth();
   }, []);
 
-  const logout = async () => {
-    try {
-      const token = await getToken();
+  const setSession = async (payload: SessionPayload) => {
+    _setUser(payload.user);
+    _setToken(payload.token);
 
-      await fetch(LOGOUT_URL, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      }).catch(() => {});
-    } finally {
-      await clearAllAuth();
+    try {
+      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(payload.user));
+      await SecureStore.setItemAsync(TOKEN_KEY, payload.token);
+    } catch (e) {
+      console.log("setSession storage error:", e);
     }
   };
 
-  const value = useMemo(
+  const setUser = async (u: User | null) => {
+    _setUser(u);
+
+    try {
+      if (!u) {
+        await SecureStore.deleteItemAsync(USER_KEY);
+      } else {
+        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(u));
+      }
+    } catch (e) {
+      console.log("setUser storage error:", e);
+    }
+  };
+
+  const logout = async () => {
+    _setUser(null);
+    _setToken(null);
+    try {
+      await clearSessionStorage();
+    } catch (e) {
+      console.log("logout storage error:", e);
+    }
+  };
+
+  const value = useMemo<AuthContextValue>(
     () => ({
       user,
+      token,
       isLoading,
+      isAuthenticated: Boolean(user && token),
+      bootstrapAuth,
+      setSession,
       setUser,
       logout,
-      refreshMe,
     }),
-    [user, isLoading]
+    [user, token, isLoading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
