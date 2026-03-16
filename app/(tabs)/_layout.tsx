@@ -36,6 +36,7 @@ export default function TabsLayout() {
         tabBarStyle: { display: "none" },
       }}
     >
+      <Tabs.Screen name="my_area" />
       <Tabs.Screen name="gates" />
       <Tabs.Screen name="sanri_flow" />
       <Tabs.Screen name="awakenedCities" />
