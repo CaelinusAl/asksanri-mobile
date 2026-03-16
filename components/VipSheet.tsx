@@ -1,151 +1,182 @@
 import React, { useState } from "react";
 import {
+  Modal,
   View,
   Text,
-  StyleSheet,
   Pressable,
-  Modal,
-  ImageBackground,
+  StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
-import MatrixRain from "../lib/MatrixRain";
-import { setVipJustActivated } from "@/lib/vipPulse";
-
-type Lang = "tr" | "en";
+import {
+  buySanriPremium,
+  openManageSubscriptions,
+  restoreSanriPurchases,
+} from "../lib/revenuecat";
 
 type Props = {
-  open?: boolean;
-  visible?: boolean;
-  lang?: Lang;
-  priceTry?: string;
-  priceUsd?: string;
+  open: boolean;
+  lang?: "tr" | "en";
   onClose: () => void;
-  onSubscribe?: () => Promise<void> | void;
-  onSubscribeSuccess?: () => Promise<void> | void;
-  onGoVip?: () => void;
+  onSubscribeSuccess: () => void;
 };
 
-const BG = require("../assets/sanri_glass_bg.jpg");
+export default function VipSheet({
+  open,
+  lang = "tr",
+  onClose,
+  onSubscribeSuccess,
+}: Props) {
+  const [loading, setLoading] = useState(false);
 
-const COPY = {
-  tr: {
-    kicker: "SYSTEM TERMINAL",
-    title: "BİLİNÇ KAPISI",
-    sub: "Derin katmanlar + tam erişim. Kapı “Derinleş” ile açılır.",
-    priceTitle: "Ücret",
-    cta: "Bilinç Kapısını Aç",
-    loading: "Bağlanıyor...",
-    later: "Şimdi değil",
-    hint: "VIP ile: Derinleş aktif olur, kapılar daha fazla konuşur.",
-    purchaseError: "Satın alma hatası",
-    missingHandler: "Satın alma sistemi henüz bağlanmamış.",
-  },
-  en: {
-    kicker: "SYSTEM TERMINAL",
-    title: "CONSCIOUSNESS GATE",
-    sub: "Deep layers + full access. The gate opens via “Deepen”.",
-    priceTitle: "Price",
-    cta: "Open the Gate",
-    loading: "Connecting...",
-    later: "Not now",
-    hint: "With VIP: Deepen unlocks, gates speak deeper.",
-    purchaseError: "Purchase error",
-    missingHandler: "Purchase flow is not connected yet.",
-  },
-} as const;
+  const tr = lang === "tr";
 
-export default function VipSheet(props: Props) {
-  const isOpen = Boolean(props.open ?? props.visible);
-  const lang: Lang = props.lang || "tr";
-  const t = COPY[lang];
-
-  const priceTry = props.priceTry || "693 TL / ay";
-  const priceUsd = props.priceUsd || "39 USD / mo";
-
-  const [busy, setBusy] = useState(false);
-
-  const onClose = () => {
-    if (busy) return;
-    props.onClose();
+  const copy = {
+    title: tr ? "BİLİNÇ KAPISI" : "CONSCIOUSNESS GATE",
+    sub: tr
+      ? "Derin katmanlar + tam erişim. Kapı “Derinleş” ile açılır."
+      : "Deep layers + full access. The gate opens with “Deepen”.",
+    bullets: tr
+      ? [
+          "Derin şehir okumaları",
+          "Sanri kişisel bilinç analizi",
+          "Sembol katmanı",
+          "Ritüel yönlendirme",
+          "Gelecek katmanlar",
+        ]
+      : [
+          "Deep city readings",
+          "Personal SANRI analysis",
+          "Symbol layer",
+          "Ritual guidance",
+          "Future layers",
+        ],
+    price: tr ? "693 TL / ay" : "693 TL / month",
+    buy: tr ? "Bilinç Kapısını Aç" : "Open Consciousness Gate",
+    restore: tr ? "Satın alımı geri yükle" : "Restore purchase",
+    manage: tr ? "Abonelikleri Yönet" : "Manage Subscriptions",
+    close: tr ? "Kapat" : "Close",
   };
 
-  const handleSubscribe = async () => {
-    if (busy) return;
-    setBusy(true);
+  const onBuy = async () => {
+    if (loading) return;
+    setLoading(true);
 
     try {
-      if (!props.onSubscribe) {
-        Alert.alert("Alert", t.missingHandler);
+      const result = await buySanriPremium();
+
+      if (result.ok) {
+        Alert.alert("OK", tr ? "VIP erişim açıldı." : "VIP access unlocked.");
+        onSubscribeSuccess();
         return;
       }
 
-      await Promise.resolve(props.onSubscribe());
-
-      setVipJustActivated(true);
-
-      if (props.onSubscribeSuccess) {
-        await Promise.resolve(props.onSubscribeSuccess());
-      } else {
-        props.onClose();
+      if (
+        result.reason === "plan_change_not_allowed" ||
+        result.reason === "pending_google_play"
+      ) {
+        Alert.alert(
+          tr ? "Abonelik Durumu" : "Subscription Status",
+          result.message,
+          [
+            {
+              text: copy.manage,
+              onPress: () => {
+                openManageSubscriptions().catch(() => {});
+              },
+            },
+            { text: "OK" },
+          ]
+        );
+        return;
       }
-    } catch (e: any) {
-      console.log("VipSheet purchase error:", e);
 
-      let message = t.purchaseError;
-
-      if (typeof e?.message === "string" && e.message.trim()) {
-        message = e.message;
+      if (result.reason === "already_active") {
+        Alert.alert("OK", result.message);
+        onSubscribeSuccess();
+        return;
       }
 
-      Alert.alert("Alert", message);
+      if (result.reason === "cancelled") {
+        return;
+      }
+
+      Alert.alert(tr ? "Hata" : "Error", result.message);
     } finally {
-      setBusy(false);
+      setLoading(false);
+    }
+  };
+
+  const onRestore = async () => {
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const restored = await restoreSanriPurchases();
+
+      if (restored) {
+        Alert.alert("OK", tr ? "Abonelik geri yüklendi." : "Subscription restored.");
+        onSubscribeSuccess();
+        return;
+      }
+
+      Alert.alert(
+        tr ? "Bilgi" : "Info",
+        tr
+          ? "Aktif bir abonelik bulunamadı."
+          : "No active subscription was found."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={open} animationType="fade" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-        <View pointerEvents="none" style={styles.overlay} />
-        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-          <MatrixRain opacity={0.14} />
-        </View>
+        <View style={styles.sheet}>
+          <Text style={styles.kicker}>SYSTEM TERMINAL</Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.sub}>{copy.sub}</Text>
 
-        <BlurView intensity={30} tint="dark" style={styles.sheet}>
-          <Text style={styles.kicker}>{t.kicker}</Text>
-          <Text style={styles.title}>{t.title}</Text>
-          <Text style={styles.sub}>{t.sub}</Text>
-
-          <View style={styles.priceCard}>
-            <Text style={styles.priceTitle}>{t.priceTitle}</Text>
-            <Text style={styles.priceMain}>{priceTry}</Text>
-            <Text style={styles.priceAlt}>{priceUsd}</Text>
+          <View style={styles.list}>
+            {copy.bullets.map((item) => (
+              <Text key={item} style={styles.bullet}>
+                • {item}
+              </Text>
+            ))}
           </View>
 
+          <View style={styles.priceBox}>
+            <Text style={styles.priceLabel}>{tr ? "Ücret" : "Price"}</Text>
+            <Text style={styles.price}>{copy.price}</Text>
+            <Text style={styles.priceSub}>39 USD / mo</Text>
+          </View>
+
+          <Pressable onPress={onBuy} style={styles.primaryBtn} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryBtnText}>{copy.buy}</Text>
+            )}
+          </Pressable>
+
+          <Pressable onPress={onRestore} style={styles.secondaryBtn} disabled={loading}>
+            <Text style={styles.secondaryBtnText}>{copy.restore}</Text>
+          </Pressable>
+
           <Pressable
-            onPress={handleSubscribe}
-            style={[styles.ctaBtn, busy && { opacity: 0.6 }]}
-            disabled={busy}
+            onPress={() => openManageSubscriptions().catch(() => {})}
+            style={styles.secondaryBtn}
+            disabled={loading}
           >
-            <LinearGradient
-              colors={["rgba(124,247,216,0.18)", "rgba(94,59,255,0.22)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGlass}
-            >
-              <Text style={styles.ctaTxt}>{busy ? t.loading : t.cta}</Text>
-            </LinearGradient>
+            <Text style={styles.secondaryBtnText}>{copy.manage}</Text>
           </Pressable>
 
-          <Pressable onPress={onClose} style={styles.laterBtn} hitSlop={10}>
-            <Text style={styles.laterTxt}>{t.later}</Text>
+          <Pressable onPress={onClose} style={styles.closeBtn} disabled={loading}>
+            <Text style={styles.closeText}>{copy.close}</Text>
           </Pressable>
-
-          <Text style={styles.hint}>{t.hint}</Text>
-        </BlurView>
+        </View>
       </View>
     </Modal>
   );
@@ -154,90 +185,97 @@ export default function VipSheet(props: Props) {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.66)",
     justifyContent: "flex-end",
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
   sheet: {
-    padding: 18,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    backgroundColor: "#0b0d16",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 22,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    backgroundColor: "rgba(10,10,18,0.55)",
+    borderColor: "rgba(255,255,255,0.08)",
   },
   kicker: {
-    color: "rgba(255,255,255,0.6)",
-    letterSpacing: 2,
-    fontWeight: "900",
+    color: "rgba(255,255,255,0.38)",
     fontSize: 12,
+    letterSpacing: 2,
+    fontWeight: "800",
+    marginBottom: 10,
   },
   title: {
-    color: "white",
+    color: "#ffffff",
+    fontSize: 30,
     fontWeight: "900",
-    fontSize: 28,
-    marginTop: 6,
+    marginBottom: 10,
   },
   sub: {
-    color: "rgba(255,255,255,0.75)",
-    marginTop: 8,
-    lineHeight: 20,
+    color: "rgba(255,255,255,0.72)",
+    lineHeight: 24,
+    fontSize: 17,
   },
-  priceCard: {
-    marginTop: 14,
+  list: {
+    marginTop: 18,
+    marginBottom: 18,
+    gap: 10,
+  },
+  bullet: {
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  priceBox: {
     borderRadius: 22,
-    padding: 14,
+    padding: 18,
+    marginBottom: 16,
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(255,255,255,0.08)",
   },
-  priceTitle: {
-    color: "rgba(255,255,255,0.7)",
-    fontWeight: "800",
+  priceLabel: {
+    color: "rgba(255,255,255,0.58)",
+    fontWeight: "700",
+    marginBottom: 8,
   },
-  priceMain: {
+  price: {
     color: "#7cf7d8",
-    fontWeight: "900",
     fontSize: 22,
-    marginTop: 6,
+    fontWeight: "900",
   },
-  priceAlt: {
-    color: "rgba(255,255,255,0.65)",
+  priceSub: {
+    color: "rgba(255,255,255,0.56)",
     marginTop: 4,
   },
-  ctaBtn: {
-    marginTop: 14,
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  ctaGlass: {
+  primaryBtn: {
+    borderRadius: 18,
     paddingVertical: 16,
     alignItems: "center",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(140,100,255,0.35)",
+    backgroundColor: "rgba(94,59,255,0.92)",
+    marginBottom: 10,
   },
-  ctaTxt: {
-    color: "white",
-    fontWeight: "900",
+  primaryBtnText: {
+    color: "#fff",
     fontSize: 18,
-    letterSpacing: 1,
+    fontWeight: "900",
   },
-  laterBtn: {
-    marginTop: 10,
+  secondaryBtn: {
+    borderRadius: 16,
+    paddingVertical: 14,
     alignItems: "center",
-    paddingVertical: 10,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    marginBottom: 10,
   },
-  laterTxt: {
-    color: "rgba(255,255,255,0.65)",
+  secondaryBtnText: {
+    color: "rgba(255,255,255,0.86)",
     fontWeight: "800",
   },
-  hint: {
-    marginTop: 6,
-    color: "rgba(180,255,230,0.55)",
-    fontStyle: "italic",
-    textAlign: "center",
+  closeBtn: {
+    alignItems: "center",
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  closeText: {
+    color: "rgba(255,255,255,0.55)",
+    fontWeight: "700",
   },
 });
