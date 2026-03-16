@@ -1,5 +1,12 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Modal, ImageBackground } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Modal,
+  ImageBackground,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import MatrixRain from "../lib/MatrixRain";
@@ -11,7 +18,7 @@ type Props = {
   // yeni kullanım
   open?: boolean;
 
-  // eski kullanım (uyumluluk)
+  // eski kullanım
   visible?: boolean;
 
   lang?: Lang;
@@ -20,16 +27,17 @@ type Props = {
 
   onClose: () => void;
 
-  // RevenueCat/IAP bağlanınca burayı çağır
+  // eski akış
   onSubscribe?: () => Promise<void> | void;
 
-  // VIP sayfasına yönlendirmek istersen
+  // yeni akış: city/code.tsx bunu kullanıyor
+  onSubscribeSuccess?: () => Promise<void> | void;
+
+  // opsiyonel yönlendirme
   onGoVip?: () => void;
 };
 
 const BG = require("../assets/sanri_glass_bg.jpg");
-const KEY_IMG = require("../assets/key_holo.jpg");
-const DOOR_IMG = require("../assets/door_holo.jpg");
 
 const COPY = {
   tr: {
@@ -54,7 +62,7 @@ const COPY = {
 
 export default function VipSheet(props: Props) {
   const isOpen = Boolean(props.open ?? props.visible);
-  const lang: Lang = (props.lang || "tr") as Lang;
+  const lang: Lang = props.lang || "tr";
   const t = COPY[lang];
 
   const priceTry = props.priceTry || "693 TL / ay";
@@ -67,14 +75,26 @@ export default function VipSheet(props: Props) {
     props.onClose();
   };
 
-  const onSubscribe = async () => {
+  const handleSubscribe = async () => {
     if (busy) return;
     setBusy(true);
+
     try {
-      // IAP başarılı olduğunda bunu “VIP yağmuru” tetiklemek için set ediyoruz
-      await Promise.resolve(props.onSubscribe?.());
+      // 1) Eski satın alma / RevenueCat / custom akış
+      if (props.onSubscribe) {
+        await Promise.resolve(props.onSubscribe());
+      }
+
+      // 2) VIP pulse tetikle
       setVipJustActivated(true);
-      props.onClose();
+
+      // 3) Yeni success callback varsa çalıştır
+      if (props.onSubscribeSuccess) {
+        await Promise.resolve(props.onSubscribeSuccess());
+      } else {
+        // eski fallback
+        props.onClose();
+      }
     } finally {
       setBusy(false);
     }
@@ -100,14 +120,18 @@ export default function VipSheet(props: Props) {
             <Text style={styles.priceAlt}>{priceUsd}</Text>
           </View>
 
-          <Pressable onPress={onSubscribe} style={[styles.ctaBtn, busy && { opacity: 0.6 }]} disabled={busy}>
+          <Pressable
+            onPress={handleSubscribe}
+            style={[styles.ctaBtn, busy && { opacity: 0.6 }]}
+            disabled={busy}
+          >
             <LinearGradient
               colors={["rgba(124,247,216,0.18)", "rgba(94,59,255,0.22)"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.ctaGlass}
             >
-              <Text style={styles.ctaTxt}>{t.cta}</Text>
+              <Text style={styles.ctaTxt}>{busy ? "..." : t.cta}</Text>
             </LinearGradient>
           </Pressable>
 
@@ -123,8 +147,15 @@ export default function VipSheet(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: "flex-end" },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
+  backdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
 
   sheet: {
     padding: 18,
@@ -135,9 +166,25 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(10,10,18,0.55)",
   },
 
-  kicker: { color: "rgba(255,255,255,0.6)", letterSpacing: 2, fontWeight: "900", fontSize: 12 },
-  title: { color: "white", fontWeight: "900", fontSize: 28, marginTop: 6 },
-  sub: { color: "rgba(255,255,255,0.75)", marginTop: 8, lineHeight: 20 },
+  kicker: {
+    color: "rgba(255,255,255,0.6)",
+    letterSpacing: 2,
+    fontWeight: "900",
+    fontSize: 12,
+  },
+
+  title: {
+    color: "white",
+    fontWeight: "900",
+    fontSize: 28,
+    marginTop: 6,
+  },
+
+  sub: {
+    color: "rgba(255,255,255,0.75)",
+    marginTop: 8,
+    lineHeight: 20,
+  },
 
   priceCard: {
     marginTop: 14,
@@ -147,11 +194,30 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
     backgroundColor: "rgba(255,255,255,0.06)",
   },
-  priceTitle: { color: "rgba(255,255,255,0.7)", fontWeight: "800" },
-  priceMain: { color: "#7cf7d8", fontWeight: "900", fontSize: 22, marginTop: 6 },
-  priceAlt: { color: "rgba(255,255,255,0.65)", marginTop: 4 },
 
-  ctaBtn: { marginTop: 14, borderRadius: 20, overflow: "hidden" },
+  priceTitle: {
+    color: "rgba(255,255,255,0.7)",
+    fontWeight: "800",
+  },
+
+  priceMain: {
+    color: "#7cf7d8",
+    fontWeight: "900",
+    fontSize: 22,
+    marginTop: 6,
+  },
+
+  priceAlt: {
+    color: "rgba(255,255,255,0.65)",
+    marginTop: 4,
+  },
+
+  ctaBtn: {
+    marginTop: 14,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+
   ctaGlass: {
     paddingVertical: 16,
     alignItems: "center",
@@ -159,10 +225,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(140,100,255,0.35)",
   },
-  ctaTxt: { color: "white", fontWeight: "900", fontSize: 18, letterSpacing: 1 },
 
-  laterBtn: { marginTop: 10, alignItems: "center", paddingVertical: 10 },
-  laterTxt: { color: "rgba(255,255,255,0.65)", fontWeight: "800" },
+  ctaTxt: {
+    color: "white",
+    fontWeight: "900",
+    fontSize: 18,
+    letterSpacing: 1,
+  },
+
+  laterBtn: {
+    marginTop: 10,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+
+  laterTxt: {
+    color: "rgba(255,255,255,0.65)",
+    fontWeight: "800",
+  },
 
   hint: {
     marginTop: 6,

@@ -116,7 +116,7 @@ export default function LoginScreen() {
         phone: mode === "phone" ? phone.trim() : undefined,
       });
 
-      router.replace(nextRoute as any);
+     router.replace("/(tabs)/gates");
     } catch (e) {
       // sessiz fail: ileride toast ekleriz
     }

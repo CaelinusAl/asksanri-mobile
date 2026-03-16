@@ -1,17 +1,41 @@
-// app/(tabs)/_layout.tsx
-import React from "react";
-import { Tabs } from "expo-router";
+import React, { useEffect } from "react";
+import { Tabs, router } from "expo-router";
+import { View, ActivityIndicator } from "react-native";
+import { useAuth } from "../../context/AuthContext";
 
 export default function TabsLayout() {
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace("/(auth)/login");
+    }
+  }, [user, isLoading]);
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#05060B",
+        }}
+      >
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!user) return null;
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        // ✅ tabbar tamamen kapalı
         tabBarStyle: { display: "none" },
       }}
     >
-      {/* Tabs içinde hangi ekranlar varsa tanımlı kalsın, ama tabbar görünmeyecek */}
       <Tabs.Screen name="gates" />
       <Tabs.Screen name="sanri_flow" />
       <Tabs.Screen name="awakenedCities" />

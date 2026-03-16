@@ -63,12 +63,20 @@ export default function CityCodeScreen() {
     ).start();
   }, [breathe]);
 
-  const keyScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
-  const keyOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.26] });
+  const keyScale = breathe.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.035],
+  });
+
+  const keyOpacity = breathe.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.16, 0.26],
+  });
 
   const playDoorOpen = useCallback(() => {
     setDoorOpen(true);
     doorAnim.setValue(0);
+
     Animated.timing(doorAnim, {
       toValue: 1,
       duration: 900,
@@ -82,10 +90,25 @@ export default function CityCodeScreen() {
     });
   }, [doorAnim]);
 
-  const doorOpacity = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.85] });
-  const doorScale = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.02] });
-  const doorLift = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] });
-  const glowOpacity = doorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const doorOpacity = doorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.85],
+  });
+
+  const doorScale = doorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.92, 1.02],
+  });
+
+  const doorLift = doorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [18, 0],
+  });
+
+  const glowOpacity = doorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
 
   useEffect(() => {
     (async () => {
@@ -107,7 +130,10 @@ export default function CityCodeScreen() {
   }, []);
 
   useEffect(() => {
-    logEvent("screen_view", "awakened_cities", { screen: "city", code: cityCode });
+    logEvent("screen_view", "awakened_cities", {
+      screen: "city",
+      code: cityCode,
+    });
   }, [cityCode]);
 
   const headerTitle = useMemo(() => `${cityCode} · ${cityName}`, [cityCode, cityName]);
@@ -146,14 +172,18 @@ export default function CityCodeScreen() {
   const onPressDeepen = useCallback(async () => {
     try {
       const ok = await hasVipEntitlement();
+
       if (!ok) {
+        setPendingDeepAsk(false);
         setVipOpen(true);
         return;
       }
+
       setIsVip(true);
       playDoorOpen();
       setTimeout(() => setLayer("deepC"), 520);
     } catch {
+      setPendingDeepAsk(false);
       setVipOpen(true);
     }
   }, [playDoorOpen]);
@@ -168,6 +198,7 @@ export default function CityCodeScreen() {
 
     try {
       const ok = await hasVipEntitlement();
+
       if (!ok) {
         setPendingDeepAsk(true);
         setVipOpen(true);
@@ -186,131 +217,159 @@ export default function CityCodeScreen() {
     setIsVip(true);
     setVipOpen(false);
 
-    playDoorOpen();
-    setTimeout(() => setLayer("deepC"), 520);
-
-    setVipRain(true);
-    setTimeout(() => setVipRain(false), 3500);
-
     if (pendingDeepAsk) {
       setPendingDeepAsk(false);
-      setTimeout(() => {
-        goToSanri("divine");
-      }, 720);
+      goToSanri("divine");
+      return;
     }
-  }, [pendingDeepAsk, playDoorOpen, goToSanri]);
+
+    playDoorOpen();
+    setTimeout(() => setLayer("deepC"), 520);
+  }, [pendingDeepAsk, goToSanri, playDoorOpen]);
+
+  const onBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/awakenedCities" as any);
+  }, [router]);
 
   return (
     <View style={styles.root}>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.keyBgWrap,
-          { opacity: keyOpacity, transform: [{ scale: keyScale }] },
-        ]}
-      >
-        <Image source={KEY_BG} style={styles.keyBg} resizeMode="cover" />
-      </Animated.View>
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <Image source={KEY_BG} style={styles.bg} resizeMode="cover" />
+      </View>
 
-      {vipRain ? (
-        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-          <MatrixRain opacity={0.18} />
+      <View pointerEvents="none" style={styles.overlay} />
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <MatrixRain opacity={vipRain ? 0.28 : 0.14} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.topbar}>
+          <Pressable onPress={onBack} style={styles.topBtn}>
+            <Text style={styles.topBtnTxt}>{appLang === "en" ? "Back" : "Geri"}</Text>
+          </Pressable>
+
+          <View style={{ flex: 1 }} />
+
+          <Pressable onPress={toggleLang} style={styles.topBtn}>
+            <Text style={styles.topBtnTxt}>{appLang.toUpperCase()}</Text>
+          </Pressable>
         </View>
-      ) : null}
+
+        <View style={styles.hero}>
+          <Animated.View
+            style={[
+              styles.keyWrap,
+              {
+                transform: [{ scale: keyScale }],
+                opacity: keyOpacity,
+              },
+            ]}
+          >
+            <Image source={KEY_BG} style={styles.keyImg} resizeMode="cover" />
+          </Animated.View>
+
+          <Text style={styles.cityCode}>{cityCode}</Text>
+          <Text style={styles.cityName}>{cityName}</Text>
+          <Text style={styles.layerBadge}>
+            {layer === "deepC"
+              ? appLang === "en"
+                ? "Deep Layer"
+                : "Derin Katman"
+              : appLang === "en"
+              ? "Base Layer"
+              : "Temel Katman"}
+          </Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>{content.title}</Text>
+          <Text style={styles.cardStory}>{content.story}</Text>
+
+          <View style={styles.reflectionCard}>
+            <Text style={styles.reflectionTitle}>
+              {appLang === "en" ? "Reflection" : "Yansıma"}
+            </Text>
+            <Text style={styles.reflectionText}>{content.reflection}</Text>
+          </View>
+
+          {layer !== "deepC" ? (
+            <View style={styles.deepCard}>
+              <Text style={styles.deepTitle}>
+                {appLang === "en" ? "Open Consciousness Gate" : "Bilinç Kapısını Aç"}
+              </Text>
+              <Text style={styles.deepSub}>{deepenSub}</Text>
+
+              <Pressable onPress={onPressDeepen} style={styles.deepBtn}>
+                <Text style={styles.deepBtnText}>
+                  {isVip
+                    ? appLang === "en"
+                      ? "Open Deep Layer"
+                      : "Derin Katmanı Aç"
+                    : appLang === "en"
+                    ? "Open VIP Gate"
+                    : "VIP Kapısını Aç"}
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.deepUnlockedCard}>
+              <Text style={styles.deepUnlockedTitle}>
+                {appLang === "en" ? "Deep Layer Active" : "Derin Katman Aktif"}
+              </Text>
+              <Text style={styles.deepUnlockedText}>
+                {appLang === "en"
+                  ? "The city is now speaking from its deeper code."
+                  : "Şehir şimdi daha derin kodundan konuşuyor."}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.askCard}>
+            <Text style={styles.askTitle}>
+              {appLang === "en" ? "Ask SANRI" : "SANRI'ye Sor"}
+            </Text>
+            <Text style={styles.askText}>{hint}</Text>
+
+            <Pressable onPress={onPressAsk} style={styles.askBtn}>
+              <Text style={styles.askBtnText}>
+                {layer === "deepC"
+                  ? appLang === "en"
+                    ? "Ask from Deep Layer"
+                    : "Derin Katmandan Sor"
+                  : appLang === "en"
+                  ? "Ask SANRI"
+                  : "SANRI'ye Sor"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
 
       {doorOpen ? (
         <Animated.View
           pointerEvents="none"
           style={[
-            styles.doorWrap,
+            styles.doorOverlay,
             {
               opacity: doorOpacity,
-              transform: [{ translateY: doorLift }, { scale: doorScale }],
+              transform: [{ scale: doorScale }, { translateY: doorLift }],
             },
           ]}
         >
-          <Image source={DOOR_IMG} style={styles.doorImg} resizeMode="contain" />
-          <Animated.View
-            pointerEvents="none"
-            style={[styles.doorGlow, { opacity: glowOpacity }]}
-          />
+          <Image source={DOOR_IMG} style={styles.doorImg} resizeMode="cover" />
+          <Animated.View style={[styles.doorGlow, { opacity: glowOpacity }]} />
         </Animated.View>
       ) : null}
 
-      <View pointerEvents="none" style={styles.veil} />
-
-      <View style={styles.top}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
-          <Text style={styles.backTxt}>←</Text>
-        </Pressable>
-
-        <Text style={styles.topKicker}>SYSTEM TERMINAL</Text>
-
-        <View style={styles.layerRow}>
-          <View style={styles.layerChip}>
-            <Text style={styles.layerChipTxt}>{String(layer).toUpperCase()}</Text>
-          </View>
-
-          <Pressable onPress={toggleLang} style={styles.langChip} hitSlop={10}>
-            <Text style={styles.langChipTxt}>{String(appLang).toUpperCase()}</Text>
-          </Pressable>
-        </View>
-      </View>
-
       <VipSheet
         open={vipOpen}
-        lang={appLang as any}
-        priceTry="693 TL / ay"
-        priceUsd="39 USD / mo"
         onClose={() => {
           setVipOpen(false);
           setPendingDeepAsk(false);
         }}
-        onSubscribe={onSubscribeSuccess}
+        onSubscribeSuccess={onSubscribeSuccess}
       />
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.h1}>{headerTitle}</Text>
-
-        <Pressable onPress={onPressDeepen} style={styles.vipGlass} hitSlop={10}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.vipTitle}>BİLİNÇ KAPISI</Text>
-            <Text style={styles.vipSub}>{deepenSub}</Text>
-          </View>
-          <Text style={styles.vipArrow}>›</Text>
-        </Pressable>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{content.title}</Text>
-          <Text style={styles.story}>
-            {String(content.story || "")
-              .split("\n")
-              .filter((line) => !line.trim().startsWith("$"))
-              .join("\n")}
-          </Text>
-        </View>
-
-        <Pressable onPress={onPressAsk} style={styles.askGlass} hitSlop={10}>
-          <Text style={styles.askTitle}>ASK SANRI GO</Text>
-          <Text style={styles.askSub}>
-            {layer === "deepC"
-              ? appLang === "en"
-                ? "Deep city analysis will open through Sanri Elite."
-                : "Derin şehir analizi Sanrı Elite üzerinden açılır."
-              : appLang === "en"
-              ? "Write one sentence. The system reflects meaning, not answers."
-              : "Bir cümle yaz. Sistem cevap değil, anlam yansıtır."}
-          </Text>
-        </Pressable>
-
-        <Text style={styles.hint}>{hint}</Text>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
     </View>
   );
 }
@@ -318,141 +377,248 @@ export default function CityCodeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#07080d",
-    paddingTop: Platform.OS === "android" ? 14 : 0,
+    backgroundColor: "#05060B",
   },
 
-  keyBgWrap: { ...StyleSheet.absoluteFillObject },
-  keyBg: { width: "100%", height: "100%" },
-  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.48)" },
-
-  doorWrap: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 70,
-    height: 420,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  doorImg: { width: "92%", height: "100%" },
-  doorGlow: {
-    position: "absolute",
-    width: "92%",
+  bg: {
+    width: "100%",
     height: "100%",
-    borderRadius: 28,
-    backgroundColor: "rgba(124,247,216,0.08)",
   },
 
-  top: {
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(3,6,18,0.58)",
+  },
+
+  scroll: {
+    padding: 16,
+    paddingBottom: 48,
+  },
+
+  topbar: {
+    marginTop: Platform.OS === "ios" ? 48 : 24,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    gap: 10,
+    marginBottom: 18,
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+
+  topBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.07)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  backTxt: { color: "#7cf7d8", fontSize: 18, fontWeight: "900" },
 
-  topKicker: {
-    color: "rgba(255,255,255,0.55)",
-    letterSpacing: 2,
-    fontSize: 12,
+  topBtnTxt: {
+    color: "white",
     fontWeight: "800",
-    flex: 1,
   },
 
-  layerRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  layerChip: {
+  hero: {
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  keyWrap: {
+    width: 104,
+    height: 104,
+    borderRadius: 28,
+    overflow: "hidden",
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.22)",
+  },
+
+  keyImg: {
+    width: "100%",
+    height: "100%",
+  },
+
+  cityCode: {
+    color: "#7cf7d8",
+    fontSize: 44,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+
+  cityName: {
+    marginTop: 4,
+    color: "white",
+    fontSize: 28,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+
+  layerBadge: {
+    marginTop: 10,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 999,
+    overflow: "hidden",
+    color: "#cbbcff",
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: "rgba(255,255,255,0.10)",
+    fontWeight: "800",
   },
-  layerChipTxt: { color: "#7ef9d6", fontWeight: "900", fontSize: 12, letterSpacing: 1 },
-
-  langChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(94,59,255,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(94,59,255,0.4)",
-  },
-  langChipTxt: { color: "#cbbcff", fontWeight: "900", fontSize: 12, letterSpacing: 1 },
-
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 56 },
-
-  h1: {
-    color: "white",
-    fontSize: 34,
-    fontWeight: "900",
-    paddingHorizontal: 18,
-    marginTop: 4,
-    marginBottom: 14,
-  },
-
-  vipGlass: {
-    marginHorizontal: 18,
-    borderRadius: 22,
-    padding: 18,
-    backgroundColor: "rgba(94,59,255,0.26)",
-    borderWidth: 1,
-    borderColor: "rgba(140,100,255,0.35)",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    shadowColor: "#7cf7d8",
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-  },
-  vipTitle: { color: "#cbbcff", fontSize: 24, fontWeight: "900", letterSpacing: 1 },
-  vipSub: { color: "rgba(255,255,255,0.82)", marginTop: 6, fontSize: 14, lineHeight: 20 },
-  vipArrow: { color: "rgba(255,255,255,0.85)", fontSize: 26, fontWeight: "900" },
 
   card: {
-    marginHorizontal: 18,
-    marginTop: 14,
-    borderRadius: 22,
+    borderRadius: 28,
     padding: 18,
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
   },
-  cardTitle: { color: "#7cf7d8", fontSize: 20, fontWeight: "900", marginBottom: 12 },
-  story: { color: "rgba(255,255,255,0.88)", fontSize: 16, lineHeight: 24 },
 
-  askGlass: {
-    marginHorizontal: 18,
-    marginTop: 14,
+  cardTitle: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "900",
+    marginBottom: 10,
+  },
+
+  cardStory: {
+    color: "rgba(255,255,255,0.82)",
+    lineHeight: 24,
+    fontSize: 15,
+  },
+
+  reflectionCard: {
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+
+  reflectionTitle: {
+    color: "#cbbcff",
+    fontWeight: "800",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    fontSize: 12,
+  },
+
+  reflectionText: {
+    color: "white",
+    lineHeight: 22,
+    fontSize: 15,
+  },
+
+  deepCard: {
+    marginTop: 18,
     borderRadius: 22,
-    padding: 18,
+    padding: 16,
+    backgroundColor: "rgba(124,247,216,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.18)",
+  },
+
+  deepTitle: {
+    color: "#7cf7d8",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 8,
+  },
+
+  deepSub: {
+    color: "rgba(255,255,255,0.78)",
+    lineHeight: 22,
+  },
+
+  deepBtn: {
+    marginTop: 14,
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "rgba(94,59,255,0.88)",
+  },
+
+  deepBtnText: {
+    color: "white",
+    fontWeight: "900",
+    letterSpacing: 0.4,
+  },
+
+  deepUnlockedCard: {
+    marginTop: 18,
+    borderRadius: 22,
+    padding: 16,
     backgroundColor: "rgba(94,59,255,0.14)",
     borderWidth: 1,
-    borderColor: "rgba(140,100,255,0.28)",
+    borderColor: "rgba(196,181,253,0.22)",
   },
-  askTitle: { color: "#bda8ff", fontSize: 22, fontWeight: "900", letterSpacing: 2 },
-  askSub: { color: "rgba(255,255,255,0.75)", marginTop: 8, fontSize: 14, lineHeight: 20 },
 
-  hint: {
-    color: "rgba(180,255,230,0.55)",
-    fontSize: 12,
-    textAlign: "center",
-    marginTop: 12,
-    fontStyle: "italic",
-    paddingHorizontal: 18,
+  deepUnlockedTitle: {
+    color: "#cbbcff",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 8,
+  },
+
+  deepUnlockedText: {
+    color: "rgba(255,255,255,0.82)",
+    lineHeight: 22,
+  },
+
+  askCard: {
+    marginTop: 18,
+    borderRadius: 22,
+    padding: 16,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+
+  askTitle: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 8,
+  },
+
+  askText: {
+    color: "rgba(255,255,255,0.74)",
+    lineHeight: 22,
+  },
+
+  askBtn: {
+    marginTop: 14,
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+
+  askBtnText: {
+    color: "white",
+    fontWeight: "800",
+  },
+
+  doorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  doorImg: {
+    width: 260,
+    height: 420,
+    borderRadius: 28,
+    opacity: 0.96,
+  },
+
+  doorGlow: {
+    position: "absolute",
+    width: 320,
+    height: 460,
+    borderRadius: 32,
+    backgroundColor: "rgba(124,247,216,0.08)",
   },
 });
