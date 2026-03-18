@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -35,7 +35,6 @@ const COPY = {
     register: "Kayıt Ol",
     loginBtn: "Frekansını Aç",
     registerBtn: "Hesap Oluştur",
-    back: "Geri",
     registerHint: "Kayıt sonrası hesabınla giriş yapabilirsin.",
     loginError: "E-posta veya şifre hatalı.",
     registerExists: "Bu e-posta zaten kayıtlı. Giriş Yap sekmesine geç.",
@@ -51,7 +50,6 @@ const COPY = {
     register: "Register",
     loginBtn: "Open Your Frequency",
     registerBtn: "Create Account",
-    back: "Back",
     registerHint: "After registering, you can log in with your account.",
     loginError: "Email or password is incorrect.",
     registerExists: "This email is already registered. Switch to Login.",
@@ -61,7 +59,7 @@ const COPY = {
 } as const;
 
 export default function LoginScreen() {
-  const { setSession } = useAuth();
+  const { setSession, isAuthenticated, isLoading } = useAuth();
 
   const [lang, setLang] = useState<Lang>("tr");
   const [tab, setTab] = useState<Tab>("login");
@@ -71,16 +69,18 @@ export default function LoginScreen() {
 
   const t = useMemo(() => COPY[lang], [lang]);
 
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace("/rabbit" as any);
+    }
+  }, [isLoading, isAuthenticated]);
+
   const disabled = useMemo(() => {
     return !email.trim() || !pass.trim() || submitting;
   }, [email, pass, submitting]);
 
   const showDetail = (error: any, fallback: string) => {
-    const msg =
-      error?.message ||
-      error?.detail ||
-      fallback;
-
+    const msg = error?.message || error?.detail || fallback;
     Alert.alert("Alert", String(msg));
   };
 
@@ -95,22 +95,32 @@ export default function LoginScreen() {
       setSubmitting(true);
 
       if (tab === "login") {
+        const normalizedEmail = email.trim().toLowerCase();
+
         const data = await apiPostJson(`${API.base}/auth/login`, {
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
           password: pass.trim(),
         });
+
+        if (data?.requires_2fa) {
+          router.push({
+            pathname: "/2fa" as any,
+            params: { email: normalizedEmail },
+          });
+          return;
+        }
 
         await setSession({
           token: String(data.token),
           user: {
-            id: String(data.user?.id ?? ""),
+            id: String(data.user?.id ?? data.user_id ?? normalizedEmail),
             name: data.user?.name ?? "",
-            email: data.user?.email ?? email.trim().toLowerCase(),
+            email: data.user?.email ?? normalizedEmail,
             phone: data.user?.phone ?? "",
           },
         });
 
-        router.replace("/(tabs)/my_area" as any);
+        router.replace("/rabbit" as any);
         return;
       }
 
@@ -152,6 +162,9 @@ export default function LoginScreen() {
 
   const primaryText = tab === "login" ? t.loginBtn : t.registerBtn;
 
+  if (isLoading) return null;
+  if (isAuthenticated) return null;
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
@@ -164,7 +177,7 @@ export default function LoginScreen() {
       <View pointerEvents="none" style={styles.veil} />
 
       <View style={styles.topbar}>
-        <Pressable onPress={() => router.replace("/" as any)} style={styles.backBtn}>
+        <Pressable onPress={() => router.replace("/rabbit" as any)} style={styles.backBtn}>
           <Text style={styles.backTxt}>←</Text>
         </Pressable>
 

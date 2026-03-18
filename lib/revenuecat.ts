@@ -25,6 +25,12 @@ export async function initRevenueCat(): Promise<boolean> {
   if (configured) return true;
   if (configuring) return false;
 
+  // Dev ortamında ödeme sistemini sessizce kapat
+  if (__DEV__) {
+    lastInitError = null;
+    return false;
+  }
+
   const apiKey = getApiKey();
 
   if (!apiKey || apiKey.includes(" ")) {
@@ -61,6 +67,9 @@ export async function getCustomerInfoSafe(): Promise<CustomerInfo | null> {
     return null;
   }
 }
+
+// Geriye uyum için alias
+export const getCustomerInfo = getCustomerInfoSafe;
 
 export async function hasVipEntitlement(): Promise<boolean> {
   const info = await getCustomerInfoSafe();

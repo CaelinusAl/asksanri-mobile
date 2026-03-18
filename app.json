@@ -22,20 +22,20 @@
       }
     },
     "android": {
-      "package": "com.caelinusai.asksanri",
-      "versionCode": 17,
-      "permissions": [
-        "RECORD_AUDIO"
-      ],
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000000"
-      }
-    },
+  "package": "com.caelinusai.asksanri",
+  "versionCode": 17,
+  "permissions": ["RECORD_AUDIO"],
+  "usesCleartextTraffic": true,
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/adaptive-icon.png",
+    "backgroundColor": "#000000"
+  }
+},
     "plugins": [
       "expo-font",
       "expo-secure-store",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-router"
     ],
     "extra": {
       "EXPO_PUBLIC_API_BASE": "https://api.asksanri.com",

@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearSessionStorage = async () => {
     await SecureStore.deleteItemAsync(USER_KEY);
     await SecureStore.deleteItemAsync(TOKEN_KEY);
+    (globalThis as any).__token = null;
   };
 
   const bootstrapAuth = async () => {
@@ -62,12 +63,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!rawUser || !rawToken) {
         _setUser(null);
         _setToken(null);
+        (globalThis as any).__token = null;
         return;
       }
 
       const parsedUser = JSON.parse(rawUser) as User;
       _setUser(parsedUser);
       _setToken(rawToken);
+      (globalThis as any).__token = rawToken;
     } catch (e) {
       console.log("bootstrapAuth error:", e);
       _setUser(null);
@@ -83,17 +86,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setSession = async (payload: SessionPayload) => {
-  _setUser(payload.user);
-  _setToken(payload.token);
-  (globalThis as any).__token = payload.token;
+    const normalizedUser = {
+      ...payload.user,
+      id: String(payload.user.id),
+    };
 
-  try {
-    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(payload.user));
-    await SecureStore.setItemAsync(TOKEN_KEY, payload.token);
-  } catch (e) {
-    console.log("setSession storage error:", e);
-  }
-};
+    _setUser(normalizedUser);
+    _setToken(payload.token);
+    (globalThis as any).__token = payload.token;
+    (globalThis as any).__user_id = payload.user.id;
+
+    try {
+      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(normalizedUser));
+      await SecureStore.setItemAsync(TOKEN_KEY, payload.token);
+    } catch (e) {
+      console.log("setSession storage error:", e);
+    }
+  };
+
   const setUser = async (u: User | null) => {
     _setUser(u);
 

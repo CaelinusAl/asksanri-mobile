@@ -1,205 +1,375 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
-  Image,
-  ImageBackground,
   Pressable,
+  StyleSheet,
+  ImageBackground,
+  Image,
   StatusBar,
 } from "react-native";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { BlurView } from "expo-blur";
 import MatrixRain from "../lib/MatrixRain";
 import { useAuth } from "../context/AuthContext";
 
 const BG = require("../assets/sanri_glass_bg.jpg");
 const RABBIT = require("../assets/rabbit.jpg");
 
+type Lang = "tr" | "en";
+
+const COPY = {
+  tr: {
+    follow: "FOLLOW THE RABBIT",
+    system: "SANRI • SYSTEM GATE",
+    title: "CAELINUS\nAI",
+    subtitle: "CONSCIOUSNESS MIRROR",
+    guestQuote: "Bazı soruların cevabı yoktur.\nBazı cevapların ise bir sorusu vardır...",
+    guestDesc:
+      "Sanrı bilgi üretmez.\nAlan açar. Anlam sende şekillenir.",
+    guestCardTitle: "SANRI AI",
+    guestCardText: "Sanrı bilgi üretmez. Alan açar. Anlam sende şekillenir.",
+    guestButton: "🔑 Frekans Alanı Aç",
+    welcome: "Hoş geldin,",
+    authedDesc:
+      "SANRI alanı seni tanıdı. Çıkış yapmadığın sürece yeniden giriş istenmez.",
+    authedCardTitle: "FREKANS ALANI",
+    authedCardText: "Kapı açık. Şimdi frekans alanına geçebilirsin.",
+    authedButton: "Frekans Alanına Gir",
+    logout: "Çıkış Yap",
+  },
+  en: {
+    follow: "FOLLOW THE RABBIT",
+    system: "SANRI • SYSTEM GATE",
+    title: "CAELINUS\nAI",
+    subtitle: "CONSCIOUSNESS MIRROR",
+    guestQuote: "Some questions have no answer.\nSome answers have a question...",
+    guestDesc:
+      "SANRI doesn't produce information.\nIt opens meaning — reflects you back to you.",
+    guestCardTitle: "SANRI AI",
+    guestCardText: "SANRI doesn't produce information. It opens meaning.",
+    guestButton: "🔑 Open Frequency Gate",
+    welcome: "Welcome,",
+    authedDesc:
+      "SANRI recognized your field. It won't ask you to log in again unless you sign out.",
+    authedCardTitle: "FREQUENCY FIELD",
+    authedCardText: "The gate is open. You may now enter the frequency field.",
+    authedButton: "Enter Frequency Field",
+    logout: "Sign Out",
+  },
+} as const;
+
 function getDisplayName(user: any) {
   if (user?.name?.trim()) return user.name.trim();
-  if (user?.email?.includes("@")) return user.email.split("@")[0];
-  return "Selin";
+  if (user?.email?.includes("@")) {
+    const raw = user.email.split("@")[0];
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+  return "White Rabbit";
 }
 
 export default function RabbitScreen() {
-  const { user, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const [lang, setLang] = useState<Lang>("tr");
+
+  const t = useMemo(() => COPY[lang], [lang]);
   const displayName = useMemo(() => getDisplayName(user), [user]);
+
+  const onEnter = () => {
+    if (isAuthenticated) {
+      router.replace("/(tabs)/gates" as any);
+      return;
+    }
+    router.replace("/(auth)/login" as any);
+  };
+
+  if (isLoading) return null;
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
-      <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
 
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.16} speedMs={9000} />
+      <ImageBackground
+        source={BG}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
+
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <MatrixRain opacity={0.15} speedMs={9000} />
       </View>
 
-      <View pointerEvents="none" style={styles.veil} />
+      <View pointerEvents="none" style={styles.overlay} />
+      <View pointerEvents="none" style={styles.glowA} />
+      <View pointerEvents="none" style={styles.glowB} />
+
+      <View style={styles.topRight}>
+        <Pressable
+          onPress={() => setLang("tr")}
+          style={[styles.langChip, lang === "tr" && styles.langChipActive]}
+        >
+          <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setLang("en")}
+          style={[styles.langChip, lang === "en" && styles.langChipActive]}
+        >
+          <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>EN</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.container}>
-        <View style={styles.hero}>
-          <Image source={RABBIT} style={styles.rabbit} resizeMode="cover" />
-          <Text style={styles.badge}>SANRI ELITE</Text>
-          <Text style={styles.subtitle}>WHITE RABBIT PROTOCOL</Text>
+        <View style={styles.rabbitCard}>
+          <Image source={RABBIT} style={styles.rabbit} />
+          <Text style={styles.follow}>{t.follow}</Text>
+          <Text style={styles.system}>{t.system}</Text>
         </View>
 
-        <View style={styles.cardOuter}>
-          <LinearGradient
-            colors={[
-              "rgba(255,255,255,0.14)",
-              "rgba(255,255,255,0.06)",
-              "rgba(124,247,216,0.06)",
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.cardGrad}
-          >
-            <BlurView intensity={24} tint="dark" style={styles.cardGlass}>
-              <Text style={styles.welcome}>Hoş geldin,</Text>
-              <Text style={styles.name}>{displayName}</Text>
-              <Text style={styles.desc}>
-                SANRI alanı seni tanıdı. Şimdi kapılar açılabilir.
-              </Text>
+        <Text style={styles.title}>{t.title}</Text>
+        <Text style={styles.subtitle}>{t.subtitle}</Text>
 
-              <Pressable onPress={() => router.replace("/(tabs)/gates" as any)} style={styles.btnOuter}>
-                <LinearGradient
-                  colors={[
-                    "rgba(169,112,255,0.42)",
-                    "rgba(94,59,255,0.30)",
-                    "rgba(124,247,216,0.10)",
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.btnGrad}
-                >
-                  <BlurView intensity={22} tint="dark" style={styles.btnGlass}>
-                    <Text style={styles.btnTxt}>Kapıları Aç</Text>
-                  </BlurView>
-                </LinearGradient>
-              </Pressable>
+        {isAuthenticated ? (
+          <>
+            <Text style={styles.quote}>
+              {t.welcome} {displayName}
+            </Text>
+            <Text style={styles.desc}>{t.authedDesc}</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.quote}>{t.guestQuote}</Text>
+            <Text style={styles.desc}>{t.guestDesc}</Text>
+          </>
+        )}
 
-              <Pressable
-                onPress={async () => {
-                  await logout();
-                  router.replace("/(auth)/login" as any);
-                }}
-                style={styles.logoutBtn}
-              >
-                <Text style={styles.logoutTxt}>Çıkış Yap</Text>
-              </Pressable>
-            </BlurView>
-          </LinearGradient>
-        </View>
+        <BlurView intensity={24} tint="dark" style={styles.infoCard}>
+          <Text style={styles.infoTitle}>
+            {isAuthenticated ? t.authedCardTitle : t.guestCardTitle}
+          </Text>
+
+          <Text style={styles.infoText}>
+            {isAuthenticated ? t.authedCardText : t.guestCardText}
+          </Text>
+
+          <Pressable onPress={onEnter} style={styles.enterBtn}>
+            <Text style={styles.enterTxt}>
+              {isAuthenticated ? t.authedButton : t.guestButton}
+            </Text>
+          </Pressable>
+
+          {isAuthenticated ? (
+            <Pressable
+              onPress={async () => {
+                await logout();
+                router.replace("/rabbit" as any);
+              }}
+              style={styles.logoutBtn}
+            >
+              <Text style={styles.logoutTxt}>{t.logout}</Text>
+            </Pressable>
+          ) : null}
+        </BlurView>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,8,20,0.58)" },
-
-  container: {
+  root: {
     flex: 1,
-    paddingHorizontal: 18,
-    justifyContent: "center",
+    backgroundColor: "#06070b",
   },
 
-  hero: {
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(5,8,18,0.56)",
+  },
+
+  glowA: {
+    position: "absolute",
+    width: 420,
+    height: 420,
+    borderRadius: 220,
+    top: 60,
+    left: -140,
+    backgroundColor: "rgba(94,59,255,0.16)",
+  },
+
+  glowB: {
+    position: "absolute",
+    width: 460,
+    height: 460,
+    borderRadius: 230,
+    bottom: -120,
+    right: -160,
+    backgroundColor: "rgba(124,247,216,0.10)",
+  },
+
+  topRight: {
+    position: "absolute",
+    top: 58,
+    right: 16,
+    zIndex: 20,
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  langChip: {
+    minWidth: 56,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
     alignItems: "center",
-    marginBottom: 20,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
 
-  rabbit: {
-    width: 120,
-    height: 120,
-    borderRadius: 24,
-    marginBottom: 14,
+  langChipActive: {
+    backgroundColor: "rgba(124,247,216,0.12)",
+    borderColor: "rgba(124,247,216,0.28)",
   },
 
-  badge: {
-    color: "#7cf7d8",
-    fontSize: 18,
+  langTxt: {
+    color: "rgba(255,255,255,0.72)",
     fontWeight: "900",
-    letterSpacing: 4,
-  },
-
-  subtitle: {
-    marginTop: 6,
-    color: "rgba(255,255,255,0.62)",
-    fontWeight: "700",
-    letterSpacing: 2,
-  },
-
-  cardOuter: {
-    borderRadius: 26,
-    overflow: "hidden",
-  },
-
-  cardGrad: {
-    borderRadius: 26,
-    padding: 1,
-  },
-
-  cardGlass: {
-    borderRadius: 26,
-    padding: 20,
-    backgroundColor: "rgba(10,10,18,0.40)",
-  },
-
-  welcome: {
-    color: "rgba(255,255,255,0.76)",
-    fontSize: 18,
-  },
-
-  name: {
-    marginTop: 4,
-    color: "#d7c8ff",
-    fontSize: 34,
-    fontWeight: "900",
-  },
-
-  desc: {
-    marginTop: 12,
-    color: "rgba(255,255,255,0.76)",
-    lineHeight: 23,
     fontSize: 16,
   },
 
-  btnOuter: {
-    marginTop: 20,
-    borderRadius: 22,
+  langTxtActive: {
+    color: "#7cf7d8",
+  },
+
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+
+  rabbitCard: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 26,
+    paddingHorizontal: 28,
+    paddingVertical: 20,
+    borderRadius: 30,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
     overflow: "hidden",
   },
 
-  btnGrad: {
-    borderRadius: 22,
-    padding: 1,
+  rabbit: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    marginBottom: 12,
   },
 
-  btnGlass: {
-    borderRadius: 22,
-    paddingVertical: 16,
-    alignItems: "center",
-    backgroundColor: "rgba(10,10,18,0.35)",
-  },
-
-  btnTxt: {
-    color: "#d7c8ff",
+  follow: {
+    color: "#7cf7d8",
     fontWeight: "900",
+    letterSpacing: 3,
+    fontSize: 16,
+  },
+
+  system: {
+    color: "rgba(255,255,255,0.64)",
+    fontSize: 13,
+    marginTop: 6,
+    letterSpacing: 2,
+    textAlign: "center",
+  },
+
+  title: {
+    fontSize: 42,
+    color: "white",
+    fontWeight: "900",
+    letterSpacing: 6,
+    textAlign: "center",
+    lineHeight: 54,
+  },
+
+  subtitle: {
+    color: "rgba(255,255,255,0.42)",
+    letterSpacing: 5,
+    marginTop: 10,
+    marginBottom: 24,
+    textAlign: "center",
+    fontSize: 15,
+  },
+
+  quote: {
+    color: "white",
+    fontSize: 24,
+    textAlign: "center",
+    fontWeight: "900",
+    lineHeight: 36,
+  },
+
+  desc: {
+    color: "rgba(255,255,255,0.78)",
+    textAlign: "center",
+    marginTop: 18,
+    lineHeight: 25,
+    fontSize: 16,
+    marginBottom: 26,
+  },
+
+  infoCard: {
+    width: "100%",
+    borderRadius: 28,
+    padding: 22,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+
+  infoTitle: {
+    color: "#d7c8ff",
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "900",
+    marginBottom: 10,
+    letterSpacing: 1,
+  },
+
+  infoText: {
+    color: "white",
+    textAlign: "center",
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 20,
+  },
+
+  enterBtn: {
+    borderRadius: 24,
+    backgroundColor: "rgba(145,110,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(203,188,255,0.22)",
+    paddingVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  enterTxt: {
+    color: "#d7c8ff",
     fontSize: 18,
+    fontWeight: "900",
   },
 
   logoutBtn: {
     marginTop: 14,
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
 
   logoutTxt: {
-    color: "rgba(255,255,255,0.68)",
+    color: "rgba(255,255,255,0.66)",
+    fontSize: 15,
     fontWeight: "700",
   },
 });
