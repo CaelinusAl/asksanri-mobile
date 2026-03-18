@@ -8,12 +8,12 @@ import React, {
 import * as SecureStore from "expo-secure-store";
 
 type User = {
-  id: string;
+  id: string | number;
   name?: string;
   email?: string;
   phone?: string;
   isVerified?: boolean;
-  role?: "free" | "premium";
+  role?: "free" | "premium" | string;
   isPremium?: boolean;
   premiumUntil?: string | null;
   matrixRoleUnlocked?: boolean;
@@ -66,7 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const parsedUser = JSON.parse(rawUser) as User;
-
       _setUser(parsedUser);
       _setToken(rawToken);
     } catch (e) {
@@ -84,11 +83,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setSession = async (payload: SessionPayload) => {
-    _setUser(payload.user);
+    const normalizedUser: User = {
+      ...payload.user,
+      id: String(payload.user.id),
+    };
+
+    _setUser(normalizedUser);
     _setToken(payload.token);
 
     try {
-      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(payload.user));
+      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(normalizedUser));
       await SecureStore.setItemAsync(TOKEN_KEY, payload.token);
     } catch (e) {
       console.log("setSession storage error:", e);
@@ -102,7 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!u) {
         await SecureStore.deleteItemAsync(USER_KEY);
       } else {
-        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(u));
+        await SecureStore.setItemAsync(
+          USER_KEY,
+          JSON.stringify({ ...u, id: String(u.id) })
+        );
       }
     } catch (e) {
       console.log("setUser storage error:", e);
@@ -112,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     _setUser(null);
     _setToken(null);
+
     try {
       await clearSessionStorage();
     } catch (e) {

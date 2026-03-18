@@ -15,13 +15,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
+
 import MatrixRain from "../../lib/MatrixRain";
 import { useAuth } from "../../context/AuthContext";
+import { API, apiPostJson } from "../../lib/apiClient";
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 
 type Lang = "tr" | "en";
-type Tab = "login" | "register" | "forgot";
+type Tab = "login" | "register";
 
 const COPY = {
   tr: {
@@ -29,20 +31,15 @@ const COPY = {
     sub: "SANRI cevap üretmez. Alan açar. Anlam sende şekillenir.",
     email: "E-posta",
     pass: "Şifre",
-    newPass: "Yeni Şifre",
     login: "Giriş Yap",
     register: "Kayıt Ol",
-    forgot: "Şifremi Unuttum",
     loginBtn: "Frekansını Aç",
     registerBtn: "Hesap Oluştur",
-    forgotBtn: "Sıfırlama Maili Gönder",
     back: "Geri",
     registerHint: "Kayıt sonrası hesabınla giriş yapabilirsin.",
-    forgotHint: "Şifre yenileme bağlantısı e-posta adresine gönderilir.",
     loginError: "E-posta veya şifre hatalı.",
     registerExists: "Bu e-posta zaten kayıtlı. Giriş Yap sekmesine geç.",
     registerOk: "Kayıt tamamlandı. Şimdi giriş yapabilirsin.",
-    forgotOk: "Şifre sıfırlama bağlantısı gönderildi.",
     network: "Bağlantı hatası.",
   },
   en: {
@@ -50,43 +47,41 @@ const COPY = {
     sub: "SANRI doesn’t produce answers. It opens space. Meaning forms in you.",
     email: "Email",
     pass: "Password",
-    newPass: "New Password",
     login: "Login",
     register: "Register",
-    forgot: "Forgot Password",
     loginBtn: "Open Your Frequency",
     registerBtn: "Create Account",
-    forgotBtn: "Send Reset Email",
     back: "Back",
     registerHint: "After registering, you can log in with your account.",
-    forgotHint: "A reset link will be sent to your email address.",
     loginError: "Email or password is incorrect.",
     registerExists: "This email is already registered. Switch to Login.",
     registerOk: "Registration completed. You can log in now.",
-    forgotOk: "Password reset link sent.",
     network: "Connection error.",
   },
 } as const;
 
 export default function LoginScreen() {
   const { setSession } = useAuth();
+
   const [lang, setLang] = useState<Lang>("tr");
   const [tab, setTab] = useState<Tab>("login");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
   const t = useMemo(() => COPY[lang], [lang]);
 
   const disabled = useMemo(() => {
-    if (!email.trim()) return true;
-    if (tab === "forgot") return false;
-    return !pass.trim();
-  }, [email, pass, tab]);
+    return !email.trim() || !pass.trim() || submitting;
+  }, [email, pass, submitting]);
 
-  const showDetail = (data: any, fallback: string) => {
-    const detail = data?.detail;
-    if (typeof detail === "string") return Alert.alert("Alert", detail);
-    if (Array.isArray(detail) && detail[0]?.msg) return Alert.alert("Alert", detail[0].msg);
-    return Alert.alert("Alert", fallback);
+  const showDetail = (error: any, fallback: string) => {
+    const msg =
+      error?.message ||
+      error?.detail ||
+      fallback;
+
+    Alert.alert("Alert", String(msg));
   };
 
   const onSubmit = async () => {
@@ -97,89 +92,65 @@ export default function LoginScreen() {
     } catch {}
 
     try {
+      setSubmitting(true);
+
       if (tab === "login") {
-        const res = await fetch("https://api.asksanri.com/auth/email/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: email.trim(),
-            password: pass.trim(),
-          }),
+        const data = await apiPostJson(`${API.base}/auth/login`, {
+          email: email.trim().toLowerCase(),
+          password: pass.trim(),
         });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          showDetail(data, t.loginError);
-          return;
-        }
 
         await setSession({
           token: String(data.token),
           user: {
-            id: String(data.user_id ?? data.user?.id ?? email.trim()),
-            name: data.user?.name || "Selin",
-            email: email.trim(),
+            id: String(data.user?.id ?? ""),
+            name: data.user?.name ?? "",
+            email: data.user?.email ?? email.trim().toLowerCase(),
+            phone: data.user?.phone ?? "",
           },
         });
 
-        router.replace("/rabbit" as any);
+        router.replace("/(tabs)/my_area" as any);
         return;
       }
 
       if (tab === "register") {
-        const res = await fetch("https://api.asksanri.com/auth/email/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: email.trim(),
-            password: pass.trim(),
-          }),
+        await apiPostJson(`${API.base}/auth/register`, {
+          email: email.trim().toLowerCase(),
+          password: pass.trim(),
         });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          if (res.status === 409) {
-            Alert.alert("Alert", t.registerExists);
-            setTab("login");
-            return;
-          }
-          showDetail(data, t.network);
-          return;
-        }
 
         Alert.alert("Alert", t.registerOk);
         setTab("login");
         return;
       }
+    } catch (error: any) {
+      const text = String(error?.message || "");
 
-      if (tab === "forgot") {
-        const res = await fetch("https://api.asksanri.com/auth/email/forgot-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: email.trim(),
-          }),
-        });
+      if (tab === "login") {
+        showDetail(error, t.loginError);
+        return;
+      }
 
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          showDetail(data, t.network);
+      if (tab === "register") {
+        if (
+          text.toLowerCase().includes("already") ||
+          text.toLowerCase().includes("exists") ||
+          text.toLowerCase().includes("registered")
+        ) {
+          Alert.alert("Alert", t.registerExists);
+          setTab("login");
           return;
         }
 
-        Alert.alert("Alert", t.forgotOk);
-        setTab("login");
+        showDetail(error, t.network);
       }
-    } catch {
-      Alert.alert("Alert", t.network);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const primaryText =
-    tab === "login" ? t.loginBtn : tab === "register" ? t.registerBtn : t.forgotBtn;
+  const primaryText = tab === "login" ? t.loginBtn : t.registerBtn;
 
   return (
     <View style={styles.root}>
@@ -200,10 +171,17 @@ export default function LoginScreen() {
         <View style={{ flex: 1 }} />
 
         <View style={styles.langRow}>
-          <Pressable onPress={() => setLang("tr")} style={[styles.langChip, lang === "tr" && styles.langChipActive]}>
+          <Pressable
+            onPress={() => setLang("tr")}
+            style={[styles.langChip, lang === "tr" && styles.langChipActive]}
+          >
             <Text style={[styles.langTxt, lang === "tr" && styles.langTxtActive]}>TR</Text>
           </Pressable>
-          <Pressable onPress={() => setLang("en")} style={[styles.langChip, lang === "en" && styles.langChipActive]}>
+
+          <Pressable
+            onPress={() => setLang("en")}
+            style={[styles.langChip, lang === "en" && styles.langChipActive]}
+          >
             <Text style={[styles.langTxt, lang === "en" && styles.langTxtActive]}>EN</Text>
           </Pressable>
         </View>
@@ -219,14 +197,22 @@ export default function LoginScreen() {
           <Text style={styles.sub}>{t.sub}</Text>
 
           <View style={styles.tabRow}>
-            <Pressable onPress={() => setTab("login")} style={[styles.tabBtn, tab === "login" && styles.tabBtnActive]}>
-              <Text style={[styles.tabTxt, tab === "login" && styles.tabTxtActive]}>{t.login}</Text>
+            <Pressable
+              onPress={() => setTab("login")}
+              style={[styles.tabBtn, tab === "login" && styles.tabBtnActive]}
+            >
+              <Text style={[styles.tabTxt, tab === "login" && styles.tabTxtActive]}>
+                {t.login}
+              </Text>
             </Pressable>
-            <Pressable onPress={() => setTab("register")} style={[styles.tabBtn, tab === "register" && styles.tabBtnActive]}>
-              <Text style={[styles.tabTxt, tab === "register" && styles.tabTxtActive]}>{t.register}</Text>
-            </Pressable>
-            <Pressable onPress={() => setTab("forgot")} style={[styles.tabBtn, tab === "forgot" && styles.tabBtnActive]}>
-              <Text style={[styles.tabTxt, tab === "forgot" && styles.tabTxtActive]}>{t.forgot}</Text>
+
+            <Pressable
+              onPress={() => setTab("register")}
+              style={[styles.tabBtn, tab === "register" && styles.tabBtnActive]}
+            >
+              <Text style={[styles.tabTxt, tab === "register" && styles.tabTxtActive]}>
+                {t.register}
+              </Text>
             </Pressable>
           </View>
 
@@ -252,18 +238,20 @@ export default function LoginScreen() {
                   style={styles.input}
                 />
 
-                {tab !== "forgot" ? (
-                  <TextInput
-                    value={pass}
-                    onChangeText={setPass}
-                    placeholder={t.pass}
-                    placeholderTextColor="rgba(203,188,255,0.35)"
-                    secureTextEntry
-                    style={styles.input}
-                  />
-                ) : null}
+                <TextInput
+                  value={pass}
+                  onChangeText={setPass}
+                  placeholder={t.pass}
+                  placeholderTextColor="rgba(203,188,255,0.35)"
+                  secureTextEntry
+                  style={styles.input}
+                />
 
-                <Pressable onPress={onSubmit} disabled={disabled} style={[styles.ctaOuter, disabled && { opacity: 0.55 }]}>
+                <Pressable
+                  onPress={onSubmit}
+                  disabled={disabled}
+                  style={[styles.ctaOuter, disabled && { opacity: 0.55 }]}
+                >
                   <LinearGradient
                     colors={[
                       "rgba(169,112,255,0.42)",
@@ -275,13 +263,15 @@ export default function LoginScreen() {
                     style={styles.ctaGrad}
                   >
                     <BlurView intensity={22} tint="dark" style={styles.ctaGlass}>
-                      <Text style={styles.ctaTxt}>{primaryText}</Text>
+                      <Text style={styles.ctaTxt}>
+                        {submitting ? "..." : primaryText}
+                      </Text>
                     </BlurView>
                   </LinearGradient>
                 </Pressable>
 
                 <Text style={styles.hint}>
-                  {tab === "register" ? t.registerHint : tab === "forgot" ? t.forgotHint : ""}
+                  {tab === "register" ? t.registerHint : ""}
                 </Text>
               </BlurView>
             </LinearGradient>

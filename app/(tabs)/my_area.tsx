@@ -7,6 +7,7 @@ import {
   ScrollView,
   ImageBackground,
   StatusBar,
+
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
@@ -64,26 +65,27 @@ export default function MyAreaScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    try {
-      setError(null);
+  try {
+    setError(null);
 
-      const [meData, insightData, memoryData] = await Promise.all([
-        apiGetJson(`${API.base}/auth/me`, 20000),
-        apiGetJson(`${API.base}/insights`, 20000),
-        apiGetJson(`${API.base}/memory`, 20000),
-      ]);
+    const meData = await apiGetJson(`${API.base}/auth/me`, 20000);
+    setMe(meData || null);
 
-      setMe(meData || null);
-      setInsight(insightData || null);
-      setMemories(Array.isArray(memoryData) ? memoryData : []);
-    } catch (e: any) {
-      console.log("my_area load error:", e);
-      setError("Alan yüklenemedi. API bağlantısını ve token akışını kontrol et.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+    const [insightData, memoryData] = await Promise.all([
+      apiGetJson(`${API.base}/insights`, 20000).catch(() => null),
+      apiGetJson(`${API.base}/memory/${meData.id}`, 20000).catch(() => []),
+    ]);
+
+    setInsight(insightData || null);
+    setMemories(Array.isArray(memoryData) ? memoryData : []);
+  } catch (e: any) {
+    console.log("my_area load error:", e);
+    setError("Alan yüklenemedi. API bağlantısını ve token akışını kontrol et.");
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+}, []);
 
   useEffect(() => {
     load();
