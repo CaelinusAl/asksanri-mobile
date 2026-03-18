@@ -20,7 +20,10 @@ export const API = {
 };
 
 async function getToken() {
-  return await SecureStore.getItemAsync(TOKEN_KEY);
+  const stored = await SecureStore.getItemAsync(TOKEN_KEY);
+  const token = stored || (globalThis as any).__token || null;
+  console.log("TOKEN DEBUG =", token);
+  return token;
 }
 
 export async function apiGetJson(url: string, timeout = 15000) {

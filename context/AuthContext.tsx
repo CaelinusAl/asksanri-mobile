@@ -83,22 +83,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setSession = async (payload: SessionPayload) => {
-    const normalizedUser: User = {
-      ...payload.user,
-      id: String(payload.user.id),
-    };
+  _setUser(payload.user);
+  _setToken(payload.token);
+  (globalThis as any).__token = payload.token;
 
-    _setUser(normalizedUser);
-    _setToken(payload.token);
-
-    try {
-      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(normalizedUser));
-      await SecureStore.setItemAsync(TOKEN_KEY, payload.token);
-    } catch (e) {
-      console.log("setSession storage error:", e);
-    }
-  };
-
+  try {
+    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(payload.user));
+    await SecureStore.setItemAsync(TOKEN_KEY, payload.token);
+  } catch (e) {
+    console.log("setSession storage error:", e);
+  }
+};
   const setUser = async (u: User | null) => {
     _setUser(u);
 
