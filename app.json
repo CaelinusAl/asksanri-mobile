@@ -23,7 +23,7 @@
     },
     "android": {
   "package": "com.caelinusai.asksanri",
-  "versionCode": 18,
+  "versionCode": 19,
   "permissions": ["RECORD_AUDIO"],
   "usesCleartextTraffic": true,
   "adaptiveIcon": {
