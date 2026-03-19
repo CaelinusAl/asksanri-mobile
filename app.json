@@ -3,7 +3,7 @@
     "name": "AskSanri",
     "slug": "asksanri",
     "scheme": "asksanri",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "dark",
@@ -23,7 +23,7 @@
     },
     "android": {
   "package": "com.caelinusai.asksanri",
-  "versionCode": 20,
+  "versionCode": 35,
   "permissions": ["RECORD_AUDIO"],
   "usesCleartextTraffic": true,
   "adaptiveIcon": {
