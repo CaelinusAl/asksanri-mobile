@@ -133,10 +133,10 @@ export default function VipScreen() {
       const info = await getCustomerInfo();
       const hasVip = Boolean(info?.entitlements?.active?.["vip_access"]);
 
-      if (!hasVip) {
-        Alert.alert("Alert", copy.verifyFail);
-        return;
-      }
+      if (!info) {
+  Alert.alert("Alert", "Satın alma bilgisi alınamadı");
+  return;
+}
 
       Alert.alert("Alert", copy.vipActive);
       goAfterSuccess();
