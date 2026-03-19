@@ -1,5 +1,3 @@
-// app/(tabs)/vip.tsx
-
 import React, { useState } from "react";
 import {
   View,
@@ -17,7 +15,12 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 
 import MatrixRain from "../../lib/MatrixRain";
-import { buySanriPremium, getCustomerInfo } from "../../lib/revenuecat";
+import {
+  buySanriPremium,
+  getCustomerInfo,
+  getRevenueCatInitError,
+  openManageSubscriptions,
+} from "../../lib/revenuecat";
 import { setVipJustActivated } from "../../lib/vipPulse";
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
@@ -31,7 +34,44 @@ export default function VipScreen() {
     lang?: string;
   }>();
 
+  const lang = params.lang === "en" ? "en" : "tr";
+  const tr = lang === "tr";
+
   const [loading, setLoading] = useState(false);
+
+  const copy = {
+    title: tr ? "BİLİNÇ KAPISI" : "CONSCIOUSNESS GATE",
+    sub: tr
+      ? "Derin katmanlar + tam erişim. Kapı “Derinleş” ile açılır."
+      : "Deep layers + full access. The gate opens with “Deepen”.",
+    bullets: tr
+      ? [
+          "Derin şehir okumaları",
+          "Sanrı kişisel bilinç analizi",
+          "Sembol katmanı",
+          "Ritüel yönlendirme",
+          "Gelecek katmanlar",
+        ]
+      : [
+          "Deep city readings",
+          "Personal Sanri consciousness analysis",
+          "Symbol layer",
+          "Ritual guidance",
+          "Future layers",
+        ],
+    buy: tr ? "Bilinç Kapısını Aç" : "Open Consciousness Gate",
+    close: tr ? "Şimdi değil" : "Not now",
+    verifyFail: tr ? "VIP erişimi doğrulanamadı." : "VIP access could not be verified.",
+    vipActive: tr ? "VIP aktif!" : "VIP activated!",
+    purchaseError: tr ? "Satın alma hatası" : "Purchase error",
+    devInfo:
+      getRevenueCatInitError() ||
+      (tr
+        ? "Satın alma sistemi şu anda hazır değil."
+        : "Purchase system is not ready right now."),
+    manage: tr ? "Abonelikleri Yönet" : "Manage Subscriptions",
+    pendingTitle: tr ? "Abonelik Durumu" : "Subscription Status",
+  };
 
   const goAfterSuccess = () => {
     setVipJustActivated(true);
@@ -57,29 +97,58 @@ export default function VipScreen() {
     try {
       setLoading(true);
 
-      await buySanriPremium();
+      const result = await buySanriPremium();
 
-      const info = await getCustomerInfo();
-      const hasVip = Boolean(info.entitlements.active["vip_access"]);
+      if (!result.ok) {
+        if (
+          result.reason === "plan_change_not_allowed" ||
+          result.reason === "pending_google_play"
+        ) {
+          Alert.alert(copy.pendingTitle, result.message, [
+            {
+              text: copy.manage,
+              onPress: () => {
+                openManageSubscriptions().catch(() => {});
+              },
+            },
+            { text: "OK" },
+          ]);
+          return;
+        }
 
-      if (!hasVip) {
-        Alert.alert("Alert", "VIP erişimi doğrulanamadı");
+        if (result.reason === "already_active") {
+          Alert.alert("OK", result.message);
+          goAfterSuccess();
+          return;
+        }
+
+        if (result.reason === "cancelled") {
+          return;
+        }
+
+        Alert.alert("Alert", result.message || copy.purchaseError);
         return;
       }
 
-      Alert.alert("Alert", "VIP aktif!");
+      const info = await getCustomerInfo();
+      const hasVip = Boolean(info?.entitlements?.active?.["vip_access"]);
+
+      if (!hasVip) {
+        Alert.alert("Alert", copy.verifyFail);
+        return;
+      }
+
+      Alert.alert("Alert", copy.vipActive);
       goAfterSuccess();
     } catch (e: any) {
       console.log("VIP purchase error:", e);
 
-      if (e?.userCancelled) {
-        return;
-      }
+      if (e?.userCancelled) return;
 
       const msg =
         typeof e?.message === "string" && e.message.trim()
           ? e.message
-          : "Satın alma hatası";
+          : copy.devInfo;
 
       Alert.alert("Alert", msg);
     } finally {
@@ -121,19 +190,16 @@ export default function VipScreen() {
         <View style={styles.card}>
           <Text style={styles.kicker}>SYSTEM TERMINAL</Text>
 
-          <Text style={styles.title}>BİLİNÇ KAPISI</Text>
+          <Text style={styles.title}>{copy.title}</Text>
 
-          <Text style={styles.sub}>
-            Derin katmanlar + tam erişim.{"\n"}
-            Kapı “Derinleş” ile açılır.
-          </Text>
+          <Text style={styles.sub}>{copy.sub}</Text>
 
           <View style={styles.list}>
-            <Text style={styles.bullet}>• Derin şehir okumaları</Text>
-            <Text style={styles.bullet}>• Sanrı kişisel bilinç analizi</Text>
-            <Text style={styles.bullet}>• Sembol katmanı</Text>
-            <Text style={styles.bullet}>• Ritüel yönlendirme</Text>
-            <Text style={styles.bullet}>• Gelecek katmanlar</Text>
+            {copy.bullets.map((item) => (
+              <Text key={item} style={styles.bullet}>
+                • {item}
+              </Text>
+            ))}
           </View>
 
           <Pressable
@@ -144,14 +210,18 @@ export default function VipScreen() {
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text style={styles.ctaText}>Bilinç Kapısını Aç</Text>
+              <Text style={styles.ctaText}>{copy.buy}</Text>
             )}
           </Pressable>
 
           <Text style={styles.alt}>693 TL / ay</Text>
 
-          <Pressable style={styles.backBtn} onPress={() => router.back()} disabled={loading}>
-            <Text style={styles.backTxt}>Şimdi değil</Text>
+          <Pressable
+            style={styles.backBtn}
+            onPress={() => router.back()}
+            disabled={loading}
+          >
+            <Text style={styles.backTxt}>{copy.close}</Text>
           </Pressable>
         </View>
 

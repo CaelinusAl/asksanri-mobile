@@ -10,8 +10,10 @@ import {
 } from "react-native";
 import {
   buySanriPremium,
+  getCustomerInfo,
   openManageSubscriptions,
   restoreSanriPurchases,
+  getRevenueCatInitError,
 } from "../lib/revenuecat";
 
 type Props = {
@@ -56,6 +58,22 @@ export default function VipSheet({
     restore: tr ? "Satın alımı geri yükle" : "Restore purchase",
     manage: tr ? "Abonelikleri Yönet" : "Manage Subscriptions",
     close: tr ? "Kapat" : "Close",
+    activated: tr ? "VIP erişim açıldı." : "VIP access unlocked.",
+    restored: tr ? "Abonelik geri yüklendi." : "Subscription restored.",
+    noActive: tr
+      ? "Aktif bir abonelik bulunamadı."
+      : "No active subscription was found.",
+    verifyFail: tr
+      ? "VIP erişimi doğrulanamadı."
+      : "VIP access could not be verified.",
+    infoTitle: tr ? "Bilgi" : "Info",
+    errTitle: tr ? "Hata" : "Error",
+    subStatus: tr ? "Abonelik Durumu" : "Subscription Status",
+    fallbackMessage:
+      getRevenueCatInitError() ||
+      (tr
+        ? "Satın alma sistemi şu anda hazır değil."
+        : "Purchase system is not ready right now."),
   };
 
   const onBuy = async () => {
@@ -65,20 +83,12 @@ export default function VipSheet({
     try {
       const result = await buySanriPremium();
 
-      if (result.ok) {
-        Alert.alert("OK", tr ? "VIP erişim açıldı." : "VIP access unlocked.");
-        onSubscribeSuccess();
-        return;
-      }
-
-      if (
-        result.reason === "plan_change_not_allowed" ||
-        result.reason === "pending_google_play"
-      ) {
-        Alert.alert(
-          tr ? "Abonelik Durumu" : "Subscription Status",
-          result.message,
-          [
+      if (!result.ok) {
+        if (
+          result.reason === "plan_change_not_allowed" ||
+          result.reason === "pending_google_play"
+        ) {
+          Alert.alert(copy.subStatus, result.message, [
             {
               text: copy.manage,
               onPress: () => {
@@ -86,22 +96,37 @@ export default function VipSheet({
               },
             },
             { text: "OK" },
-          ]
-        );
+          ]);
+          return;
+        }
+
+        if (result.reason === "already_active") {
+          Alert.alert("OK", result.message);
+          onSubscribeSuccess();
+          return;
+        }
+
+        if (result.reason === "cancelled") {
+          return;
+        }
+
+        Alert.alert(copy.errTitle, result.message || copy.fallbackMessage);
         return;
       }
 
-      if (result.reason === "already_active") {
-        Alert.alert("OK", result.message);
-        onSubscribeSuccess();
+      const info = await getCustomerInfo();
+      const hasVip = Boolean(info?.entitlements?.active?.["vip_access"]);
+
+      if (!hasVip) {
+        Alert.alert(copy.errTitle, copy.verifyFail);
         return;
       }
 
-      if (result.reason === "cancelled") {
-        return;
-      }
-
-      Alert.alert(tr ? "Hata" : "Error", result.message);
+      Alert.alert("OK", copy.activated);
+      onSubscribeSuccess();
+    } catch (e: any) {
+      console.log("VIP SHEET BUY ERROR:", e);
+      Alert.alert(copy.errTitle, e?.message || copy.fallbackMessage);
     } finally {
       setLoading(false);
     }
@@ -114,18 +139,24 @@ export default function VipSheet({
     try {
       const restored = await restoreSanriPurchases();
 
-      if (restored) {
-        Alert.alert("OK", tr ? "Abonelik geri yüklendi." : "Subscription restored.");
-        onSubscribeSuccess();
+      if (!restored) {
+        Alert.alert(copy.infoTitle, copy.noActive);
         return;
       }
 
-      Alert.alert(
-        tr ? "Bilgi" : "Info",
-        tr
-          ? "Aktif bir abonelik bulunamadı."
-          : "No active subscription was found."
-      );
+      const info = await getCustomerInfo();
+      const hasVip = Boolean(info?.entitlements?.active?.["vip_access"]);
+
+      if (!hasVip) {
+        Alert.alert(copy.errTitle, copy.verifyFail);
+        return;
+      }
+
+      Alert.alert("OK", copy.restored);
+      onSubscribeSuccess();
+    } catch (e: any) {
+      console.log("VIP SHEET RESTORE ERROR:", e);
+      Alert.alert(copy.errTitle, e?.message || copy.fallbackMessage);
     } finally {
       setLoading(false);
     }
@@ -248,34 +279,34 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     borderRadius: 18,
-    paddingVertical: 16,
+    paddingVertical: 15,
     alignItems: "center",
-    backgroundColor: "rgba(94,59,255,0.92)",
+    backgroundColor: "#5f46ff",
     marginBottom: 10,
   },
   primaryBtnText: {
     color: "#fff",
-    fontSize: 18,
     fontWeight: "900",
+    fontSize: 16,
   },
   secondaryBtn: {
     borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: 13,
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.06)",
     marginBottom: 10,
   },
   secondaryBtnText: {
-    color: "rgba(255,255,255,0.86)",
-    fontWeight: "800",
+    color: "rgba(255,255,255,0.88)",
+    fontWeight: "700",
   },
   closeBtn: {
+    marginTop: 6,
     alignItems: "center",
     paddingVertical: 10,
-    marginTop: 4,
   },
   closeText: {
-    color: "rgba(255,255,255,0.55)",
-    fontWeight: "700",
+    color: "#7cf7d8",
+    fontWeight: "800",
   },
 });

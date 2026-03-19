@@ -1,21 +1,34 @@
 {
   "cli": {
-    "version": ">= 18.0.1",
-    "appVersionSource": "remote"
+    "version": ">= 12.0.0"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE": "https://api.asksanri.com"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE": "https://api.asksanri.com"
       }
     },
     "production": {
-      "autoIncrement": true
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE": "https://api.asksanri.com"
+      }
     }
   },
   "submit": {

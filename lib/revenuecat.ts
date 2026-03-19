@@ -24,10 +24,6 @@ export function getRevenueCatInitError() {
 export async function initRevenueCat(): Promise<boolean> {
   if (configured) return true;
   if (configuring) return false;
-  if (__DEV__) {
-    lastInitError = "Expo Go / dev modda RevenueCat gerçek satın alma çalışmaz.";
-    return false;
-  }
 
   const apiKey = getApiKey();
 
@@ -40,7 +36,7 @@ export async function initRevenueCat(): Promise<boolean> {
     configuring = true;
     lastInitError = null;
 
-    Purchases.setLogLevel(LOG_LEVEL.ERROR);
+    Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
     await Purchases.configure({ apiKey });
 
     configured = true;
@@ -48,6 +44,7 @@ export async function initRevenueCat(): Promise<boolean> {
   } catch (error: any) {
     configured = false;
     lastInitError = error?.message || "RevenueCat init failed";
+    console.log("RC INIT ERROR =", error);
     return false;
   } finally {
     configuring = false;
@@ -56,25 +53,40 @@ export async function initRevenueCat(): Promise<boolean> {
 
 export async function getCustomerInfoSafe(): Promise<CustomerInfo | null> {
   const ok = await initRevenueCat();
-  if (!ok) return null;
+
+  if (!ok) {
+    console.log("RC INIT FAIL");
+    return null;
+  }
 
   try {
     const info = await Purchases.getCustomerInfo();
-    return info ?? null;
+
+    if (!info) {
+      console.log("RC INFO NULL");
+      return null;
+    }
+
+    return info;
   } catch (error: any) {
+    console.log("RC ERROR =", error);
     lastInitError = error?.message || "Customer info alınamadı";
     return null;
   }
 }
 
+export async function getCustomerInfo(): Promise<CustomerInfo | null> {
+  return await getCustomerInfoSafe();
+}
+
 export async function hasVipEntitlement(): Promise<boolean> {
   const info = await getCustomerInfoSafe();
 
-  if (!info) {
+  if (!info || !info.entitlements) {
     return false;
   }
 
-  return Boolean(info.entitlements?.active?.["vip_access"]);
+  return Boolean(info.entitlements.active?.["vip_access"]);
 }
 
 export async function getCurrentMonthlyPackage(): Promise<PurchasesPackage | null> {
@@ -98,6 +110,7 @@ export async function getCurrentMonthlyPackage(): Promise<PurchasesPackage | nul
     );
   } catch (error: any) {
     lastInitError = error?.message || "Offerings alınamadı";
+    console.log("RC OFFERINGS ERROR =", error);
     return null;
   }
 }
@@ -119,6 +132,7 @@ export type PremiumPurchaseResult =
 
 export async function buySanriPremium(): Promise<PremiumPurchaseResult> {
   const isActive = await hasVipEntitlement();
+
   if (isActive) {
     const info = await getCustomerInfoSafe();
     if (info) {
@@ -223,7 +237,8 @@ export async function restoreSanriPurchases(): Promise<boolean> {
   try {
     await Purchases.restorePurchases();
     return await hasVipEntitlement();
-  } catch {
+  } catch (error) {
+    console.log("RC RESTORE ERROR =", error);
     return false;
   }
 }
