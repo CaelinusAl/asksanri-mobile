@@ -3,7 +3,7 @@
     "name": "AskSanri",
     "slug": "asksanri",
     "scheme": "asksanri",
-    "version": "2.1.2",
+    "version": "2.1.1",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "dark",
@@ -22,15 +22,16 @@
       }
     },
     "android": {
-  "package": "com.caelinusai.asksanri",
-  "versionCode": 35,
-  "permissions": ["RECORD_AUDIO"],
-  "usesCleartextTraffic": true,
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/adaptive-icon.png",
-    "backgroundColor": "#000000"
-  }
-},
+      "package": "com.caelinusai.asksanri",
+      "permissions": [
+        "RECORD_AUDIO"
+      ],
+      "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      }
+    },
     "plugins": [
       "expo-font",
       "expo-secure-store",
