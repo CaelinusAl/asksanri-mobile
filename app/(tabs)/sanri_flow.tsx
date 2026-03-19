@@ -20,7 +20,7 @@ import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import { BlurView } from "expo-blur";
 
-import { apiPostJson, apiPostForm, API } from "@/lib/apiClient";
+import { apiPostJson, apiPostForm, API } from "../../lib/apiClient";
 import ConsciousMenu from "../../components/ConsciousMenu";
 import SanriShareButtons from "../../components/SanriShareButtons";
 
@@ -276,7 +276,7 @@ export default function SanriFlowScreen() {
         }
 
         const payload = {
-  message: raw,
+  message: text,
   session_id: "mobile-default",
   lang,
 };
@@ -287,6 +287,8 @@ export default function SanriFlowScreen() {
         try {
           console.log("SANRI_KEYS", Object.keys(data || {}));
         } catch {}
+
+        console.log("API ASK =", API.ask)
 
   
         const answer =

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   ScrollView,
   ImageBackground,
   StatusBar,
-
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
@@ -20,72 +19,240 @@ import { API, apiGetJson } from "../../lib/apiClient";
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 
-type MeResponse = {
-  id: number | string;
-  email?: string | null;
-  phone?: string | null;
-  name?: string | null;
-  birth_date?: string | null;
-  is_verified?: boolean;
-  role?: string;
-  plan?: string;
-  is_premium?: boolean;
-  premium_until?: string | null;
-  premium_source?: string | null;
-  matrix_role_unlocked?: boolean;
-  last_login_at?: string | null;
-  last_seen_at?: string | null;
-};
+type Lang = "tr" | "en";
 
-type InsightResponse = {
-  theme?: string;
-  focus?: string;
-  symbol?: string;
-  ritual_direction?: string;
-  next_area?: string;
-  raw_json?: any;
+type ProfileResponse = {
+  user_id: number | string;
+  data?: {
+    name?: string;
+    dominant_emotion?: string;
+    intent?: string;
+    pattern?: string;
+    last_message?: string;
+    sanri_level?: number;
+    sanri_archetype?: string;
+    sanri_tone?: string;
+  };
+  updated_at?: string | null;
 };
 
 type MemoryItem = {
-  id: number | string;
   type: string;
   content: string;
   created_at?: string | null;
 };
 
+const T = {
+  tr: {
+    pageTitle: "Benim Alanım",
+    pageSubtitle: "Sanrı burada seni tanımaya başlar.",
+    personalField: "Kişisel bilinç alanı",
+    memoryCount: "hafıza izi",
+    level: "Seviye",
+    profile: "Sanrı Profili",
+    emotion: "Duygu",
+    intent: "Niyet",
+    pattern: "Örüntü",
+    archetype: "Arketip",
+    tone: "Ton",
+    reading: "Sanrı Seni Nasıl Görüyor",
+    reading1: "Şu an baskın niyetin",
+    reading2: "olarak okunuyor.",
+    reading3: "İç alandaki baskın duygu",
+    reading4: "Sanrı bu yüzden",
+    reading5: "tonda ve",
+    reading6: "arketibiyle sana yanıt veriyor.",
+    memories: "Son Hafıza İzleri",
+    empty: "Henüz kayıtlı hafıza yok. İlk izini bıraktığında bu alan canlanacak.",
+    deepen: "Derinleş",
+    retry: "Tekrar Dene",
+    systemWarn: "Sistem uyarısı",
+    loadError: "Alan yüklenemedi.",
+    loading: "Sanrı alanı yükleniyor...",
+    you: "sen",
+    sanri: "sanrı",
+    auto: "otomatik",
+  },
+  en: {
+    pageTitle: "My Area",
+    pageSubtitle: "Sanri begins to know you here.",
+    personalField: "Personal consciousness field",
+    memoryCount: "memory traces",
+    level: "Level",
+    profile: "Sanri Profile",
+    emotion: "Emotion",
+    intent: "Intent",
+    pattern: "Pattern",
+    archetype: "Archetype",
+    tone: "Tone",
+    reading: "How Sanri Sees You",
+    reading1: "Your dominant intent is currently read as",
+    reading2: ".",
+    reading3: "The dominant inner emotion is",
+    reading4: "So Sanri responds in a",
+    reading5: "tone with the",
+    reading6: "archetype.",
+    memories: "Recent Memory Traces",
+    empty: "No memory has been recorded yet. This area will awaken when you leave your first trace.",
+    deepen: "Go Deeper",
+    retry: "Retry",
+    systemWarn: "System warning",
+    loadError: "Area could not be loaded.",
+    loading: "Loading Sanri field...",
+    you: "you",
+    sanri: "sanri",
+    auto: "auto",
+  },
+} as const;
+
+function mapEmotion(value?: string, lang: Lang = "tr") {
+  const tr: Record<string, string> = {
+    neutral: "Nötr",
+    fear: "Korku",
+    loneliness: "Yalnızlık",
+    love: "Sevgi",
+  };
+  const en: Record<string, string> = {
+    neutral: "Neutral",
+    fear: "Fear",
+    loneliness: "Loneliness",
+    love: "Love",
+  };
+  const source = lang === "tr" ? tr : en;
+  return source[String(value || "").toLowerCase()] || value || (lang === "tr" ? "Nötr" : "Neutral");
+}
+
+function mapIntent(value?: string, lang: Lang = "tr") {
+  const tr: Record<string, string> = {
+    reflection: "Yansıma",
+    memory: "Hafıza",
+    direction: "Yön arayışı",
+  };
+  const en: Record<string, string> = {
+    reflection: "Reflection",
+    memory: "Memory",
+    direction: "Direction seeking",
+  };
+  const source = lang === "tr" ? tr : en;
+  return source[String(value || "").toLowerCase()] || value || (lang === "tr" ? "Yansıma" : "Reflection");
+}
+
+function mapPattern(value?: string, lang: Lang = "tr") {
+  const tr: Record<string, string> = {
+    general: "Genel akış",
+    past_reference: "Geçmiş referansı",
+    emotional_signal: "Duygusal sinyal",
+    inner_void: "İç boşluk",
+    guidance_need: "Rehberlik ihtiyacı",
+    heart_signal: "Kalp sinyali",
+  };
+  const en: Record<string, string> = {
+    general: "General flow",
+    past_reference: "Past reference",
+    emotional_signal: "Emotional signal",
+    inner_void: "Inner void",
+    guidance_need: "Need for guidance",
+    heart_signal: "Heart signal",
+  };
+  const source = lang === "tr" ? tr : en;
+  return source[String(value || "").toLowerCase()] || value || (lang === "tr" ? "Genel akış" : "General flow");
+}
+
+function mapArchetype(value?: string, lang: Lang = "tr") {
+  const tr: Record<string, string> = {
+    mirror: "Ayna",
+    rememberer: "Hatırlayan",
+    heart_reader: "Kalp Okuyucu",
+    path_opener: "Yol Açıcı",
+    deep_witness: "Derin Tanık",
+  };
+  const en: Record<string, string> = {
+    mirror: "Mirror",
+    rememberer: "Rememberer",
+    heart_reader: "Heart Reader",
+    path_opener: "Path Opener",
+    deep_witness: "Deep Witness",
+  };
+  const source = lang === "tr" ? tr : en;
+  return source[String(value || "").toLowerCase()] || value || (lang === "tr" ? "Ayna" : "Mirror");
+}
+
+function mapTone(value?: string, lang: Lang = "tr") {
+  const tr: Record<string, string> = {
+    clear: "Berrak",
+    direct: "Doğrudan",
+    warm: "Sıcak",
+    focused: "Odaklı",
+    deep: "Derin",
+  };
+  const en: Record<string, string> = {
+    clear: "Clear",
+    direct: "Direct",
+    warm: "Warm",
+    focused: "Focused",
+    deep: "Deep",
+  };
+  const source = lang === "tr" ? tr : en;
+  return source[String(value || "").toLowerCase()] || value || (lang === "tr" ? "Berrak" : "Clear");
+}
+
+function mapMemoryType(value?: string, lang: Lang = "tr") {
+  const key = String(value || "").toLowerCase();
+  if (lang === "tr") {
+    if (key === "user") return "sen";
+    if (key === "ai") return "sanrı";
+    return "otomatik";
+  }
+  if (key === "user") return "you";
+  if (key === "ai") return "sanri";
+  return "auto";
+}
+
+function getDisplayName(profileName?: string, authName?: string, authEmail?: string) {
+  const raw = profileName || authName || authEmail || "Sen";
+  const safe = String(raw).trim();
+  if (safe.includes("@")) return safe.split("@")[0];
+  return safe;
+}
+
+function cleanMemoryContent(text?: string) {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+  return raw.replace(/\s+/g, " ");
+}
+
 export default function MyAreaScreen() {
   const { user } = useAuth();
 
+  const [lang, setLang] = useState<Lang>("tr");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [me, setMe] = useState<MeResponse | null>(null);
-  const [insight, setInsight] = useState<InsightResponse | null>(null);
+  const [profile, setProfile] = useState<ProfileResponse["data"] | null>(null);
   const [memories, setMemories] = useState<MemoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const t = useMemo(() => T[lang], [lang]);
+
   const load = useCallback(async () => {
-  try {
-    setError(null);
+    try {
+      setError(null);
 
-    const meData = await apiGetJson(`${API.base}/auth/me`, 20000);
-    setMe(meData || null);
+      const [profileRes, memoryRes] = await Promise.all([
+        apiGetJson(`${API.base}/bilinc-alani/profile`, 20000).catch(() => null),
+        apiGetJson(`${API.base}/bilinc-alani/memory`, 20000).catch(() => []),
+      ]);
 
-    const [insightData, memoryData] = await Promise.all([
-      apiGetJson(`${API.base}/insights`, 20000).catch(() => null),
-      apiGetJson(`${API.base}/memory/${meData.id}`, 20000).catch(() => []),
-    ]);
-
-    setInsight(insightData || null);
-    setMemories(Array.isArray(memoryData) ? memoryData : []);
-  } catch (e: any) {
-    console.log("my_area load error:", e);
-    setError("Alan yüklenemedi. API bağlantısını ve token akışını kontrol et.");
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-}, []);
+      setProfile(profileRes?.data || null);
+      setMemories(Array.isArray(memoryRes) ? memoryRes : []);
+    } catch (e) {
+      console.log("my_area load error:", e);
+      setError(t.loadError);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [t.loadError]);
 
   useEffect(() => {
     load();
@@ -101,27 +268,24 @@ export default function MyAreaScreen() {
     else router.replace("/(tabs)/gates");
   };
 
-  const displayName =
-    me?.name ||
-    user?.name ||
-    me?.email ||
-    user?.email ||
-    me?.phone ||
-    user?.phone ||
-    "Guest";
+  const displayName = getDisplayName(profile?.name, user?.name, user?.email);
+  const emotion = mapEmotion(profile?.dominant_emotion, lang);
+  const intent = mapIntent(profile?.intent, lang);
+  const pattern = mapPattern(profile?.pattern, lang);
+  const sanriLevel = profile?.sanri_level || 1;
+  const sanriArchetype = mapArchetype(profile?.sanri_archetype, lang);
+  const sanriTone = mapTone(profile?.sanri_tone, lang);
 
-  const badgeText = me?.is_premium
-    ? "PREMIUM"
-    : (me?.plan || me?.role || "FREE").toUpperCase();
-
-  const memoryCount = memories.length;
+  const recentMemories = memories
+    .filter((item) => item?.content)
+    .slice(0, 6);
 
   if (loading) {
     return (
       <View style={styles.loadingRoot}>
         <StatusBar barStyle="light-content" />
         <ActivityIndicator size="large" color="#8df5d2" />
-        <Text style={styles.loadingText}>Sanrı alanı yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t.loading}</Text>
       </View>
     );
   }
@@ -154,20 +318,38 @@ export default function MyAreaScreen() {
           />
         }
       >
-        <Pressable onPress={goBack} style={styles.backBtn}>
-          <Text style={styles.backTxt}>←</Text>
-        </Pressable>
+        <View style={styles.topRow}>
+          <Pressable onPress={goBack} style={styles.backBtn}>
+            <Text style={styles.backTxt}>←</Text>
+          </Pressable>
+
+          <View style={styles.langRow}>
+            <Pressable
+              onPress={() => setLang("tr")}
+              style={[styles.langChip, lang === "tr" && styles.langChipActive]}
+            >
+              <Text style={[styles.langText, lang === "tr" && styles.langTextActive]}>TR</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setLang("en")}
+              style={[styles.langChip, lang === "en" && styles.langChipActive]}
+            >
+              <Text style={[styles.langText, lang === "en" && styles.langTextActive]}>EN</Text>
+            </Pressable>
+          </View>
+        </View>
 
         <Text style={styles.kicker}>MY AREA</Text>
-        <Text style={styles.title}>Benim Alanım</Text>
-        <Text style={styles.subtitle}>Sanrı burada seni hatırlamaya başlar.</Text>
+        <Text style={styles.title}>{t.pageTitle}</Text>
+        <Text style={styles.subtitle}>{t.pageSubtitle}</Text>
 
         {error ? (
           <BlurView intensity={30} tint="dark" style={styles.errorCard}>
-            <Text style={styles.errorTitle}>Sistem uyarısı</Text>
+            <Text style={styles.errorTitle}>{t.systemWarn}</Text>
             <Text style={styles.errorText}>{error}</Text>
             <Pressable onPress={load} style={styles.retryBtn}>
-              <Text style={styles.retryTxt}>Tekrar Dene</Text>
+              <Text style={styles.retryTxt}>{t.retry}</Text>
             </Pressable>
           </BlurView>
         ) : null}
@@ -175,117 +357,100 @@ export default function MyAreaScreen() {
         <BlurView intensity={34} tint="dark" style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {(String(displayName).slice(0, 1) || "G").toUpperCase()}
+              {(String(displayName).slice(0, 1) || "S").toUpperCase()}
             </Text>
           </View>
 
           <View style={styles.profileContent}>
-            <Text style={styles.name}>{displayName}</Text>
-            <Text style={styles.profileSub}>Kişisel bilinç alanı</Text>
+            <Text style={styles.name} numberOfLines={1}>
+              {displayName}
+            </Text>
+            <Text style={styles.profileSub}>{t.personalField}</Text>
 
             <View style={styles.badges}>
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>{badgeText}</Text>
+                <Text style={styles.badgeText}>
+                  {memories.length} {t.memoryCount}
+                </Text>
               </View>
 
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>{memoryCount} hafıza izi</Text>
+                <Text style={styles.badgeText}>
+                  {t.level} {sanriLevel}
+                </Text>
               </View>
 
-              {me?.is_verified ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>Verified</Text>
-                </View>
-              ) : null}
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{sanriArchetype}</Text>
+              </View>
             </View>
           </View>
         </BlurView>
 
         <BlurView intensity={30} tint="dark" style={styles.sectionCard}>
-          <Text style={styles.sectionMini}>Bugünün Frekansı</Text>
-          <Text style={styles.sectionBig}>{insight?.theme || "Yumuşama"}</Text>
+          <Text style={styles.sectionTitle}>{t.profile}</Text>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t.emotion}</Text>
+            <Text style={styles.infoValue}>{emotion}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t.intent}</Text>
+            <Text style={styles.infoValue}>{intent}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t.pattern}</Text>
+            <Text style={styles.infoValue}>{pattern}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t.archetype}</Text>
+            <Text style={styles.infoValue}>{sanriArchetype}</Text>
+          </View>
+
+          <View style={styles.infoRowNoBorder}>
+            <Text style={styles.infoLabel}>{t.tone}</Text>
+            <Text style={styles.infoValue}>{sanriTone}</Text>
+          </View>
         </BlurView>
 
         <BlurView intensity={30} tint="dark" style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Sanrı Insight</Text>
+          <Text style={styles.sectionTitle}>{t.reading}</Text>
           <Text style={styles.sectionBody}>
-            {insight?.focus ||
-              `${displayName}, bugün bastırdığın bir his çözülmek isteyebilir.`}
+            {t.reading1} <Text style={styles.highlight}>"{intent}"</Text> {t.reading2}
+          </Text>
+          <Text style={styles.sectionBody}>
+            {t.reading3} <Text style={styles.highlight}>"{emotion}"</Text>.
+          </Text>
+          <Text style={styles.sectionBody}>
+            {t.reading4} <Text style={styles.highlight}>"{sanriTone}"</Text> {t.reading5}{" "}
+            <Text style={styles.highlight}>"{sanriArchetype}"</Text> {t.reading6}
           </Text>
 
           <Pressable
             onPress={() => router.push("/(tabs)/sanri_flow")}
             style={styles.primaryBtn}
           >
-            <Text style={styles.primaryBtnTxt}>Derinleş</Text>
+            <Text style={styles.primaryBtnTxt}>{t.deepen}</Text>
           </Pressable>
         </BlurView>
 
-        <BlurView intensity={30} tint="dark" style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Bugünün bildirimi</Text>
-          <Text style={styles.sectionBody}>
-            {insight?.ritual_direction || "Bir ritüel tamamlanmak istiyor."}
-          </Text>
-        </BlurView>
+        <BlurView intensity={30} tint="dark" style={styles.memoryCard}>
+          <Text style={styles.sectionTitle}>{t.memories}</Text>
 
-        <View style={styles.grid}>
-          <Pressable
-            onPress={() => router.push("/profile" as any)}
-            style={styles.gridCard}
-          >
-            <BlurView intensity={28} tint="dark" style={styles.gridInner}>
-              <Text style={styles.gridTitle}>Profil</Text>
-              <Text style={styles.gridDesc}>kimlik bilgilerin</Text>
-            </BlurView>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push("/(tabs)/memory")}
-            style={styles.gridCard}
-          >
-            <BlurView intensity={28} tint="dark" style={styles.gridInner}>
-              <Text style={styles.gridTitle}>Hafızam</Text>
-              <Text style={styles.gridDesc}>kaydedilen temalar</Text>
-            </BlurView>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push("/rituel-history" as any)}
-            style={styles.gridCard}
-          >
-            <BlurView intensity={28} tint="dark" style={styles.gridInner}>
-              <Text style={styles.gridTitle}>Ritüel Geçmişim</Text>
-              <Text style={styles.gridDesc}>Sanrı’nın önerileri</Text>
-            </BlurView>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push("/(tabs)/sanri_flow")}
-            style={styles.gridCard}
-          >
-            <BlurView intensity={28} tint="dark" style={styles.gridInner}>
-              <Text style={styles.gridTitle}>System Feed</Text>
-              <Text style={styles.gridDesc}>sistem feed ve analizler</Text>
-            </BlurView>
-          </Pressable>
-        </View>
-
-        <BlurView intensity={28} tint="dark" style={styles.memoryCard}>
-          <Text style={styles.sectionTitle}>Son Hafıza İzleri</Text>
-
-          {memories.length === 0 ? (
-            <Text style={styles.emptyText}>
-              Henüz kayıtlı hafıza yok. İlk izini bıraktığında bu alan canlanacak.
-            </Text>
+          {recentMemories.length === 0 ? (
+            <Text style={styles.emptyText}>{t.empty}</Text>
           ) : (
-            memories.slice(0, 5).map((item) => (
-              <View key={String(item.id)} style={styles.memoryItem}>
+            recentMemories.map((item, index) => (
+              <View key={`${item.type}-${index}`} style={styles.memoryItem}>
                 <View style={styles.memoryTypeWrap}>
-                  <Text style={styles.memoryType}>{item.type || "auto"}</Text>
+                  <Text style={styles.memoryType}>{mapMemoryType(item.type, lang)}</Text>
                 </View>
 
-                <Text style={styles.memoryContent} numberOfLines={3}>
-                  {item.content}
+                <Text style={styles.memoryContent}>
+                  {cleanMemoryContent(item.content)}
                 </Text>
               </View>
             ))
@@ -339,6 +504,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingHorizontal: 18,
   },
+  topRow: {
+    marginBottom: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   backBtn: {
     width: 50,
     height: 50,
@@ -348,13 +519,38 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
-    marginBottom: 18,
   },
   backTxt: {
     color: "#8df5d2",
     fontSize: 24,
     fontWeight: "700",
     marginTop: -2,
+  },
+  langRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  langChip: {
+    minWidth: 58,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  langChipActive: {
+    backgroundColor: "rgba(141,245,210,0.12)",
+    borderColor: "rgba(141,245,210,0.25)",
+  },
+  langText: {
+    color: "rgba(255,255,255,0.72)",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+  langTextActive: {
+    color: "#8df5d2",
   },
   kicker: {
     color: "rgba(255,255,255,0.62)",
@@ -365,7 +561,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "white",
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: "900",
   },
   subtitle: {
@@ -434,6 +630,7 @@ const styles = StyleSheet.create({
   },
   profileContent: {
     flex: 1,
+    minWidth: 0,
   },
   name: {
     color: "white",
@@ -473,27 +670,41 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.10)",
     backgroundColor: "rgba(255,255,255,0.06)",
   },
-  sectionMini: {
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 10,
-  },
-  sectionBig: {
-    color: "white",
-    fontSize: 28,
-    fontWeight: "900",
-  },
   sectionTitle: {
     color: "#8df5d2",
     fontSize: 16,
     fontWeight: "900",
     marginBottom: 12,
   },
+  infoRow: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.06)",
+  },
+  infoRowNoBorder: {
+    paddingTop: 8,
+  },
+  infoLabel: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 13,
+    marginBottom: 3,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  infoValue: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+  },
   sectionBody: {
     color: "rgba(255,255,255,0.90)",
     fontSize: 17,
-    lineHeight: 30,
+    lineHeight: 28,
+    marginBottom: 10,
+  },
+  highlight: {
+    color: "#8df5d2",
+    fontWeight: "800",
   },
   primaryBtn: {
     marginTop: 18,
@@ -508,66 +719,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900",
   },
-  grid: {
-    gap: 14,
-    marginBottom: 16,
-  },
-  gridCard: {
-    borderRadius: 24,
-    overflow: "hidden",
-  },
-  gridInner: {
-    minHeight: 104,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    justifyContent: "center",
-  },
-  gridTitle: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 6,
-  },
-  gridDesc: {
-    color: "rgba(255,255,255,0.68)",
-    fontSize: 15,
-  },
   memoryCard: {
     borderRadius: 26,
     padding: 20,
+    marginBottom: 16,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
     backgroundColor: "rgba(255,255,255,0.06)",
   },
-  emptyText: {
-    color: "rgba(255,255,255,0.70)",
-    fontSize: 15,
-    lineHeight: 24,
-  },
   memoryItem: {
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
+    marginBottom: 14,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
   },
   memoryTypeWrap: {
     alignSelf: "flex-start",
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(141,245,210,0.12)",
     marginBottom: 8,
   },
   memoryType: {
     color: "#8df5d2",
     fontSize: 12,
-    fontWeight: "900",
+    fontWeight: "800",
     textTransform: "uppercase",
   },
   memoryContent: {
     color: "rgba(255,255,255,0.88)",
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  emptyText: {
+    color: "rgba(255,255,255,0.72)",
     fontSize: 15,
     lineHeight: 24,
   },

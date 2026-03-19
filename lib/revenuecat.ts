@@ -24,10 +24,8 @@ export function getRevenueCatInitError() {
 export async function initRevenueCat(): Promise<boolean> {
   if (configured) return true;
   if (configuring) return false;
-
-  // Dev ortamında ödeme sistemini sessizce kapat
   if (__DEV__) {
-    lastInitError = null;
+    lastInitError = "Expo Go / dev modda RevenueCat gerçek satın alma çalışmaz.";
     return false;
   }
 
@@ -61,20 +59,22 @@ export async function getCustomerInfoSafe(): Promise<CustomerInfo | null> {
   if (!ok) return null;
 
   try {
-    return await Purchases.getCustomerInfo();
+    const info = await Purchases.getCustomerInfo();
+    return info ?? null;
   } catch (error: any) {
     lastInitError = error?.message || "Customer info alınamadı";
     return null;
   }
 }
 
-// Geriye uyum için alias
-export const getCustomerInfo = getCustomerInfoSafe;
-
 export async function hasVipEntitlement(): Promise<boolean> {
   const info = await getCustomerInfoSafe();
-  if (!info) return false;
-  return Boolean(info.entitlements.active["vip_access"]);
+
+  if (!info) {
+    return false;
+  }
+
+  return Boolean(info.entitlements?.active?.["vip_access"]);
 }
 
 export async function getCurrentMonthlyPackage(): Promise<PurchasesPackage | null> {
@@ -83,7 +83,7 @@ export async function getCurrentMonthlyPackage(): Promise<PurchasesPackage | nul
 
   try {
     const offerings = await Purchases.getOfferings();
-    const current = offerings.current;
+    const current = offerings?.current;
 
     if (!current) {
       lastInitError = "Satın alma sistemi henüz bağlanmamış.";
@@ -92,8 +92,8 @@ export async function getCurrentMonthlyPackage(): Promise<PurchasesPackage | nul
 
     return (
       current.monthly ||
-      current.availablePackages.find((pkg) => pkg.identifier === "$rc_monthly") ||
-      current.availablePackages[0] ||
+      current.availablePackages?.find((pkg) => pkg.identifier === "$rc_monthly") ||
+      current.availablePackages?.[0] ||
       null
     );
   } catch (error: any) {
@@ -121,10 +121,12 @@ export async function buySanriPremium(): Promise<PremiumPurchaseResult> {
   const isActive = await hasVipEntitlement();
   if (isActive) {
     const info = await getCustomerInfoSafe();
-    return {
-      ok: true,
-      customerInfo: info as CustomerInfo,
-    };
+    if (info) {
+      return {
+        ok: true,
+        customerInfo: info,
+      };
+    }
   }
 
   const monthlyPackage = await getCurrentMonthlyPackage();
