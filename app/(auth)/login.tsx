@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -59,7 +59,7 @@ const COPY = {
 } as const;
 
 export default function LoginScreen() {
-  const { setSession, isAuthenticated, isLoading } = useAuth();
+  const { setSession } = useAuth();
 
   const [lang, setLang] = useState<Lang>("tr");
   const [tab, setTab] = useState<Tab>("login");
@@ -68,12 +68,6 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const t = useMemo(() => COPY[lang], [lang]);
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.replace("/rabbit" as any);
-    }
-  }, [isLoading, isAuthenticated]);
 
   const disabled = useMemo(() => {
     return !email.trim() || !pass.trim() || submitting;
@@ -94,30 +88,25 @@ export default function LoginScreen() {
     try {
       setSubmitting(true);
 
-      if (tab === "login") {
-        const normalizedEmail = email.trim().toLowerCase();
-        console.log("LOGIN URL =", `${API.base}/auth/login`);
+      const normalizedEmail = email.trim().toLowerCase();
 
+      if (tab === "login") {
         const data = await apiPostJson(`${API.base}/auth/login`, {
           email: normalizedEmail,
           password: pass.trim(),
         });
 
-        if (data?.requires_2fa) {
-          router.push({
-            pathname: "/2fa" as any,
-            params: { email: normalizedEmail },
-          });
-          return;
-        }
+        const user = data?.user || {};
 
         await setSession({
           token: String(data.token),
           user: {
-            id: String(data.user?.id ?? data.user_id ?? normalizedEmail),
-            name: data.user?.name ?? "",
-            email: data.user?.email ?? normalizedEmail,
-            phone: data.user?.phone ?? "",
+            id: String(user.id ?? ""),
+            name: user.name ?? "",
+            email: user.email ?? normalizedEmail,
+            phone: user.phone ?? "",
+            isPremium: user.is_premium ?? false,
+            role: user.role ?? "free",
           },
         });
 
@@ -126,10 +115,27 @@ export default function LoginScreen() {
       }
 
       if (tab === "register") {
-        await apiPostJson(`${API.base}/auth/register`, {
-          email: email.trim().toLowerCase(),
+        const data = await apiPostJson(`${API.base}/auth/register`, {
+          email: normalizedEmail,
           password: pass.trim(),
         });
+
+        if (data?.token && data?.user) {
+          await setSession({
+            token: String(data.token),
+            user: {
+              id: String(data.user.id ?? ""),
+              name: data.user.name ?? "",
+              email: data.user.email ?? normalizedEmail,
+              phone: data.user.phone ?? "",
+              isPremium: data.user.is_premium ?? false,
+              role: data.user.role ?? "free",
+            },
+          });
+
+          router.replace("/rabbit" as any);
+          return;
+        }
 
         Alert.alert("Alert", t.registerOk);
         setTab("login");
@@ -162,9 +168,6 @@ export default function LoginScreen() {
   };
 
   const primaryText = tab === "login" ? t.loginBtn : t.registerBtn;
-
-  if (isLoading) return null;
-  if (isAuthenticated) return null;
 
   return (
     <View style={styles.root}>
