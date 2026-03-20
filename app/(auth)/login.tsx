@@ -96,6 +96,7 @@ export default function LoginScreen() {
 
       if (tab === "login") {
         const normalizedEmail = email.trim().toLowerCase();
+        console.log("LOGIN URL =", `${API.base}/auth/login`);
 
         const data = await apiPostJson(`${API.base}/auth/login`, {
           email: normalizedEmail,
