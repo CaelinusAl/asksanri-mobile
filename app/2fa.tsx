@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE } from "../lib/config";
 
 export default function TwoFAScreen() {
   const { setSession } = useAuth();
@@ -16,8 +17,15 @@ export default function TwoFAScreen() {
   const [code, setCode] = useState("");
 
   const onVerify = async () => {
+  if (!email) {
+    Alert.alert("Hata", "E-posta bilgisi eksik.");
+    return;
+  }
   try {
-    const res = await fetch("https://api.asksanri.com/auth/2fa/verify-login", {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+
+    const res = await fetch(`${API_BASE}/auth/2fa/verify-login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -26,12 +34,19 @@ export default function TwoFAScreen() {
         email,
         code,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timer);
 
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       Alert.alert("Hata", data?.detail || "2FA başarısız");
+      return;
+    }
+
+    if (!data?.token) {
+      Alert.alert("Hata", "Token alınamadı.");
       return;
     }
 

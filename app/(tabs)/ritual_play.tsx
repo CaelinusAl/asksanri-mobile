@@ -43,7 +43,7 @@ export default function RitualPlayScreen() {
         if (!alive) return;
         setPack(data);
       } catch (e) {
-        console.log("ritual_play fetch error", e);
+        if (__DEV__) console.log("ritual_play fetch error", e);
       } finally {
         if (!alive) return;
         setLoading(false);

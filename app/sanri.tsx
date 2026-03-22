@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { API, apiPostJson } from "../lib/apiClient";
 
 type Role = "user" | "sanri";
 type Msg = { id: string; role: Role; text: string };
@@ -41,7 +42,11 @@ export default function SanriScreen() {
 
   const scrollRef = useRef<ScrollView>(null);
 
-  const API_URL = "https://api.asksanri.com";
+  useEffect(() => {
+    return () => {
+      typingCancelRef.current.alive = false;
+    };
+  }, []);
 
   // ✅ Kapıdan gelen prefill varsa otomatik yaz
   useEffect(() => {
@@ -58,38 +63,23 @@ export default function SanriScreen() {
     const userMsg: Msg = { id: uid(), role: "user", text: msg };
     setMessages((prev) => [...prev, userMsg]);
 
-    // placeholder sanri msg (will be typed into)
     const sanriId = uid();
     setMessages((prev) => [...prev, { id: sanriId, role: "sanri", text: "" }]);
     setActiveTypingId(sanriId);
 
     try {
-      const res = await fetch(`${API_URL}/bilinc-alani/ask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const data: any = await apiPostJson(
+        API.ask,
+        {
           message: msg,
           question: msg,
           session_id: "mobile",
-          mode: mode, // ✅ kapıdan gelen mode
-          domain: domain, // ✅ kapıdan gelen domain
+          mode: mode,
+          domain: domain,
           lang: "tr",
-        }),
-      });
-
-      const data: any = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        const detail = data?.detail || data?.message || `HTTP ${res.status}`;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === sanriId ? { ...m, text: `Hata: ${detail}` } : m,
-          ),
-        );
-        setActiveTypingId(null);
-        setIsSending(false);
-        return;
-      }
+        },
+        60000
+      );
 
       const full =
         String(
@@ -230,6 +220,7 @@ export default function SanriScreen() {
           <TextInput
             value={input}
             onChangeText={setInput}
+            maxLength={2000}
             placeholder="Bir cümle yaz…"
             placeholderTextColor="#777"
             multiline

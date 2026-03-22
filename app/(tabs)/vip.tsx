@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Linking,
 } from "react-native";
 
 import { router, useLocalSearchParams } from "expo-router";
@@ -20,11 +21,16 @@ import {
   getCustomerInfo,
   getRevenueCatInitError,
   openManageSubscriptions,
+  restoreSanriPurchases,
+  getCurrentMonthlyPackage,
 } from "../../lib/revenuecat";
 import { setVipJustActivated } from "../../lib/vipPulse";
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 const RABBIT = require("../../assets/rabbit.jpg");
+
+const PRIVACY_URL = "https://asksanri.com/privacy";
+const TERMS_URL = "https://asksanri.com/terms";
 
 export default function VipScreen() {
   const params = useLocalSearchParams<{
@@ -38,18 +44,30 @@ export default function VipScreen() {
   const tr = lang === "tr";
 
   const [loading, setLoading] = useState(false);
+  const [priceString, setPriceString] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentMonthlyPackage().then((pkg) => {
+      if (pkg?.product?.priceString) {
+        setPriceString(pkg.product.priceString + (tr ? " / ay" : " / month"));
+      }
+    });
+  }, [tr]);
+
+  const priceReady = !!priceString;
+  const displayPrice = priceString || (tr ? "Fiyat yükleniyor..." : "Loading price...");
 
   const copy = {
-    title: tr ? "BİLİNÇ KAPISI" : "CONSCIOUSNESS GATE",
+    title: tr ? "BILINC KAPISI" : "CONSCIOUSNESS GATE",
     sub: tr
-      ? "Derin katmanlar + tam erişim. Kapı “Derinleş” ile açılır."
-      : "Deep layers + full access. The gate opens with “Deepen”.",
+      ? "Derin katmanlar + tam erisim. Kapi acilir."
+      : "Deep layers + full access. The gate opens.",
     bullets: tr
       ? [
-          "Derin şehir okumaları",
-          "Sanrı kişisel bilinç analizi",
-          "Sembol katmanı",
-          "Ritüel yönlendirme",
+          "Derin sehir okumalari",
+          "Sanri kisisel bilinc analizi",
+          "Sembol katmani",
+          "Rituel yonlendirme",
           "Gelecek katmanlar",
         ]
       : [
@@ -59,18 +77,26 @@ export default function VipScreen() {
           "Ritual guidance",
           "Future layers",
         ],
-    buy: tr ? "Bilinç Kapısını Aç" : "Open Consciousness Gate",
-    close: tr ? "Şimdi değil" : "Not now",
-    verifyFail: tr ? "VIP erişimi doğrulanamadı." : "VIP access could not be verified.",
+    buy: tr ? "Bilinc Kapisini Ac" : "Open Consciousness Gate",
+    restore: tr ? "Satin Alimi Geri Yukle" : "Restore Purchase",
+    close: tr ? "Simdi degil" : "Not now",
+    verifyFail: tr ? "VIP erisimi dogrulanamadi." : "VIP access could not be verified.",
     vipActive: tr ? "VIP aktif!" : "VIP activated!",
-    purchaseError: tr ? "Satın alma hatası" : "Purchase error",
+    purchaseError: tr ? "Satin alma hatasi" : "Purchase error",
+    noActive: tr ? "Aktif bir abonelik bulunamadi." : "No active subscription found.",
+    restored: tr ? "Abonelik geri yuklendi." : "Subscription restored.",
     devInfo:
       getRevenueCatInitError() ||
       (tr
-        ? "Satın alma sistemi şu anda hazır değil."
+        ? "Satin alma sistemi su anda hazir degil."
         : "Purchase system is not ready right now."),
-    manage: tr ? "Abonelikleri Yönet" : "Manage Subscriptions",
+    manage: tr ? "Abonelikleri Yonet" : "Manage Subscriptions",
     pendingTitle: tr ? "Abonelik Durumu" : "Subscription Status",
+    autoRenew: tr
+      ? "Abonelik aylik olarak otomatik yenilenir. Istedigin zaman hesap ayarlarindan iptal edebilirsin. Odeme isleminden sonra Apple/Google hesabindan tahsil edilir."
+      : "Subscription auto-renews monthly. Cancel anytime from account settings. Payment is charged to your Apple/Google account after purchase.",
+    termsLabel: tr ? "Kullanim Sartlari" : "Terms of Use",
+    privacyLabel: tr ? "Gizlilik Politikasi" : "Privacy Policy",
   };
 
   const goAfterSuccess = () => {
@@ -131,17 +157,16 @@ export default function VipScreen() {
       }
 
       const info = await getCustomerInfo();
-      const hasVip = Boolean(info?.entitlements?.active?.["vip_access"]);
 
       if (!info) {
-  Alert.alert("Alert", "Satın alma bilgisi alınamadı");
-  return;
-}
+        Alert.alert("Alert", copy.verifyFail);
+        return;
+      }
 
-      Alert.alert("Alert", copy.vipActive);
+      Alert.alert("OK", copy.vipActive);
       goAfterSuccess();
     } catch (e: any) {
-      console.log("VIP purchase error:", e);
+      if (__DEV__) console.log("VIP purchase error:", e);
 
       if (e?.userCancelled) return;
 
@@ -151,6 +176,28 @@ export default function VipScreen() {
           : copy.devInfo;
 
       Alert.alert("Alert", msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRestore = async () => {
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const restored = await restoreSanriPurchases();
+
+      if (!restored) {
+        Alert.alert("Info", copy.noActive);
+        return;
+      }
+
+      Alert.alert("OK", copy.restored);
+      goAfterSuccess();
+    } catch (e: any) {
+      if (__DEV__) console.log("VIP restore error:", e);
+      Alert.alert("Alert", e?.message || copy.devInfo);
     } finally {
       setLoading(false);
     }
@@ -197,15 +244,15 @@ export default function VipScreen() {
           <View style={styles.list}>
             {copy.bullets.map((item) => (
               <Text key={item} style={styles.bullet}>
-                • {item}
+                {"\u2022"} {item}
               </Text>
             ))}
           </View>
 
           <Pressable
-            style={[styles.cta, loading && styles.ctaDisabled]}
+            style={[styles.cta, (loading || !priceReady) && styles.ctaDisabled]}
             onPress={onPurchase}
-            disabled={loading}
+            disabled={loading || !priceReady}
           >
             {loading ? (
               <ActivityIndicator color="white" />
@@ -214,7 +261,35 @@ export default function VipScreen() {
             )}
           </Pressable>
 
-          <Text style={styles.alt}>693 TL / ay</Text>
+          <Text style={styles.alt}>{displayPrice}</Text>
+
+          <Pressable
+            style={styles.secondaryBtn}
+            onPress={onRestore}
+            disabled={loading}
+          >
+            <Text style={styles.secondaryTxt}>{copy.restore}</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.secondaryBtn}
+            onPress={() => openManageSubscriptions().catch(() => {})}
+            disabled={loading}
+          >
+            <Text style={styles.secondaryTxt}>{copy.manage}</Text>
+          </Pressable>
+
+          <Text style={styles.legalNote}>{copy.autoRenew}</Text>
+
+          <View style={styles.legalRow}>
+            <Pressable onPress={() => Linking.openURL(TERMS_URL)}>
+              <Text style={styles.legalLink}>{copy.termsLabel}</Text>
+            </Pressable>
+            <Text style={styles.legalDot}>{" \u00B7 "}</Text>
+            <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
+              <Text style={styles.legalLink}>{copy.privacyLabel}</Text>
+            </Pressable>
+          </View>
 
           <Pressable
             style={styles.backBtn}
@@ -351,6 +426,46 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.45)",
     fontSize: 12,
     textAlign: "center",
+  },
+
+  secondaryBtn: {
+    marginTop: 10,
+    borderRadius: 16,
+    paddingVertical: 13,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+
+  secondaryTxt: {
+    color: "rgba(255,255,255,0.88)",
+    fontWeight: "700",
+  },
+
+  legalNote: {
+    marginTop: 16,
+    color: "rgba(255,255,255,0.38)",
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+  },
+
+  legalRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+  },
+
+  legalLink: {
+    color: "rgba(124,247,216,0.65)",
+    fontSize: 12,
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
+
+  legalDot: {
+    color: "rgba(255,255,255,0.30)",
+    fontSize: 12,
   },
 
   backBtn: {

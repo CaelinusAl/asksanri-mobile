@@ -1,16 +1,16 @@
-// lib/auth.ts
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// lib/auth.ts — uses same storage layer as AuthContext (lib/storage.ts)
+import { storageGet, storageSet, storageDelete } from "./storage";
 
-const TOKEN_KEY = "sanri_token";
+const TOKEN_KEY = "user_token";
 
 export async function setToken(token: string) {
-  await AsyncStorage.setItem(TOKEN_KEY, token);
+  await storageSet(TOKEN_KEY, token);
 }
 
 export async function getToken() {
-  return await AsyncStorage.getItem(TOKEN_KEY);
+  return await storageGet(TOKEN_KEY);
 }
 
 export async function clearToken() {
-  await AsyncStorage.removeItem(TOKEN_KEY);
+  await storageDelete(TOKEN_KEY);
 }

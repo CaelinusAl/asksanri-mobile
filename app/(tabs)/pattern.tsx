@@ -15,7 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 
-const API_BASE = "https://api.asksanri.com";
+import { API, apiPostJson } from "../../lib/apiClient";
 type Lang = "tr" | "en";
 
 const T = {
@@ -148,20 +148,13 @@ export default function PatternScreen() {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } catch {}
 
-      const res = await fetch(API_BASE + "/bilinc-alani/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: buildMessage(),
-          session_id: "mobile-default",
-          domain: "ust_bilinc",
-          gate_mode: "mirror",
-          persona: "user",
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(String(data?.detail || "HTTP " + res.status));
+      const data = await apiPostJson(API.ask, {
+        message: buildMessage(),
+        session_id: "mobile-default",
+        domain: "ust_bilinc",
+        gate_mode: "mirror",
+        persona: "user",
+      }, 30000);
 
       const answer = String(data?.answer || data?.response || "").trim();
       setOut(answer || T[lang].empty);
@@ -213,6 +206,7 @@ export default function PatternScreen() {
           <TextInput
             value={link}
             onChangeText={setLink}
+            maxLength={2000}
             placeholder={T[lang].optional}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
@@ -222,6 +216,7 @@ export default function PatternScreen() {
           <TextInput
             value={event1}
             onChangeText={setEvent1}
+            maxLength={200}
             placeholder={T[lang].e1}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
@@ -231,6 +226,7 @@ export default function PatternScreen() {
           <TextInput
             value={event2}
             onChangeText={setEvent2}
+            maxLength={200}
             placeholder={T[lang].e2}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
@@ -240,6 +236,7 @@ export default function PatternScreen() {
           <TextInput
             value={event3}
             onChangeText={setEvent3}
+            maxLength={200}
             placeholder={T[lang].e3}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
@@ -249,6 +246,7 @@ export default function PatternScreen() {
           <TextInput
             value={themeWord}
             onChangeText={setThemeWord}
+            maxLength={200}
             placeholder={T[lang].theme}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
@@ -258,6 +256,7 @@ export default function PatternScreen() {
           <TextInput
             value={emotion}
             onChangeText={setEmotion}
+            maxLength={200}
             placeholder={T[lang].emotion}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}

@@ -1,19 +1,22 @@
-import * as SecureStore from "expo-secure-store";
+import { API_BASE } from "./config";
+import { storageGet } from "./storage";
 
 const TOKEN_KEY = "user_token";
 const USER_KEY = "user_data";
 
-const RAW_BASE =
-  process.env.EXPO_PUBLIC_API_BASE?.trim() || "https://api.asksanri.com";
-
 export const API = {
-  base: RAW_BASE.replace(/\/+$/, ""),
+  base: API_BASE,
+  ask: `${API_BASE}/bilinc-alani/ask`,
+  transcribe: `${API_BASE}/api/voice/transcribe`,
+  ritualPack: `${API_BASE}/content/ritual-pack`,
+  deviceRegister: `${API_BASE}/device/register`,
+  dailyStream: `${API_BASE}/content/daily-stream`,
 };
 
 // ------------------ TOKEN ------------------
 async function getToken() {
   try {
-    return await SecureStore.getItemAsync(TOKEN_KEY);
+    return await storageGet(TOKEN_KEY);
   } catch {
     return null;
   }
@@ -22,7 +25,7 @@ async function getToken() {
 // ------------------ USER ID ------------------
 async function getUserId() {
   try {
-    const rawUser = await SecureStore.getItemAsync(USER_KEY);
+    const rawUser = await storageGet(USER_KEY);
 
     if (!rawUser) {
       return (globalThis as any).__user_id || null;
@@ -145,6 +148,81 @@ export async function apiPostJson(
     if (!res.ok) {
       throw new Error(
         normalizeErrorPayload(data, url, "POST", res.status)
+      );
+    }
+
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ------------------ POST FORM (multipart) ------------------
+export async function apiPostForm(
+  url: string,
+  formData: FormData,
+  timeout = 60000
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const token = await getToken();
+    const userId = await getUserId();
+
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    if (userId && String(userId).trim()) {
+      headers["X-User-Id"] = String(userId).trim();
+    }
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: formData,
+      signal: controller.signal,
+    });
+
+    const text = await res.text();
+    const data = parseResponseText(text);
+
+    if (!res.ok) {
+      throw new Error(
+        normalizeErrorPayload(data, url, "POST-FORM", res.status)
+      );
+    }
+
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ------------------ DELETE ------------------
+export async function apiDeleteJson(url: string, timeout = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const headers = await buildHeaders(true);
+
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers,
+      signal: controller.signal,
+    });
+
+    const text = await res.text();
+    const data = parseResponseText(text);
+
+    if (!res.ok) {
+      throw new Error(
+        normalizeErrorPayload(data, url, "DELETE", res.status)
       );
     }
 

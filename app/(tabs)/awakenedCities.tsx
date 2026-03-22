@@ -210,6 +210,7 @@ export default function AwakenedCitiesScreen() {
           <TextInput
             value={q}
             onChangeText={setQ}
+            maxLength={100}
             placeholder={t.search}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.search}

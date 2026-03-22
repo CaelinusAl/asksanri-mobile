@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, ImageBackground, StatusBar } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { apiPostJson, API } from "@/lib/apiClient";
+import { apiGetJson, API } from "@/lib/apiClient";
 import MatrixRain from "@/lib/MatrixRain";
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
@@ -37,9 +37,7 @@ export default function WeeklySymbolScreen() {
       setLoading(true);
       setErr("");
       try {
-        // GET yerine bizim apiClient POST var; basitçe fetch kullanalım:
-        const res = await fetch(API.base + "/content/weekly_symbol");
-        const json = await res.json();
+        const json = await apiGetJson(API.base + "/content/weekly_symbol", 30000);
         if (!alive) return;
         setData(json);
       } catch (e: any) {

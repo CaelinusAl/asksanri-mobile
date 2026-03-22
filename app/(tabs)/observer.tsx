@@ -14,7 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 
-const API_BASE = "https://api.asksanri.com";
+import { API, apiPostJson } from "../../lib/apiClient";
 type Lang = "tr" | "en";
 
 const T = {
@@ -127,22 +127,13 @@ export default function ObserverScreen() {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } catch {}
 
-      const res = await fetch(API_BASE + "/bilinc-alani/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: buildMessage(),
-          session_id: "mobile-default",
-          domain: "ust_bilinc",
-          gate_mode: "mirror",
-          persona: "user",
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(String(data?.detail || "HTTP " + res.status));
-      }
+      const data: any = await apiPostJson(API.ask, {
+        message: buildMessage(),
+        session_id: "mobile-default",
+        domain: "ust_bilinc",
+        gate_mode: "mirror",
+        persona: "user",
+      }, 30000);
 
       const answer = String(data?.answer || data?.response || "").trim();
       setOut(answer || (lang === "tr" ? "Cevap boş döndü." : "Empty response."));
@@ -194,6 +185,7 @@ export default function ObserverScreen() {
           <TextInput
             value={link}
             onChangeText={setLink}
+            maxLength={2000}
             placeholder={T[lang].optional}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
@@ -203,6 +195,7 @@ export default function ObserverScreen() {
           <TextInput
             value={eventLine}
             onChangeText={setEventLine}
+            maxLength={200}
             placeholder={T[lang].e1}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
@@ -212,6 +205,7 @@ export default function ObserverScreen() {
           <TextInput
             value={whoWhatWhere}
             onChangeText={setWhoWhatWhere}
+            maxLength={200}
             placeholder={T[lang].e2}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={[styles.input, { minHeight: 90 }]}
@@ -222,6 +216,7 @@ export default function ObserverScreen() {
           <TextInput
             value={emotion}
             onChangeText={setEmotion}
+            maxLength={200}
             placeholder={T[lang].e3}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}

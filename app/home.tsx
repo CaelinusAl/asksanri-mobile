@@ -64,11 +64,11 @@ export default function HomeScreen() {
       <LinearGradient colors={bg} style={StyleSheet.absoluteFillObject} />
 
       {/* 0.5) Matrix rain background image */}
-<     ImageBackground
-      source={MATRIX_BG}
-      style={StyleSheet.absoluteFillObject}
-      resizeMode="cover"
-/>
+      <ImageBackground
+        source={MATRIX_BG}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
 
       {/* 1) Akan MatrixRain */}
       <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>

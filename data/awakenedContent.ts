@@ -1,4 +1,4 @@
-// data/awakenedContent.ts
+﻿// data/awakenedContent.ts
 import { CITY_NAMES, type CityCode } from "@/data/awakenedCities";
 
 
@@ -15981,7 +15981,7 @@ export const CITY_81: Record<CityCode, City7> = {
 };
 
 /**
- * ✅ 02–81 stub (tam boş → ekranda $ vs çıkmaz)
+ * ✅ 02–81 fallback (icerik olmayan sehirler icin guvenlik katmani -ş → ekranda $ vs çıkmaz)
  * Dilersen boş olanları UI’da “yakında” diye gösterebiliriz.
  */
 export const STUB_01_81: Record<CityCode, City7> = Object.fromEntries(

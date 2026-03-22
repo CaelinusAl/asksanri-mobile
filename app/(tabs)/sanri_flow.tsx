@@ -40,8 +40,9 @@ function safeStr(x: any) {
   return String(x == null ? "" : x);
 }
 
-const IOS_STORE_URL = "https://apps.apple.com/app/idBURAYA_APP_ID";
-const ANDROID_STORE_URL = "https://play.google.com/store/apps/details?id=com.caelinusai.asksanri";
+const IOS_STORE_URL = "https://asksanri.com";
+const ANDROID_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.caelinusai.asksanri";
 const FALLBACK_URL = "https://asksanri.com";
 
 const BG = require("../../assets/sanri_bg.jpg");
@@ -144,6 +145,12 @@ export default function SanriFlowScreen() {
   const recordingRef = useRef<Audio.Recording | null>(null);
   const isStartingRef = useRef(false);
   const isStoppingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     setLang(initialLang);
@@ -171,7 +178,7 @@ export default function SanriFlowScreen() {
       message: `Sanrı dedi ki:\n\n"${text}"\n\nSanrı — Ask and Remember\n${storeUrl}`,
     });
   } catch (e) {
-    console.log("share error", e);
+    if (__DEV__) console.log("share error", e);
   }
 };
 
@@ -215,6 +222,8 @@ export default function SanriFlowScreen() {
     let i = 0;
 
     const step = () => {
+      if (!mountedRef.current) return;
+
       i = Math.min(i + 1, fullText.length);
       const part = fullText.slice(0, i);
 
@@ -280,15 +289,14 @@ export default function SanriFlowScreen() {
   session_id: "mobile-default",
   lang,
 };
-        console.log("SANRI_SEND", payload);
+        if (__DEV__) console.log("SANRI_SEND", payload);
         const data: any = await apiPostJson(API.ask, payload, 60000);
 
-        console.log("SANRI_RAW_RESPONSE", data);
-        try {
-          console.log("SANRI_KEYS", Object.keys(data || {}));
-        } catch {}
-
-        console.log("API ASK =", API.ask)
+        if (__DEV__) {
+          console.log("SANRI_RAW_RESPONSE", data);
+          try { console.log("SANRI_KEYS", Object.keys(data || {})); } catch {}
+          console.log("API ASK =", API.ask);
+        }
 
   
         const answer =
@@ -299,8 +307,10 @@ export default function SanriFlowScreen() {
         await typeIntoLoader(loaderId, answer);
       } catch (e: any) {
 
-  console.log("SANRI_RAW_ERROR", e);
-  console.log("SANRI_RESPONSE_DATA", e?.response?.data);
+  if (__DEV__) {
+    console.log("SANRI_RAW_ERROR", e);
+    console.log("SANRI_RESPONSE_DATA", e?.response?.data);
+  }
 
   const msg =
     e?.response?.data?.detail?.error ||
@@ -399,12 +409,14 @@ export default function SanriFlowScreen() {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch {}
   } catch (e: any) {
-  console.log("SANRI ERROR:", e);
+  if (__DEV__) console.log("SANRI ERROR:", e);
   setError(
     e?.response?.data?.detail?.error ||
     e?.message ||
     JSON.stringify(e)
   );
+} finally {
+  isStartingRef.current = false;
 }
 }, [busy, lang]);
 
@@ -608,6 +620,7 @@ const stopRec = useCallback(async () => {
             <TextInput
               value={input}
               onChangeText={setInput}
+              maxLength={2000}
               placeholder={t.placeholder}
               placeholderTextColor="rgba(255,255,255,0.35)"
               style={styles.input}
@@ -635,7 +648,7 @@ const stopRec = useCallback(async () => {
 
 <Pressable
   onPress={() => {
-    console.log("SEND PRESSED");
+    if (__DEV__) console.log("SEND PRESSED");
     send();
   }}
   style={[styles.sendBtn, (!input.trim() || busy) && { opacity: 0.6 }]}

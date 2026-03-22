@@ -74,7 +74,7 @@ export default function ExploreScreen() {
             return (
               <Pressable
                 key={code}
-                onPress={() => router.push("/(tabs)/cities")}
+                onPress={() => router.push("/(tabs)/awakenedCities")}
                 style={[styles.cell, active && styles.cellActive]}
                 hitSlop={10}
               >

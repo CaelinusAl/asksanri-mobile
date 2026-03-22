@@ -96,6 +96,11 @@ export default function LoginScreen() {
           password: pass.trim(),
         });
 
+        if (!data?.token) {
+          Alert.alert("Alert", lang === "tr" ? "Sunucu token döndürmedi." : "Server did not return a token.");
+          return;
+        }
+
         const user = data?.user || {};
 
         await setSession({
@@ -248,6 +253,7 @@ export default function LoginScreen() {
                 <TextInput
                   value={email}
                   onChangeText={setEmail}
+                  maxLength={254}
                   placeholder={t.email}
                   placeholderTextColor="rgba(203,188,255,0.35)"
                   autoCapitalize="none"
@@ -258,6 +264,7 @@ export default function LoginScreen() {
                 <TextInput
                   value={pass}
                   onChangeText={setPass}
+                  maxLength={72}
                   placeholder={t.pass}
                   placeholderTextColor="rgba(203,188,255,0.35)"
                   secureTextEntry

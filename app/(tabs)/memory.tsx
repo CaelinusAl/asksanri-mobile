@@ -30,7 +30,7 @@ const data:any = await apiGetJson(`${API.base}/memory`,20000)
 setItems(data || [])
 
 }catch(e){
-console.log(e)
+if (__DEV__) console.log(e)
 }
 
 }

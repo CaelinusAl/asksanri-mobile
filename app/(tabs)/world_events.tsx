@@ -203,6 +203,7 @@ Use these headings:
           <TextInput
             value={url}
             onChangeText={setUrl}
+            maxLength={2000}
             placeholder={t.urlPlaceholder}
             placeholderTextColor="rgba(255,255,255,0.38)"
             autoCapitalize="none"
@@ -215,6 +216,7 @@ Use these headings:
           <TextInput
             value={note}
             onChangeText={setNote}
+            maxLength={1000}
             placeholder={t.notePlaceholder}
             placeholderTextColor="rgba(255,255,255,0.38)"
             multiline

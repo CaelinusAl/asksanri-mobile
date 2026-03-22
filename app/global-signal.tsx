@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { API_BASE } from "../lib/config";
+import { useAuth } from "../context/AuthContext";
 import MatrixRain from "../lib/MatrixRain";
 
 const BG = require("../assets/global_signal_bg.jpg");
@@ -152,6 +153,9 @@ function PulseDot({
 }
 
 export default function GlobalSignalScreen() {
+  const { user } = useAuth();
+  const userId = user?.id || "anonymous";
+
   const [text, setText] = useState("");
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -159,32 +163,42 @@ export default function GlobalSignalScreen() {
   const [error, setError] = useState("");
   const [echo, setEcho] = useState<EchoData | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [userId] = useState("selin-device");
 
   const loadStream = async () => {
+    const ctrl = new AbortController();
+    const tmr = setTimeout(() => ctrl.abort(), 15000);
     try {
       setLoading(true);
       setError("");
 
-      const res = await fetch(`${API_BASE}/global-signal/stream`);
+      const res = await fetch(`${API_BASE}/global-signal/stream`, {
+        signal: ctrl.signal,
+      });
       const data = await res.json();
 
       setSignals(Array.isArray(data?.signals) ? data.signals : []);
     } catch (e) {
       setError("Akış yüklenemedi.");
     } finally {
+      clearTimeout(tmr);
       setLoading(false);
     }
   };
 
   const loadNotifications = async () => {
+    const ctrl = new AbortController();
+    const tmr = setTimeout(() => ctrl.abort(), 15000);
     try {
       const res = await fetch(
-        `${API_BASE}/global-signal/notifications?user_id=${userId}`
+        `${API_BASE}/global-signal/notifications?user_id=${encodeURIComponent(userId)}`,
+        { signal: ctrl.signal }
       );
       const data = await res.json();
       setNotifications(Array.isArray(data?.items) ? data.items : []);
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      clearTimeout(tmr);
+    }
   };
 
   const sendSignal = async () => {
@@ -195,6 +209,8 @@ export default function GlobalSignalScreen() {
       return;
     }
 
+    const ctrl = new AbortController();
+    const tmr = setTimeout(() => ctrl.abort(), 20000);
     try {
       setSending(true);
       setError("");
@@ -206,6 +222,7 @@ export default function GlobalSignalScreen() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ text: clean, user_id: userId }),
+        signal: ctrl.signal,
       });
 
       const data = await res.json();
@@ -218,12 +235,10 @@ export default function GlobalSignalScreen() {
       setEcho(data?.echo || null);
       setText("");
       await loadStream();
-
-      // v2 test için manuel processor tetikle
-      
     } catch (e) {
       setError("Sinyal gönderilemedi.");
     } finally {
+      clearTimeout(tmr);
       setSending(false);
     }
   };
@@ -329,6 +344,7 @@ useEffect(() => {
             <TextInput
               value={text}
               onChangeText={setText}
+              maxLength={1000}
               multiline
               placeholder="Bugün içimde sessiz bir alan var..."
               placeholderTextColor="rgba(255,255,255,0.38)"

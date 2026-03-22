@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -52,7 +52,11 @@ export default function DailyStreamScreen() {
     [lang]
   );
 
+  const requestIdRef = useRef(0);
+
   const loadDaily = useCallback(async () => {
+    const myRequestId = ++requestIdRef.current;
+
     setBusy(true);
     setErr("");
     setResult(null);
@@ -125,15 +129,20 @@ Write in English.`;
         throw new Error(lang === "tr" ? "Boş cevap geldi." : "Empty response.");
       }
 
+      if (requestIdRef.current !== myRequestId) return;
+
       setResult({
         title: lang === "tr" ? "Bugünün Akışı" : "Today's Stream",
         body,
       });
     } catch (e: any) {
+      if (requestIdRef.current !== myRequestId) return;
       setErr(String(e?.message || e || t.error));
       setResult(null);
     } finally {
-      setBusy(false);
+      if (requestIdRef.current === myRequestId) {
+        setBusy(false);
+      }
     }
   }, [lang, t.error]);
 

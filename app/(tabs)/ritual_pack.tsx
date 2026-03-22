@@ -15,7 +15,7 @@ import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 
 import MatrixRain from "../../lib/MatrixRain";
-import { apiGetJson, API } from "@/lib/apiClient";
+import { apiGetJson, apiPostForm, API } from "@/lib/apiClient";
 
 type Lang = "tr" | "en";
 
@@ -185,16 +185,11 @@ export default function RitualPackScreen() {
       form.append("lang", lang);
       form.append("ritual_pack_id", pack?.ritual_pack_id || id);
 
-      const res = await fetch(`${API.base}/content/rituel/voice`, {
-        method: "POST",
-        body: form,
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json?.detail || json?.error || "Voice upload failed");
-      }
+      const json: any = await apiPostForm(
+        `${API.base}/content/rituel/voice`,
+        form,
+        60000
+      );
 
       setTranscript(String(json?.transcript || ""));
       setRitualReply(String(json?.reply || ""));

@@ -130,6 +130,12 @@ export default function GatesScreen() {
               onPress={() => onOpenGate(it)}
             />
           ))}
+
+          <Text style={styles.disclaimer}>
+            {lang === "tr"
+              ? "Sanri, kisisel gelisim ve oz-yansima icin tasarlanmis bir yapay zeka aracidir. Profesyonel saglik, psikoloji veya finansal danismanlik yerine gecmez."
+              : "Sanri is an AI tool designed for personal development and self-reflection. It is not a substitute for professional health, psychology or financial advice."}
+          </Text>
         </ScrollView>
       </ImageBackground>
     </SafeAreaView>
@@ -320,5 +326,15 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.85)",
     fontSize: 26,
     fontWeight: "900",
+  },
+
+  disclaimer: {
+    marginTop: 20,
+    marginBottom: 30,
+    color: "rgba(255,255,255,0.30)",
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+    paddingHorizontal: 10,
   },
 });
