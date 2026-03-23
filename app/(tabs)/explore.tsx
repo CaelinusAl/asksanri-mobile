@@ -58,6 +58,14 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <Pressable
+          onPress={() => { if (router.canGoBack()) router.back(); else router.replace("/(tabs)/gates" as any); }}
+          style={styles.backBtn}
+          hitSlop={10}
+        >
+          <Text style={styles.backTxt}>←</Text>
+        </Pressable>
+
         <Text style={styles.h1}>AWAKENED{"\n"}CITIES</Text>
         <Text style={styles.sub}>Choose your code. The city speaks.</Text>
 
@@ -74,7 +82,7 @@ export default function ExploreScreen() {
             return (
               <Pressable
                 key={code}
-                onPress={() => router.push("/(tabs)/cities")}
+                onPress={() => router.push("/(tabs)/awakenedCities")}
                 style={[styles.cell, active && styles.cellActive]}
                 hitSlop={10}
               >
@@ -100,7 +108,24 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
   },
 
-  container: { paddingTop: 22, paddingHorizontal: 18, paddingBottom: 24 },
+  container: { paddingTop: 56, paddingHorizontal: 18, paddingBottom: 24 },
+
+  backBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 18,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    marginBottom: 12,
+  },
+  backTxt: {
+    color: "#8df5d2",
+    fontSize: 24,
+    fontWeight: "700" as const,
+  },
 
   h1: {
     color: "white",

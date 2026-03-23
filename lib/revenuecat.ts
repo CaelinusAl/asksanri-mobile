@@ -195,7 +195,7 @@ export async function buySanriPremium(): Promise<PremiumPurchaseResult> {
         ok: false,
         reason: "purchase_not_allowed",
         message:
-          "Bu hesap veya cihaz şu anda test satın alımına uygun görünmüyor. Play test hesabını ve dahili test yüklemesini kontrol et.",
+          "Bu cihazda satin alma su anda kullanilamiyor. Lutfen cihaz veya hesap ayarlarinizi kontrol edin.",
       };
     }
 

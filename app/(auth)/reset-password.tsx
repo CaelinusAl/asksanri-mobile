@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { API_BASE } from "../../lib/config";
 import {
   View,
   Text,
@@ -77,7 +78,10 @@ export default function ResetPasswordScreen() {
     try {
       setLoading(true);
 
-      const res = await fetch("https://api.asksanri.com/auth/email/reset-password", {
+      const controller = new AbortController();
+      const tmr = setTimeout(() => controller.abort(), 20000);
+
+      const res = await fetch(`${API_BASE}/auth/email/reset-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +90,9 @@ export default function ResetPasswordScreen() {
           token,
           password: pass.trim(),
         }),
+        signal: controller.signal,
       });
+      clearTimeout(tmr);
 
       const data = await res.json().catch(() => ({}));
 
@@ -132,6 +138,7 @@ export default function ResetPasswordScreen() {
               <TextInput
                 value={pass}
                 onChangeText={setPass}
+                maxLength={72}
                 placeholder={t.pass}
                 placeholderTextColor="rgba(203,188,255,0.35)"
                 secureTextEntry
@@ -141,6 +148,7 @@ export default function ResetPasswordScreen() {
               <TextInput
                 value={confirm}
                 onChangeText={setConfirm}
+                maxLength={72}
                 placeholder={t.confirm}
                 placeholderTextColor="rgba(203,188,255,0.35)"
                 secureTextEntry

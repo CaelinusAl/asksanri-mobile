@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import * as SecureStore from "expo-secure-store";
+import { storageDelete, storageGet, storageSet } from "../lib/storage";
 
 type User = {
   id: string | number;
@@ -46,8 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const clearSessionStorage = async () => {
-    await SecureStore.deleteItemAsync(USER_KEY);
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await storageDelete(USER_KEY);
+    await storageDelete(TOKEN_KEY);
     (globalThis as any).__token = null;
     (globalThis as any).__user_id = null;
   };
@@ -57,8 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
 
       const [rawUser, rawToken] = await Promise.all([
-        SecureStore.getItemAsync(USER_KEY),
-        SecureStore.getItemAsync(TOKEN_KEY),
+        storageGet(USER_KEY),
+        storageGet(TOKEN_KEY),
       ]);
 
       if (!rawUser || !rawToken) {
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ? String(parsedUser.id)
           : null;
     } catch (e) {
-      console.log("bootstrapAuth error:", e);
+      if (__DEV__) console.log("bootstrapAuth error:", e);
       _setUser(null);
       _setToken(null);
       await clearSessionStorage();
@@ -106,10 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (globalThis as any).__user_id = String(safeUser.id);
 
     try {
-      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(safeUser));
-      await SecureStore.setItemAsync(TOKEN_KEY, payload.token);
+      await storageSet(USER_KEY, JSON.stringify(safeUser));
+      await storageSet(TOKEN_KEY, payload.token);
     } catch (e) {
-      console.log("setSession storage error:", e);
+      if (__DEV__) console.log("setSession storage error:", e);
     }
   };
 
@@ -118,15 +118,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       if (!u) {
-        await SecureStore.deleteItemAsync(USER_KEY);
+        await storageDelete(USER_KEY);
         (globalThis as any).__user_id = null;
       } else {
         const safeUser = { ...u, id: String(u.id) };
-        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(safeUser));
+        await storageSet(USER_KEY, JSON.stringify(safeUser));
         (globalThis as any).__user_id = String(safeUser.id);
       }
     } catch (e) {
-      console.log("setUser storage error:", e);
+      if (__DEV__) console.log("setUser storage error:", e);
     }
   };
 
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await clearSessionStorage();
     } catch (e) {
-      console.log("logout storage error:", e);
+      if (__DEV__) console.log("logout storage error:", e);
     }
   };
 

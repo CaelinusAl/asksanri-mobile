@@ -2,6 +2,7 @@ import React from "react";
 import {
 View,
 Text,
+Pressable,
 StyleSheet,
 ScrollView,
 ImageBackground,
@@ -24,16 +25,16 @@ style={StyleSheet.absoluteFillObject}
 resizeMode="cover"
 />
 
-<View style={StyleSheet.absoluteFillObject}>
+<View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
 <MatrixRain opacity={0.12} />
 </View>
 
-<View style={styles.overlay} />
+<View pointerEvents="none" style={styles.overlay} />
 
 <View style={styles.topbar}>
-<Text style={styles.back} onPress={() => router.back()}>
-←
-</Text>
+<Pressable onPress={() => router.back()}>
+<Text style={styles.back}>←</Text>
+</Pressable>
 <Text style={styles.title}>Okumalarım</Text>
 </View>
 

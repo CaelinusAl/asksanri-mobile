@@ -14,7 +14,7 @@ import { router } from "expo-router";
 import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import { askSanri } from "../../lib/api";
-import { API } from "@/lib/apiClient";
+import { API, apiPostForm } from "@/lib/apiClient";
 
 const RITUAL_AUDIO = {
   tr: {
@@ -259,16 +259,7 @@ const stopReadyRitual = async () => {
       form.append("lang", "tr");
       form.append("ritual_pack_id", "live");
 
-      const res = await fetch(`${API.base}/content/rituel/voice`, {
-        method: "POST",
-        body: form,
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json?.detail || json?.error || "Ses yüklenemedi.");
-      }
+      const json: any = await apiPostForm(`${API.base}/content/rituel/voice`, form, 60000);
 
       const heard = String(json?.transcript || "");
       const reply = String(json?.reply || "");
@@ -326,6 +317,7 @@ const stopReadyRitual = async () => {
           <TextInput
             value={input}
             onChangeText={setInput}
+            maxLength={1000}
             multiline
             placeholder="İçimde bir ağırlık var, bırakmak istiyorum..."
             placeholderTextColor="rgba(255,255,255,0.35)"

@@ -3,16 +3,20 @@ import { View, TouchableOpacity, Text, Linking, Share, StyleSheet } from "react-
 
 export default function SanriShareButtons({ answer }: { answer: string }) {
 
+const safeAnswer = answer || "";
+
 const text =
 `Sanrı bana bunu söyledi:
 
-"${answer}"
+"${safeAnswer}"
 
 Sanrıya sor
 https://asksanri.com`;
 
 const shareGeneral = async () => {
-await Share.share({ message: text });
+try {
+  await Share.share({ message: text });
+} catch {}
 };
 
 const shareWhatsApp = () => {

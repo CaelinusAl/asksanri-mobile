@@ -11,7 +11,9 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { router } from "expo-router";
 import { API_BASE } from "../lib/config";
+import { useAuth } from "../context/AuthContext";
 import MatrixRain from "../lib/MatrixRain";
 
 const BG = require("../assets/global_signal_bg.jpg");
@@ -152,6 +154,9 @@ function PulseDot({
 }
 
 export default function GlobalSignalScreen() {
+  const { user } = useAuth();
+  const userId = user?.id || "anonymous";
+
   const [text, setText] = useState("");
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -159,32 +164,42 @@ export default function GlobalSignalScreen() {
   const [error, setError] = useState("");
   const [echo, setEcho] = useState<EchoData | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [userId] = useState("selin-device");
 
   const loadStream = async () => {
+    const ctrl = new AbortController();
+    const tmr = setTimeout(() => ctrl.abort(), 15000);
     try {
       setLoading(true);
       setError("");
 
-      const res = await fetch(`${API_BASE}/global-signal/stream`);
+      const res = await fetch(`${API_BASE}/global-signal/stream`, {
+        signal: ctrl.signal,
+      });
       const data = await res.json();
 
       setSignals(Array.isArray(data?.signals) ? data.signals : []);
     } catch (e) {
       setError("Akış yüklenemedi.");
     } finally {
+      clearTimeout(tmr);
       setLoading(false);
     }
   };
 
   const loadNotifications = async () => {
+    const ctrl = new AbortController();
+    const tmr = setTimeout(() => ctrl.abort(), 15000);
     try {
       const res = await fetch(
-        `${API_BASE}/global-signal/notifications?user_id=${userId}`
+        `${API_BASE}/global-signal/notifications?user_id=${encodeURIComponent(userId)}`,
+        { signal: ctrl.signal }
       );
       const data = await res.json();
       setNotifications(Array.isArray(data?.items) ? data.items : []);
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      clearTimeout(tmr);
+    }
   };
 
   const sendSignal = async () => {
@@ -195,6 +210,8 @@ export default function GlobalSignalScreen() {
       return;
     }
 
+    const ctrl = new AbortController();
+    const tmr = setTimeout(() => ctrl.abort(), 20000);
     try {
       setSending(true);
       setError("");
@@ -206,6 +223,7 @@ export default function GlobalSignalScreen() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ text: clean, user_id: userId }),
+        signal: ctrl.signal,
       });
 
       const data = await res.json();
@@ -218,12 +236,10 @@ export default function GlobalSignalScreen() {
       setEcho(data?.echo || null);
       setText("");
       await loadStream();
-
-      // v2 test için manuel processor tetikle
-      
     } catch (e) {
       setError("Sinyal gönderilemedi.");
     } finally {
+      clearTimeout(tmr);
       setSending(false);
     }
   };
@@ -274,6 +290,17 @@ useEffect(() => {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
+          <Pressable
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else router.replace("/(tabs)/gates" as any);
+            }}
+            style={styles.backBtn}
+            hitSlop={10}
+          >
+            <Text style={styles.backTxt}>←</Text>
+          </Pressable>
+
           <View style={styles.hero}>
             <Text style={styles.eyebrow}>SANRI • GLOBAL FIELD</Text>
             <Text style={styles.title}>World Signal</Text>
@@ -329,6 +356,7 @@ useEffect(() => {
             <TextInput
               value={text}
               onChangeText={setText}
+              maxLength={1000}
               multiline
               placeholder="Bugün içimde sessiz bir alan var..."
               placeholderTextColor="rgba(255,255,255,0.38)"
@@ -455,8 +483,24 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingTop: 20,
+    paddingTop: 56,
     paddingBottom: 90,
+  },
+  backBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 18,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    marginBottom: 12,
+  },
+  backTxt: {
+    color: "#8df5d2",
+    fontSize: 24,
+    fontWeight: "700" as const,
   },
   hero: {
     borderRadius: 30,

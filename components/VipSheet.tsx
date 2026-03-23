@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   View,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import {
   buySanriPremium,
@@ -14,6 +15,7 @@ import {
   openManageSubscriptions,
   restoreSanriPurchases,
   getRevenueCatInitError,
+  getCurrentMonthlyPackage,
 } from "../lib/revenuecat";
 
 type Props = {
@@ -30,8 +32,21 @@ export default function VipSheet({
   onSubscribeSuccess,
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const [priceString, setPriceString] = useState<string | null>(null);
 
   const tr = lang === "tr";
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    getCurrentMonthlyPackage().then((pkg) => {
+      if (!alive) return;
+      if (pkg?.product?.priceString) {
+        setPriceString(pkg.product.priceString + (tr ? " / ay" : " / month"));
+      }
+    });
+    return () => { alive = false; };
+  }, [open, tr]);
 
   const copy = {
     title: tr ? "BİLİNÇ KAPISI" : "CONSCIOUSNESS GATE",
@@ -53,7 +68,7 @@ export default function VipSheet({
           "Ritual guidance",
           "Future layers",
         ],
-    price: tr ? "693 TL / ay" : "693 TL / month",
+    price: priceString || (tr ? "Premium" : "Premium"),
     buy: tr ? "Bilinç Kapısını Aç" : "Open Consciousness Gate",
     restore: tr ? "Satın alımı geri yükle" : "Restore purchase",
     manage: tr ? "Abonelikleri Yönet" : "Manage Subscriptions",
@@ -125,7 +140,7 @@ export default function VipSheet({
       Alert.alert("OK", copy.activated);
       onSubscribeSuccess();
     } catch (e: any) {
-      console.log("VIP SHEET BUY ERROR:", e);
+      if (__DEV__) console.log("VIP SHEET BUY ERROR:", e);
       Alert.alert(copy.errTitle, e?.message || copy.fallbackMessage);
     } finally {
       setLoading(false);
@@ -155,7 +170,7 @@ export default function VipSheet({
       Alert.alert("OK", copy.restored);
       onSubscribeSuccess();
     } catch (e: any) {
-      console.log("VIP SHEET RESTORE ERROR:", e);
+      if (__DEV__) console.log("VIP SHEET RESTORE ERROR:", e);
       Alert.alert(copy.errTitle, e?.message || copy.fallbackMessage);
     } finally {
       setLoading(false);
@@ -179,9 +194,8 @@ export default function VipSheet({
           </View>
 
           <View style={styles.priceBox}>
-            <Text style={styles.priceLabel}>{tr ? "Ücret" : "Price"}</Text>
+            <Text style={styles.priceLabel}>{tr ? "Ucret" : "Price"}</Text>
             <Text style={styles.price}>{copy.price}</Text>
-            <Text style={styles.priceSub}>39 USD / mo</Text>
           </View>
 
           <Pressable onPress={onBuy} style={styles.primaryBtn} disabled={loading}>
@@ -203,6 +217,22 @@ export default function VipSheet({
           >
             <Text style={styles.secondaryBtnText}>{copy.manage}</Text>
           </Pressable>
+
+          <Text style={styles.legalNote}>
+            {tr
+              ? "Abonelik aylik olarak otomatik yenilenir. Istedigin zaman hesap ayarlarindan iptal edebilirsin."
+              : "Subscription auto-renews monthly. Cancel anytime from account settings."}
+          </Text>
+
+          <View style={styles.legalRow}>
+            <Pressable onPress={() => Linking.openURL("https://asksanri.com/terms")}>
+              <Text style={styles.legalLink}>{tr ? "Kullanim Sartlari" : "Terms of Use"}</Text>
+            </Pressable>
+            <Text style={styles.legalDot}>{" \u00B7 "}</Text>
+            <Pressable onPress={() => Linking.openURL("https://asksanri.com/privacy")}>
+              <Text style={styles.legalLink}>{tr ? "Gizlilik Politikasi" : "Privacy Policy"}</Text>
+            </Pressable>
+          </View>
 
           <Pressable onPress={onClose} style={styles.closeBtn} disabled={loading}>
             <Text style={styles.closeText}>{copy.close}</Text>
@@ -300,8 +330,31 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.88)",
     fontWeight: "700",
   },
-  closeBtn: {
+  legalNote: {
+    marginTop: 14,
+    color: "rgba(255,255,255,0.38)",
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+  },
+  legalRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 6,
+  },
+  legalLink: {
+    color: "rgba(124,247,216,0.65)",
+    fontSize: 12,
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
+  legalDot: {
+    color: "rgba(255,255,255,0.30)",
+    fontSize: 12,
+  },
+  closeBtn: {
+    marginTop: 10,
     alignItems: "center",
     paddingVertical: 10,
   },

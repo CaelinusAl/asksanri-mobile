@@ -6,7 +6,7 @@ import { initRevenueCat } from "../lib/revenuecat";
 export default function RootLayout() {
   useEffect(() => {
     initRevenueCat().catch((e) => {
-      console.log("RevenueCat init error:", e);
+      if (__DEV__) console.log("RevenueCat init error:", e);
     });
   }, []);
 

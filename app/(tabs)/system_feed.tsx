@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import { API_BASE } from "../../lib/config";
+import { API, apiGetJson } from "../../lib/apiClient";
 import MatrixRain from "../../lib/MatrixRain";
 
 type RawSystemFeed = {
@@ -88,21 +88,8 @@ export default function SystemFeedScreen() {
     setError("");
 
     try {
-      const res = await fetch(`${API_BASE}/content/system-feed?lang=${lang}`);
-      const text = await res.text();
-
-      let data: RawSystemFeed = {};
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("System feed JSON dönmedi.");
-      }
-
-      if (!res.ok) {
-        throw new Error("SYSTEM_FEED_HTTP_ERROR");
-      }
-
-      setRawFeed(data);
+      const data: any = await apiGetJson(`${API.base}/content/system-feed?lang=${lang}`, 15000);
+      setRawFeed(data || {});
     } catch (e: any) {
       setError(e?.message || "System feed alınamadı.");
     } finally {
@@ -123,6 +110,9 @@ export default function SystemFeedScreen() {
         <View style={styles.darkOverlay} />
         <View style={styles.greenTint} />
         <View style={styles.purpleGlow} />
+        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+          <MatrixRain opacity={0.16} />
+        </View>
 
         <ScrollView
           style={styles.container}
@@ -170,7 +160,6 @@ export default function SystemFeedScreen() {
                 </Text>
               </Pressable>
             </View>
-            <MatrixRain opacity={0.16} />
           </View>
 
           <Text style={styles.eyebrow}>SYSTEM TERMINAL</Text>

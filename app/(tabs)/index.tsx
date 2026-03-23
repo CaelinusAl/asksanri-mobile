@@ -4,7 +4,7 @@ import { router } from "expo-router";
 
 export default function TabsIndex() {
   useEffect(() => {
-    router.replace("/(tabs)/home");
+    router.replace("/(tabs)/gates");
   }, []);
 
   return null;

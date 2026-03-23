@@ -29,7 +29,7 @@ const translations = {
     trShort: "TR",
     enShort: "EN",
   },
-  in: {
+  en: {
     brandLine: "CAELINUS AI • CONSCIOUSNESS MIRROR",
     title: "Sanri",
     subtitle: "Welcome. Write a sentence.\nI will reflect meaning, not answer.",

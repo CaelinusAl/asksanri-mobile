@@ -1,6 +1,6 @@
 // lib/StarTrailOverlay.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import { View, StyleSheet, useWindowDimensions } from "react-native";
 
 type Spark = {
   id: string;
@@ -10,8 +10,6 @@ type Spark = {
   life: number;
   s: number;
 };
-
-const { width, height } = Dimensions.get("window");
 
 function uid() {
   return (
@@ -28,6 +26,7 @@ export default function StarTrailOverlay({
   y: number | null;
   active?: boolean;
 }) {
+  const { width, height } = useWindowDimensions();
   const [sparks, setSparks] = useState<Spark[]>([]);
   const lastRef = useRef<{ x: number; y: number; at: number } | null>(null);
 
@@ -106,7 +105,7 @@ export default function StarTrailOverlay({
   }, [sparks, now]);
 
   return (
-    <View pointerEvents="none" style={styles.overlay}>
+    <View pointerEvents="none" style={[styles.overlay, { width, height }]}>
       {dots}
     </View>
   );
@@ -117,8 +116,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     top: 0,
-    width,
-    height,
   },
   dot: {
     position: "absolute",

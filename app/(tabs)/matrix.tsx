@@ -1,5 +1,5 @@
 // app/(tabs)/matrix.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
   View,
@@ -17,6 +17,7 @@ import { router } from "expo-router";
 
 import MatrixRain from "../../lib/MatrixRain";
 import { hasVipEntitlement } from "../../lib/premium";
+import { getCurrentMonthlyPackage } from "../../lib/revenuecat";
 
 type Lang = "tr" | "en";
 type Mode = "name" | "dob";
@@ -76,7 +77,8 @@ export default function MatrixScreen() {
   const [name, setName] = useState<string>("");
   const [dob, setDob] = useState<string>("");
 
-  const cycle = "22.02.2026";
+  const now = new Date();
+  const cycle = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
 
   const { user } = useAuth();
 
@@ -132,8 +134,17 @@ export default function MatrixScreen() {
     } as any);
   };
 
-  const priceTry = "693 TL / ay";
-  const priceUsd = "39 USD / mo";
+  const [dynamicPrice, setDynamicPrice] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentMonthlyPackage().then((pkg) => {
+      if (pkg?.product?.priceString) {
+        setDynamicPrice(pkg.product.priceString + (lang === "tr" ? " / ay" : " / month"));
+      }
+    });
+  }, [lang]);
+
+  const priceDisplay = dynamicPrice || "Premium";
 
   return (
     <View style={styles.root}>
@@ -213,6 +224,7 @@ export default function MatrixScreen() {
               <TextInput
                 value={name}
                 onChangeText={setName}
+                maxLength={100}
                 placeholder={t.namePh}
                 placeholderTextColor="rgba(255,255,255,0.35)"
                 style={styles.input}
@@ -228,6 +240,7 @@ export default function MatrixScreen() {
               <TextInput
                 value={dob}
                 onChangeText={setDob}
+                maxLength={20}
                 placeholder={t.dobPh}
                 placeholderTextColor="rgba(255,255,255,0.35)"
                 style={styles.input}
@@ -250,7 +263,7 @@ export default function MatrixScreen() {
           </View>
 
           <View style={styles.payRight}>
-            <Text style={styles.priceTag}>$119</Text>
+            <Text style={styles.priceTag}>{priceDisplay}</Text>
             <Pressable
   onPress={() => {
     if (matrixRoleUnlocked) {
@@ -280,7 +293,7 @@ export default function MatrixScreen() {
           </View>
 
           <View style={styles.payRight}>
-            <Text style={styles.priceTag}>{lang === "tr" ? priceTry : priceUsd}</Text>
+            <Text style={styles.priceTag}>{priceDisplay}</Text>
             <Pressable
   onPress={() => {
     if (isPremium) {

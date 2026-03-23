@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { API_BASE } from "../../lib/config";
 import {
   View,
   Text,
@@ -58,13 +59,18 @@ export default function VerifyEmailScreen() {
     try {
       setLoading(true);
 
-      const res = await fetch("https://api.asksanri.com/auth/email/resend-verification", {
+      const controller = new AbortController();
+      const tmr = setTimeout(() => controller.abort(), 20000);
+
+      const res = await fetch(`${API_BASE}/auth/email/resend-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email }),
+        signal: controller.signal,
       });
+      clearTimeout(tmr);
 
       const data = await res.json().catch(() => ({}));
 

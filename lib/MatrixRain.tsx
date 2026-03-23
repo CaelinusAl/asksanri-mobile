@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { Animated, Dimensions, StyleSheet, View } from "react-native";
+import { Animated, StyleSheet, useWindowDimensions, View } from "react-native";
 
 type Props = {
   opacity?: number;
@@ -7,7 +7,7 @@ type Props = {
 };
 
 export default function MatrixRain({ opacity = 0.9, speedMs = 9000 }: Props) {
-  const { width, height } = Dimensions.get("window");
+  const { width, height } = useWindowDimensions();
   const cols = Math.max(10, Math.floor(width / 18));
 
   const streams = useMemo(() => {

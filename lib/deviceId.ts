@@ -1,6 +1,6 @@
 // lib/deviceId.ts
-import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import { storageGet, storageSet } from "./storage";
 
 const KEY = "sanri_device_id_v1";
 
@@ -23,11 +23,11 @@ function makeId() {
 
 export async function getDeviceId(): Promise<string> {
   try {
-    const existing = await SecureStore.getItemAsync(KEY);
+    const existing = await storageGet(KEY);
     if (existing && existing.length > 8) return existing;
 
     const id = makeId();
-    await SecureStore.setItemAsync(KEY, id);
+    await storageSet(KEY, id);
     return id;
   } catch {
     return makeId();

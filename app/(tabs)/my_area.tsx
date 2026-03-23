@@ -9,13 +9,16 @@ import {
   StatusBar,
   ActivityIndicator,
   RefreshControl,
+  Alert,
+  Linking,
 } from "react-native";
 import { router } from "expo-router";
 import { BlurView } from "expo-blur";
 
 import MatrixRain from "../../lib/MatrixRain";
 import { useAuth } from "../../context/AuthContext";
-import { API, apiGetJson } from "../../lib/apiClient";
+import { API, apiGetJson, apiDeleteJson } from "../../lib/apiClient";
+import { openManageSubscriptions } from "../../lib/revenuecat";
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 
@@ -222,7 +225,7 @@ function cleanMemoryContent(text?: string) {
 }
 
 export default function MyAreaScreen() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [lang, setLang] = useState<Lang>("tr");
   const [loading, setLoading] = useState(true);
@@ -246,7 +249,7 @@ export default function MyAreaScreen() {
       setProfile(profileRes?.data || null);
       setMemories(Array.isArray(memoryRes) ? memoryRes : []);
     } catch (e) {
-      console.log("my_area load error:", e);
+      if (__DEV__) console.log("my_area load error:", e);
       setError(t.loadError);
     } finally {
       setLoading(false);
@@ -456,6 +459,79 @@ export default function MyAreaScreen() {
             ))
           )}
         </BlurView>
+
+        <View style={styles.accountSection}>
+          <Text style={styles.accountSectionTitle}>
+            {lang === "tr" ? "Hesap" : "Account"}
+          </Text>
+
+          <Pressable
+            style={styles.accountBtn}
+            onPress={() => {
+              openManageSubscriptions().catch(() => {});
+            }}
+          >
+            <Text style={styles.accountBtnText}>
+              {lang === "tr" ? "Abonelikleri Yonet" : "Manage Subscriptions"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.accountBtn}
+            onPress={() => Linking.openURL("https://asksanri.com/privacy")}
+          >
+            <Text style={styles.accountBtnText}>
+              {lang === "tr" ? "Gizlilik Politikasi" : "Privacy Policy"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.accountBtn}
+            onPress={() => Linking.openURL("https://asksanri.com/terms")}
+          >
+            <Text style={styles.accountBtnText}>
+              {lang === "tr" ? "Kullanim Sartlari" : "Terms of Use"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.deleteAccountBtn}
+            onPress={() => {
+              Alert.alert(
+                lang === "tr" ? "Hesabi Sil" : "Delete Account",
+                lang === "tr"
+                  ? "Hesabini kalici olarak silmek istedigindan emin misin? Bu islem geri alinamaz."
+                  : "Are you sure you want to permanently delete your account? This action cannot be undone.",
+                [
+                  {
+                    text: lang === "tr" ? "Iptal" : "Cancel",
+                    style: "cancel",
+                  },
+                  {
+                    text: lang === "tr" ? "Hesabi Sil" : "Delete Account",
+                    style: "destructive",
+                    onPress: async () => {
+                      try {
+                        await apiDeleteJson(`${API.base}/auth/account`);
+                        await logout();
+                        router.replace("/(auth)/login" as any);
+                      } catch (e: any) {
+                        Alert.alert(
+                          "Error",
+                          e?.message || "Account deletion failed"
+                        );
+                      }
+                    },
+                  },
+                ]
+              );
+            }}
+          >
+            <Text style={styles.deleteAccountText}>
+              {lang === "tr" ? "Hesabimi Sil" : "Delete My Account"}
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );
@@ -757,5 +833,47 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.72)",
     fontSize: 15,
     lineHeight: 24,
+  },
+  accountSection: {
+    marginTop: 24,
+    borderRadius: 22,
+    padding: 18,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    gap: 10,
+  },
+  accountSectionTitle: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  accountBtn: {
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  accountBtnText: {
+    color: "rgba(255,255,255,0.82)",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  deleteAccountBtn: {
+    marginTop: 6,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255,60,60,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,60,60,0.20)",
+  },
+  deleteAccountText: {
+    color: "rgba(255,90,90,0.90)",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });
