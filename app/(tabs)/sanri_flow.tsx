@@ -47,12 +47,73 @@ const FALLBACK_URL = "https://asksanri.com";
 
 const BG = require("../../assets/sanri_bg.jpg");
 
+const MODE_COPY = {
+  tr: {
+    chat: {
+      label: "Sanrı'ya Sor",
+      title: "Sanrı",
+      sub: "Kişisel Alan",
+      welcome: "Hoş geldin. Bir cümle yaz. Cevap vermem — anlamı yansıtırım.",
+      placeholder: "İçinden geçen şeyi yaz…",
+      tip: "İpucu: Tek bir cümle yaz. Sanrı anlamı yansıtır ve yön çıkarır.",
+      sendLabel: "Gönder",
+    },
+    code: {
+      label: "Kod Alanı",
+      title: "Kod Alanı",
+      sub: "Kelimeleri parçala. Anlamın altındaki dili gör.",
+      welcome: "Bir kelime yaz. Parçalayalım. Kök anlamını, bilinç dilini ve günlük karşılığını açalım.",
+      placeholder: "Bir kelime yaz: return, aşk, kader, sistem…",
+      tip: "Tek kelime veya kısa ifade gir. Sanrı kodu parçalar.",
+      sendLabel: "Kodu Aç",
+    },
+    decode: {
+      label: "Decoder",
+      title: "Decoder Sanrı",
+      sub: "Görüneni değil, arkasındaki yapıyı oku.",
+      welcome: "Bir rüya, haber, cümle veya sembol bırak. Katmanlarını açalım.",
+      placeholder: "Bir rüya, haber, cümle veya sembol bırak…",
+      tip: "Metin, rüya veya sembol gönder. Sanrı katmanlarını açar.",
+      sendLabel: "Decode Et",
+    },
+  },
+  en: {
+    chat: {
+      label: "Ask Sanri",
+      title: "Sanri",
+      sub: "Personal Field",
+      welcome: "Welcome. Write one sentence. I reflect meaning, not answers.",
+      placeholder: "Write what's on your mind…",
+      tip: "Tip: One sentence. Sanri mirrors meaning and produces direction.",
+      sendLabel: "Send",
+    },
+    code: {
+      label: "Code Field",
+      title: "Code Field",
+      sub: "Break words apart. See the language beneath meaning.",
+      welcome: "Write a word. Let's break it down — root meaning, consciousness language, daily translation.",
+      placeholder: "Write a word: return, love, fate, system…",
+      tip: "Enter a word or short phrase. Sanri decodes it.",
+      sendLabel: "Open Code",
+    },
+    decode: {
+      label: "Decoder",
+      title: "Decoder Sanri",
+      sub: "Read not what's visible, but the structure behind it.",
+      welcome: "Leave a dream, news, sentence, or symbol. Let's open its layers.",
+      placeholder: "Leave a dream, news, sentence, or symbol…",
+      tip: "Send text, dream, or symbol. Sanri opens the layers.",
+      sendLabel: "Decode",
+    },
+  },
+} as const;
+
 const T = {
   tr: {
     title: "Sanrı",
     personal: "Kişisel Alan",
     welcome: "Hoş geldin. Bir cümle yaz. Cevap vermem — anlamı yansıtırım.",
-    placeholder: "Bir cümle yaz…",
+    placeholder: "İçinden geçen şeyi yaz…",
     send: "Gönder",
     tip: "İpucu: Tek bir cümle yaz. Sanrı anlamı yansıtır ve yön çıkarır.",
     micHold: "Basılı tut",
@@ -124,16 +185,15 @@ export default function SanriFlowScreen() {
   responseMode?: string;
 }>();
 
-  type ResponseMode = "frekans" | "kod_acilimi";
-  const [responseMode, setResponseMode] = useState<ResponseMode>(
-    (params.responseMode as ResponseMode) || "frekans"
-  );
+  type SanriMode = "chat" | "code" | "decode";
+  const [mode, setMode] = useState<SanriMode>("chat");
 
 
 
   const initialLang: Lang = safeStr(params.lang).toLowerCase() === "en" ? "en" : "tr";
   const [lang, setLang] = useState<Lang>(initialLang);
   const t = useMemo(() => T[lang], [lang]);
+  const mc = useMemo(() => MODE_COPY[lang][mode], [lang, mode]);
 
   const [messages, setMessages] = useState<Msg[]>([
     { id: uid("a"), role: "assistant", text: T[initialLang].welcome },
@@ -254,9 +314,19 @@ export default function SanriFlowScreen() {
     loaderIdRef.current = "";
     setError("");
     setInput("");
-    setMessages([{ id: uid("a"), role: "assistant", text: T[lang].welcome }]);
+    setMessages([{ id: uid("a"), role: "assistant", text: MODE_COPY[lang][mode].welcome }]);
     setIsWaking(false);
-  }, [busy, lang]);
+  }, [busy, lang, mode]);
+
+  const switchMode = useCallback((m: SanriMode) => {
+    if (busy || m === mode) return;
+    setMode(m);
+    loaderIdRef.current = "";
+    setError("");
+    setInput("");
+    setMessages([{ id: uid("a"), role: "assistant", text: MODE_COPY[lang][m].welcome }]);
+    setIsWaking(false);
+  }, [busy, lang, mode]);
 
   const openMyArea = useCallback(() => {
     router.push("/(tabs)/my_area" as any);
@@ -290,11 +360,22 @@ export default function SanriFlowScreen() {
           }, 650);
         }
 
+        let modeInstruction = "";
+        if (mode === "code") {
+          modeInstruction = lang === "tr"
+            ? "RESPONSE MODE: KOD ALANI.\nKullanıcı bir kelime veya kısa ifade gönderdi. Şu formatta cevap ver:\n1. PARÇALAMA: Kelimeyi hece/kök parçalarına ayır.\n2. KÖK ANLAM: Her parçanın etimolojik/sembolik anlamı.\n3. BİLİNÇ YORUMU: Kelimenin bilinç dilindeki karşılığı (2-3 cümle).\n4. GÜNLÜK ANLAM: Günlük hayata çevirisi (1-2 cümle, sade).\nTon: öğretici, net, hafif mistik ama anlaşılır. Başlıkları kalın yazma, düz metin olarak yaz."
+            : "RESPONSE MODE: CODE FIELD.\nUser sent a word or short phrase. Respond in this format:\n1. BREAKDOWN: Split the word into syllable/root parts.\n2. ROOT MEANING: Etymological/symbolic meaning of each part.\n3. CONSCIOUSNESS READING: What it means in the language of consciousness (2-3 sentences).\n4. DAILY MEANING: Translation to everyday life (1-2 sentences, simple).\nTone: instructive, clear, slightly mystical but understandable. Don't use bold headers, write as plain text.";
+        } else if (mode === "decode") {
+          modeInstruction = lang === "tr"
+            ? "RESPONSE MODE: DECODER SANRI.\nKullanıcı bir metin, rüya, sembol veya haber gönderdi. Şu formatta çözümle:\n1. İLK KATMAN: Görünen/yüzey anlam (1-2 cümle).\n2. SEMBOLİK KATMAN: Hangi simgeler çalışıyor, ne temsil ediyorlar (2-3 cümle).\n3. FREKANS KATMANI: Bu içerik korku mu, dönüşüm mü, çağrı mı taşıyor? Enerji okuması (2-3 cümle).\n4. YANSIMA: Bu sende hangi kapıyı çalıyor? (1 soru veya yönlendirme).\nTon: sakin, derin, çok katmanlı, 'okuyan' bir bilinç. Başlıkları kalın yazma, düz metin olarak yaz."
+            : "RESPONSE MODE: DECODER SANRI.\nUser sent text, dream, symbol, or news. Decode in this format:\n1. SURFACE LAYER: Visible/surface meaning (1-2 sentences).\n2. SYMBOLIC LAYER: What symbols are at play, what they represent (2-3 sentences).\n3. FREQUENCY LAYER: Does this carry fear, transformation, or calling? Energy reading (2-3 sentences).\n4. REFLECTION: What door does this knock on in you? (1 question or direction).\nTone: calm, deep, multi-layered, a 'reading' consciousness. Don't use bold headers, write as plain text.";
+        }
+
         const payload: Record<string, any> = {
-  message: text,
+  message: modeInstruction ? modeInstruction + "\n\nKullanıcı mesajı:\n" + text : text,
   session_id: "mobile-default",
   lang,
-  response_mode: responseMode,
+  response_mode: mode,
 };
         if (params.code) payload.city_code = params.code;
         if (params.city) payload.city_name = params.city;
@@ -522,8 +603,8 @@ const stopRec = useCallback(async () => {
         </Pressable>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.topTitle}>{t.title}</Text>
-          <Text style={styles.topMeta}>{t.personal}</Text>
+          <Text style={styles.topTitle}>{mc.title}</Text>
+          <Text style={styles.topMeta}>{mc.sub}</Text>
         </View>
 
         <View style={styles.langRow}>
@@ -553,6 +634,19 @@ const stopRec = useCallback(async () => {
             <Text style={styles.backBtnText}>←</Text>
           </BlurView>
         </Pressable>
+      </View>
+
+      <View style={styles.modeRow}>
+        {(["chat", "code", "decode"] as SanriMode[]).map((m) => {
+          const active = mode === m;
+          return (
+            <Pressable key={m} onPress={() => switchMode(m)} style={[styles.modeTab, active && styles.modeTabActive]}>
+              <Text style={[styles.modeTabTxt, active && styles.modeTabTxtActive]}>
+                {MODE_COPY[lang][m].label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={styles.actionRow}>
@@ -634,7 +728,7 @@ const stopRec = useCallback(async () => {
               value={input}
               onChangeText={setInput}
               maxLength={2000}
-              placeholder={t.placeholder}
+              placeholder={mc.placeholder}
               placeholderTextColor="rgba(255,255,255,0.35)"
               style={styles.input}
               multiline
@@ -676,7 +770,7 @@ const stopRec = useCallback(async () => {
         </View>
 
         <View style={styles.bottomRow}>
-          <Text style={styles.hintBottom}>{t.tip}</Text>
+          <Text style={styles.hintBottom}>{mc.tip}</Text>
           <ConsciousMenu />
         </View>
       </KeyboardAvoidingView>
@@ -809,6 +903,38 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 22,
     fontWeight: "900",
+  },
+
+  modeRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 8,
+    paddingBottom: 8,
+  },
+
+  modeTab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 16,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+
+  modeTabActive: {
+    backgroundColor: "rgba(124,247,216,0.10)",
+    borderColor: "rgba(124,247,216,0.28)",
+  },
+
+  modeTabTxt: {
+    color: "rgba(255,255,255,0.60)",
+    fontWeight: "800",
+    fontSize: 13,
+  },
+
+  modeTabTxtActive: {
+    color: "#7cf7d8",
   },
 
   actionRow: {
