@@ -26,6 +26,8 @@ import SanriShareButtons from "../../components/SanriShareButtons";
 import { useAuth } from "../../context/AuthContext";
 import { trackEvent } from "../../lib/analytics";
 import { useScreenTime } from "../../lib/useScreenTime";
+import { hasVipEntitlement } from "../../lib/premium";
+import { getUsageCount, incrementUsage, getFreeLimit, hasReachedLimit } from "../../lib/usageLimit";
 
 
 type Lang = "tr" | "en";
@@ -174,7 +176,7 @@ const RECORDING_OPTIONS: Audio.RecordingOptions = {
 
 export default function SanriFlowScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   useScreenTime("sanri_flow", user?.id);
 
   useEffect(() => {
@@ -213,6 +215,27 @@ export default function SanriFlowScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState("");
   const [isWaking, setIsWaking] = useState(true);
+
+  const [isVip, setIsVip] = useState(false);
+  const [codeUsed, setCodeUsed] = useState(0);
+  const [decodeUsed, setDecodeUsed] = useState(0);
+  const FREE_LIMIT = getFreeLimit();
+
+  useEffect(() => {
+    (async () => {
+      if (isAdmin) {
+        setIsVip(true);
+        if (__DEV__) console.log("ADMIN VIP ACTIVE — sanri_flow unlimited");
+        return;
+      }
+      const vip = await hasVipEntitlement(user);
+      setIsVip(vip);
+      const cu = await getUsageCount("code");
+      const du = await getUsageCount("decode");
+      setCodeUsed(cu);
+      setDecodeUsed(du);
+    })();
+  }, [isAdmin, user]);
 
   const scrollRef = useRef<ScrollView>(null);
   const loaderIdRef = useRef<string>("");
@@ -347,7 +370,21 @@ export default function SanriFlowScreen() {
       const text = raw.trim();
       if (!text || busy) return;
 
+      if ((mode === "code" || mode === "decode") && !isVip && !isAdmin) {
+        const limitReached = await hasReachedLimit(mode);
+        if (limitReached) {
+          router.push({ pathname: "/(tabs)/vip", params: { lang, source: "sanri_limit" } } as any);
+          return;
+        }
+      }
+
       trackEvent("message_sent", { userId: user?.id, mode });
+
+      if (mode === "code" || mode === "decode") {
+        const newCount = await incrementUsage(mode);
+        if (mode === "code") setCodeUsed(newCount);
+        else setDecodeUsed(newCount);
+      }
 
       lastSentRef.current = text;
       setBusy(true);
@@ -651,15 +688,39 @@ const stopRec = useCallback(async () => {
       <View style={styles.modeRow}>
         {(["chat", "code", "decode"] as SanriMode[]).map((m) => {
           const active = mode === m;
+          const isPaidMode = m === "code" || m === "decode";
+          const used = m === "code" ? codeUsed : m === "decode" ? decodeUsed : 0;
+          const remaining = FREE_LIMIT - used;
           return (
             <Pressable key={m} onPress={() => switchMode(m)} style={[styles.modeTab, active && styles.modeTabActive]}>
               <Text style={[styles.modeTabTxt, active && styles.modeTabTxtActive]}>
                 {MODE_COPY[lang][m].label}
               </Text>
+              {isPaidMode && !isVip && !isAdmin ? (
+                <Text style={styles.modeCountTxt}>
+                  {remaining > 0 ? `${remaining}/${FREE_LIMIT}` : "VIP"}
+                </Text>
+              ) : null}
             </Pressable>
           );
         })}
       </View>
+
+      {(mode === "code" || mode === "decode") && !isVip && !isAdmin ? (
+        <Pressable
+          style={styles.limitBanner}
+          onPress={() => router.push({ pathname: "/(tabs)/vip", params: { lang, source: "sanri_limit" } } as any)}
+        >
+          <Text style={styles.limitText}>
+            {lang === "tr"
+              ? `${mode === "code" ? "Kod Alanı" : "Decoder"}: ${Math.max(FREE_LIMIT - (mode === "code" ? codeUsed : decodeUsed), 0)} ücretsiz hak kaldı`
+              : `${mode === "code" ? "Code" : "Decoder"}: ${Math.max(FREE_LIMIT - (mode === "code" ? codeUsed : decodeUsed), 0)} free uses left`}
+          </Text>
+          <Text style={styles.limitVipTxt}>
+            {lang === "tr" ? "Sınırsız için VIP →" : "Unlimited with VIP →"}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View style={styles.actionRow}>
         <Pressable onPress={resetChat} style={styles.newChatBtn} hitSlop={10}>
@@ -947,6 +1008,39 @@ const styles = StyleSheet.create({
 
   modeTabTxtActive: {
     color: "#7cf7d8",
+  },
+
+  modeCountTxt: {
+    color: "rgba(203,188,255,0.70)",
+    fontSize: 10,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+
+  limitBanner: {
+    marginHorizontal: 16,
+    marginBottom: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: "rgba(94,59,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(94,59,255,0.30)",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  limitText: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  limitVipTxt: {
+    color: "#cbbcff",
+    fontSize: 12,
+    fontWeight: "900",
   },
 
   actionRow: {
