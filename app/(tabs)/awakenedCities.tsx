@@ -8,11 +8,15 @@ import {
   StyleSheet,
   ScrollView,
   ImageBackground,
+  Platform,
+  StatusBar,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import MatrixRain from "../../lib/MatrixRain";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 type Lang = "tr" | "en";
 
@@ -261,7 +265,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
   veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(6,10,22,0.45)" },
 
-  topbar: { paddingTop: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 },
+  topbar: { paddingTop: SAFE_TOP, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },
   backTxt: { color: "#7cf7d8", fontWeight: "800" },
 

@@ -1,5 +1,5 @@
 // app/(tabs)/gates.tsx
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,15 @@ import {
   ImageBackground,
   ScrollView,
   StatusBar,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
 import MatrixRain from "../../lib/MatrixRain";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 type Lang = "tr" | "en";
 
@@ -73,18 +76,23 @@ export default function GatesScreen() {
 
   const toggleLang = () => setLang((prev) => (prev === "tr" ? "en" : "tr"));
 
-  const openProfile = () => {
-    router.push("/(tabs)/my_area" as any);
-  };
+  const navLock = useRef(false);
+  const guardNav = useCallback((fn: () => void) => {
+    if (navLock.current) return;
+    navLock.current = true;
+    fn();
+    setTimeout(() => { navLock.current = false; }, 600);
+  }, []);
 
-  const onOpenGate = (item: GateItemType) => {
+  const openProfile = () => guardNav(() => router.push("/(tabs)/my_area" as any));
+
+  const onOpenGate = (item: GateItemType) => guardNav(() => {
     if (item.vip) {
       router.push("/(tabs)/vip" as any);
       return;
     }
-
     router.push(item.route as any);
-  };
+  });
 
   return (
     
@@ -201,7 +209,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingTop: 6,
+    paddingTop: SAFE_TOP,
     paddingBottom: 6,
     gap: 8,
   },

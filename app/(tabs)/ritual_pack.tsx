@@ -8,6 +8,7 @@ import {
   StatusBar,
   ImageBackground,
   Alert,
+  Platform,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { BlurView } from "expo-blur";
@@ -16,6 +17,8 @@ import * as Speech from "expo-speech";
 
 import MatrixRain from "../../lib/MatrixRain";
 import { apiGetJson, apiPostForm, API } from "@/lib/apiClient";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 type Lang = "tr" | "en";
 
@@ -377,7 +380,7 @@ const styles = StyleSheet.create({
   },
 
   topbar: {
-    paddingTop: 10,
+    paddingTop: SAFE_TOP,
     paddingHorizontal: 14,
     paddingBottom: 8,
     flexDirection: "row",

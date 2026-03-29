@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -19,6 +20,8 @@ import * as Haptics from "expo-haptics";
 import MatrixRain from "../../lib/MatrixRain";
 import { useAuth } from "../../context/AuthContext";
 import { API, apiPostJson } from "../../lib/apiClient";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 
@@ -73,31 +76,40 @@ export default function LoginScreen() {
     return !email.trim() || !pass.trim() || submitting;
   }, [email, pass, submitting]);
 
-  const showDetail = (error: any, fallback: string) => {
-    const msg = error?.message || error?.detail || fallback;
-    Alert.alert("Alert", String(msg));
-  };
+  const busyRef = useRef(false);
 
   const onSubmit = async () => {
-    if (disabled) return;
+    if (disabled || busyRef.current) return;
+    busyRef.current = true;
 
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch {}
 
-    try {
-      setSubmitting(true);
+    setSubmitting(true);
 
+    try {
       const normalizedEmail = email.trim().toLowerCase();
 
       if (tab === "login") {
-        const data = await apiPostJson(`${API.base}/auth/login`, {
-          email: normalizedEmail,
-          password: pass.trim(),
-        });
+        let data: any;
+        try {
+          data = await apiPostJson(`${API.base}/auth/login`, {
+            email: normalizedEmail,
+            password: pass.trim(),
+          }, 25000);
+        } catch (fetchErr: any) {
+          const msg = fetchErr?.message || "";
+          if (msg.includes("aborted") || msg.includes("Aborted") || msg.includes("timeout")) {
+            Alert.alert("Sanrı", lang === "tr" ? "Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin." : "Could not reach the server. Check your internet connection.");
+          } else {
+            Alert.alert("Sanrı", msg || t.loginError);
+          }
+          return;
+        }
 
         if (!data?.token) {
-          Alert.alert("Alert", lang === "tr" ? "Sunucu token döndürmedi." : "Server did not return a token.");
+          Alert.alert("Sanrı", lang === "tr" ? "Giriş başarısız. E-posta veya şifre hatalı." : "Login failed. Incorrect email or password.");
           return;
         }
 
@@ -120,10 +132,29 @@ export default function LoginScreen() {
       }
 
       if (tab === "register") {
-        const data = await apiPostJson(`${API.base}/auth/register`, {
-          email: normalizedEmail,
-          password: pass.trim(),
-        });
+        if (pass.trim().length < 6) {
+          Alert.alert("Sanrı", lang === "tr" ? "Şifre en az 6 karakter olmalıdır." : "Password must be at least 6 characters.");
+          return;
+        }
+
+        let data: any;
+        try {
+          data = await apiPostJson(`${API.base}/auth/register`, {
+            email: normalizedEmail,
+            password: pass.trim(),
+          }, 25000);
+        } catch (fetchErr: any) {
+          const msg = String(fetchErr?.message || "");
+          if (msg.includes("aborted") || msg.includes("Aborted") || msg.includes("timeout")) {
+            Alert.alert("Sanrı", lang === "tr" ? "Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin." : "Could not reach the server. Check your internet connection.");
+          } else if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("exists") || msg.toLowerCase().includes("registered") || msg.toLowerCase().includes("kayıtlı")) {
+            Alert.alert("Sanrı", t.registerExists);
+            setTab("login");
+          } else {
+            Alert.alert("Sanrı", msg || t.network);
+          }
+          return;
+        }
 
         if (data?.token && data?.user) {
           await setSession({
@@ -142,33 +173,14 @@ export default function LoginScreen() {
           return;
         }
 
-        Alert.alert("Alert", t.registerOk);
+        Alert.alert("Sanrı", t.registerOk);
         setTab("login");
-        return;
       }
     } catch (error: any) {
-      const text = String(error?.message || "");
-
-      if (tab === "login") {
-        showDetail(error, t.loginError);
-        return;
-      }
-
-      if (tab === "register") {
-        if (
-          text.toLowerCase().includes("already") ||
-          text.toLowerCase().includes("exists") ||
-          text.toLowerCase().includes("registered")
-        ) {
-          Alert.alert("Alert", t.registerExists);
-          setTab("login");
-          return;
-        }
-
-        showDetail(error, t.network);
-      }
+      Alert.alert("Sanrı", String(error?.message || t.network));
     } finally {
       setSubmitting(false);
+      busyRef.current = false;
     }
   };
 
@@ -286,11 +298,13 @@ export default function LoginScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.ctaGrad}
                   >
-                    <BlurView intensity={22} tint="dark" style={styles.ctaGlass}>
-                      <Text style={styles.ctaTxt}>
-                        {submitting ? "..." : primaryText}
-                      </Text>
-                    </BlurView>
+                    <View style={styles.ctaGlass} pointerEvents="none">
+                      {submitting ? (
+                        <ActivityIndicator color="#d7c8ff" size="small" />
+                      ) : (
+                        <Text style={styles.ctaTxt}>{primaryText}</Text>
+                      )}
+                    </View>
                   </LinearGradient>
                 </Pressable>
 
@@ -311,7 +325,7 @@ const styles = StyleSheet.create({
   veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,8,20,0.52)" },
 
   topbar: {
-    paddingTop: 12,
+    paddingTop: SAFE_TOP,
     paddingHorizontal: 14,
     paddingBottom: 8,
     flexDirection: "row",

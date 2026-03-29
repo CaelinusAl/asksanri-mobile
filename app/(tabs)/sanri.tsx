@@ -8,12 +8,15 @@ import {
   ScrollView,
   ImageBackground,
   Platform,
+  StatusBar,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import StarTrailOverlay from "../../lib/StarTrailOverlay";
 import MatrixRain from "../../lib/MatrixRain";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 type Lang = "tr" | "en";
 
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
 },
 
   container: {
-    paddingTop: 18,
+    paddingTop: SAFE_TOP,
     paddingHorizontal: 18,
   },
 

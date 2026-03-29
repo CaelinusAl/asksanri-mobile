@@ -9,10 +9,13 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { API, apiGetJson } from "../../lib/apiClient";
 import MatrixRain from "../../lib/MatrixRain";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 type RawSystemFeed = {
   id?: number | string;
@@ -243,7 +246,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 18,
-    paddingTop: 24,
+    paddingTop: SAFE_TOP,
     paddingBottom: 80,
   },
   topRow: {

@@ -10,11 +10,14 @@ import {
   Text,
   TextInput,
   View,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { API_BASE } from "../lib/config";
 import { useAuth } from "../context/AuthContext";
 import MatrixRain from "../lib/MatrixRain";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 const BG = require("../assets/global_signal_bg.jpg");
 
@@ -483,7 +486,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingTop: 56,
+    paddingTop: SAFE_TOP,
     paddingBottom: 90,
   },
   backBtn: {

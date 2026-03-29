@@ -8,6 +8,7 @@ import {
   ImageBackground,
   StatusBar,
   StyleSheet as RNStyleSheet,
+  Platform,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
@@ -15,6 +16,8 @@ import { hasVipEntitlement } from "../../lib/premium";
 import { WORLD_EVENTS_LIST_URL } from "../../lib/config";
 import MatrixRain from "../../lib/MatrixRain";
 import { API, apiGetJson } from "@/lib/apiClient";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 type Lang = "tr" | "en";
 
@@ -611,7 +614,7 @@ const styles = StyleSheet.create({
   },
 
   topbar: {
-    paddingTop: 10,
+    paddingTop: SAFE_TOP,
     paddingHorizontal: 14,
     paddingBottom: 8,
     flexDirection: "row",

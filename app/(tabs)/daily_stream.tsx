@@ -8,10 +8,13 @@ import {
   ImageBackground,
   StatusBar,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import MatrixRain from "../../lib/MatrixRain";
 import { API, apiPostJson } from "@/lib/apiClient";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
   },
 
   topbar: {
-    paddingTop: 10,
+    paddingTop: SAFE_TOP,
     paddingHorizontal: 14,
     paddingBottom: 8,
     flexDirection: "row",

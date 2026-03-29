@@ -1,6 +1,6 @@
 // app/(tabs)/ritual_play.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, Platform } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
@@ -8,6 +8,8 @@ import * as Speech from "expo-speech";
 
 import MatrixRain from "@/lib/MatrixRain";
 import { apiGetJson, API } from "@/lib/apiClient";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 type Ritual = { ritual_id: string; title: string; steps: string[]; note?: string };
 type RitualPack = { ritual_pack_id: string; description?: string; rituals: Ritual[] };
@@ -216,7 +218,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
   loading: { color: "white", marginTop: 80, textAlign: "center" },
 
-  topbar: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14 },
+  topbar: { flexDirection: "row", alignItems: "center", gap: 10, paddingTop: SAFE_TOP, paddingHorizontal: 14, paddingBottom: 14 },
   backBtn: {
     width: 44, height: 44, borderRadius: 14,
     alignItems: "center", justifyContent: "center",

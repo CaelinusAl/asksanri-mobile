@@ -121,7 +121,13 @@ export default function SanriFlowScreen() {
   domain?: string;
   gateMode?: string;
   intent?: string;
+  responseMode?: string;
 }>();
+
+  type ResponseMode = "frekans" | "kod_acilimi";
+  const [responseMode, setResponseMode] = useState<ResponseMode>(
+    (params.responseMode as ResponseMode) || "frekans"
+  );
 
 
 
@@ -284,11 +290,18 @@ export default function SanriFlowScreen() {
           }, 650);
         }
 
-        const payload = {
+        const payload: Record<string, any> = {
   message: text,
   session_id: "mobile-default",
   lang,
+  response_mode: responseMode,
 };
+        if (params.code) payload.city_code = params.code;
+        if (params.city) payload.city_name = params.city;
+        if (params.layer) payload.layer = params.layer;
+        if (params.domain) payload.domain = params.domain;
+        if (params.gateMode) payload.gate_mode = params.gateMode;
+        if (params.intent) payload.intent = params.intent;
         if (__DEV__) console.log("SANRI_SEND", payload);
         const data: any = await apiPostJson(API.ask, payload, 60000);
 

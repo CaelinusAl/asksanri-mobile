@@ -6,10 +6,13 @@ Pressable,
 StyleSheet,
 ScrollView,
 ImageBackground,
-StatusBar
+StatusBar,
+Platform
 } from "react-native";
 import { router } from "expo-router";
 import MatrixRain from "../../lib/MatrixRain";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 
@@ -82,7 +85,7 @@ topbar:{
 flexDirection:"row",
 alignItems:"center",
 gap:12,
-paddingTop:20,
+paddingTop: SAFE_TOP,
 paddingHorizontal:20
 },
 

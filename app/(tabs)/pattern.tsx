@@ -16,6 +16,9 @@ import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { API, apiPostJson } from "../../lib/apiClient";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
+
 type Lang = "tr" | "en";
 
 const T = {
@@ -290,7 +293,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#07080d" },
 
   topbar: {
-    paddingTop: 14,
+    paddingTop: SAFE_TOP,
     paddingHorizontal: 16,
     paddingBottom: 10,
     flexDirection: "row",

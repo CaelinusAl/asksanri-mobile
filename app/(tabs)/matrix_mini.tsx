@@ -1,8 +1,10 @@
 // app/(tabs)/matrix_mini.tsx
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MatrixRain from "../../lib/MatrixRain";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 type Lang = "tr" | "en";
 type Mode = "name" | "dob";
@@ -214,7 +216,7 @@ const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.40)" },
 
   topbar: {
-    paddingTop: 10,
+    paddingTop: SAFE_TOP,
     paddingHorizontal: 14,
     paddingBottom: 10,
     flexDirection: "row",

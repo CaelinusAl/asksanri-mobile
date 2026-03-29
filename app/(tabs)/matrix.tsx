@@ -19,6 +19,8 @@ import MatrixRain from "../../lib/MatrixRain";
 import { hasVipEntitlement } from "../../lib/premium";
 import { getCurrentMonthlyPackage } from "../../lib/revenuecat";
 
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
+
 type Lang = "tr" | "en";
 type Mode = "name" | "dob";
 
@@ -326,7 +328,7 @@ const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
 
   topbar: {
-    paddingTop: Platform.OS === "android" ? 12 : 10,
+    paddingTop: SAFE_TOP,
     paddingHorizontal: 14,
     paddingBottom: 8,
     flexDirection: "row",

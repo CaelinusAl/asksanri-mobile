@@ -7,9 +7,12 @@ import {
   Pressable,
   ImageBackground,
   StatusBar,
+  Platform,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import MatrixRain from "../../lib/MatrixRain";
+
+const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
 const BG = require("../../assets/sanri_glass_bg.jpg");
 const AY_CICEGI = require("../../assets/ay_cicegi.jpg");
@@ -283,7 +286,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.36)",
   },
   topbar: {
-    paddingTop: 10,
+    paddingTop: SAFE_TOP,
     paddingHorizontal: 14,
     paddingBottom: 8,
     flexDirection: "row",

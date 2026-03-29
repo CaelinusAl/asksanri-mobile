@@ -1,4 +1,4 @@
-﻿// data/awakenedContent.ts
+// data/awakenedContent.ts
 import { CITY_NAMES, type CityCode } from "@/data/awakenedCities";
 
 
@@ -26,13 +26,23 @@ export type City7 = {
 const NL = "\n";
 const N2 = "\n\n";
 
-// ✅ placeholder doldurucu (template literal YOK)
-const fill = (s: string, code: string, city: string) =>
-  s
+// ✅ placeholder doldurucu + terminal satır temizleyici
+const fill = (s: string, code: string, city: string) => {
+  let result = s
     .replaceAll("${code}", code)
     .replaceAll("${city}", city)
     .replaceAll("$code", code)
     .replaceAll("$city", city);
+
+  result = result
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("$"))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return result;
+};
 
 // ✅ boş blok üretici (copy-paste kapılar için ideal)
 const emptyBlock = (titleTr: string, titleEn: string): { tr: CityBlock; en: CityBlock } => ({
