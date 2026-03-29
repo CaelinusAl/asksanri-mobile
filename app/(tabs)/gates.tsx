@@ -1,5 +1,5 @@
 // app/(tabs)/gates.tsx
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
 import MatrixRain from "../../lib/MatrixRain";
+import { useAuth } from "../../context/AuthContext";
+import { trackEvent } from "../../lib/analytics";
+import { useScreenTime } from "../../lib/useScreenTime";
 
 const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
@@ -73,6 +76,12 @@ const COPY: Record<
 export default function GatesScreen() {
   const [lang, setLang] = useState<Lang>("tr");
   const t = useMemo(() => COPY[lang], [lang]);
+  const { user, isAdmin } = useAuth();
+  useScreenTime("gates", user?.id);
+
+  useEffect(() => {
+    trackEvent("page_view", { userId: user?.id, meta: { page: "gates" } });
+  }, []);
 
   const toggleLang = () => setLang((prev) => (prev === "tr" ? "en" : "tr"));
 
@@ -87,9 +96,13 @@ export default function GatesScreen() {
   const openProfile = () => guardNav(() => router.push("/(tabs)/my_area" as any));
 
   const onOpenGate = (item: GateItemType) => guardNav(() => {
-    if (item.vip) {
+    if (item.vip && !isAdmin) {
+      trackEvent("vip_click", { userId: user?.id, meta: { gate: item.title } });
       router.push("/(tabs)/vip" as any);
       return;
+    }
+    if (item.vip && isAdmin && __DEV__) {
+      console.log("ADMIN BYPASS ACTIVE — gate:", item.title);
     }
     router.push(item.route as any);
   });
@@ -110,6 +123,16 @@ export default function GatesScreen() {
           <Pressable onPress={openProfile} style={styles.profileBtn} hitSlop={10}>
             <Text style={styles.profileTxt}>◎</Text>
           </Pressable>
+
+          {isAdmin ? (
+            <Pressable
+              onPress={() => guardNav(() => router.push("/(tabs)/admin" as any))}
+              style={styles.adminBadge}
+              hitSlop={10}
+            >
+              <Text style={styles.adminTxt}>Admin Mode</Text>
+            </Pressable>
+          ) : null}
 
           <View style={{ flex: 1 }} />
 
@@ -229,6 +252,22 @@ const styles = StyleSheet.create({
     color: "#7cf7d8",
     fontSize: 20,
     fontWeight: "900",
+  },
+
+  adminBadge: {
+    marginLeft: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,59,59,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,59,59,0.40)",
+  },
+  adminTxt: {
+    color: "#ff6b6b",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
 
   langChip: {

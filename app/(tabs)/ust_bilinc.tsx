@@ -16,6 +16,9 @@ import { hasVipEntitlement } from "../../lib/premium";
 import { WORLD_EVENTS_LIST_URL } from "../../lib/config";
 import MatrixRain from "../../lib/MatrixRain";
 import { API, apiGetJson } from "@/lib/apiClient";
+import { useAuth } from "../../context/AuthContext";
+import { trackEvent } from "../../lib/analytics";
+import { useScreenTime } from "../../lib/useScreenTime";
 
 const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
@@ -161,6 +164,8 @@ export default function UstBilincScreen() {
   const [pinned, setPinned] = useState<PinnedEvent>(null);
   const [loadingPinned, setLoadingPinned] = useState(true);
   const [isVip, setIsVip] = useState(false);
+  const { user, isAdmin } = useAuth();
+  useScreenTime("ust_bilinc", user?.id);
 
   const [daily, setDaily] = useState<DailyStream | null>(null);
   const [dailyLoading, setDailyLoading] = useState(true);
@@ -177,15 +182,23 @@ export default function UstBilincScreen() {
   );
 
   useEffect(() => {
+    trackEvent("page_view", { userId: user?.id, meta: { page: "ust_bilinc" } });
+
+    if (isAdmin) {
+      if (__DEV__) console.log("ADMIN BYPASS ACTIVE — ust_bilinc VIP");
+      setIsVip(true);
+      return;
+    }
+
     (async () => {
       try {
-        const ok = await hasVipEntitlement();
+        const ok = await hasVipEntitlement(user);
         setIsVip(Boolean(ok));
       } catch {
         setIsVip(false);
       }
     })();
-  }, []);
+  }, [isAdmin]);
 
   // pinned weekly symbol fetch
   useEffect(() => {

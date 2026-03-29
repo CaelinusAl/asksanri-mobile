@@ -495,6 +495,32 @@ export default function MyAreaScreen() {
           </Pressable>
 
           <Pressable
+            style={styles.logoutBtn}
+            onPress={() => {
+              Alert.alert(
+                lang === "tr" ? "Çıkış Yap" : "Log Out",
+                lang === "tr"
+                  ? "Hesabından çıkış yapmak istediğinden emin misin?"
+                  : "Are you sure you want to log out?",
+                [
+                  { text: lang === "tr" ? "İptal" : "Cancel", style: "cancel" },
+                  {
+                    text: lang === "tr" ? "Çıkış Yap" : "Log Out",
+                    onPress: async () => {
+                      await logout();
+                      router.replace("/(auth)/login" as any);
+                    },
+                  },
+                ]
+              );
+            }}
+          >
+            <Text style={styles.logoutText}>
+              {lang === "tr" ? "Çıkış Yap" : "Log Out"}
+            </Text>
+          </Pressable>
+
+          <Pressable
             style={styles.deleteAccountBtn}
             onPress={() => {
               Alert.alert(
@@ -859,6 +885,19 @@ const styles = StyleSheet.create({
   },
   accountBtnText: {
     color: "rgba(255,255,255,0.82)",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  logoutBtn: {
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(94,59,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(94,59,255,0.25)",
+  },
+  logoutText: {
+    color: "#cbbcff",
     fontWeight: "700",
     fontSize: 15,
   },

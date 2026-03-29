@@ -18,6 +18,8 @@ import { router } from "expo-router";
 import MatrixRain from "../../lib/MatrixRain";
 import { hasVipEntitlement } from "../../lib/premium";
 import { getCurrentMonthlyPackage } from "../../lib/revenuecat";
+import { trackEvent } from "../../lib/analytics";
+import { useScreenTime } from "../../lib/useScreenTime";
 
 const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
@@ -82,10 +84,16 @@ export default function MatrixScreen() {
   const now = new Date();
   const cycle = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
 
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  useScreenTime("matrix", user?.id);
 
-  const isPremium = !!user?.isPremium;
-  const matrixRoleUnlocked = !!user?.matrixRoleUnlocked;
+  const isPremium = isAdmin || !!user?.isPremium;
+  const matrixRoleUnlocked = isAdmin || !!user?.matrixRoleUnlocked;
+
+  useEffect(() => {
+    trackEvent("page_view", { userId: user?.id, meta: { page: "matrix" } });
+    if (isAdmin && __DEV__) console.log("ADMIN BYPASS ACTIVE — matrix premium");
+  }, []);
 
   const onBack = () => {
     if (router.canGoBack()) router.back();
@@ -119,7 +127,7 @@ export default function MatrixScreen() {
   };
 
   const goVip = async (source: "role" | "premium_monthly") => {
-    const ok = await hasVipEntitlement().catch(() => false);
+    const ok = isAdmin || await hasVipEntitlement(user).catch(() => false);
     if (ok) {
       Alert.alert(
         "Sanrı",

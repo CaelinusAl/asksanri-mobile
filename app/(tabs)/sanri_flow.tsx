@@ -23,6 +23,9 @@ import { BlurView } from "expo-blur";
 import { apiPostJson, apiPostForm, API } from "../../lib/apiClient";
 import ConsciousMenu from "../../components/ConsciousMenu";
 import SanriShareButtons from "../../components/SanriShareButtons";
+import { useAuth } from "../../context/AuthContext";
+import { trackEvent } from "../../lib/analytics";
+import { useScreenTime } from "../../lib/useScreenTime";
 
 
 type Lang = "tr" | "en";
@@ -171,6 +174,12 @@ const RECORDING_OPTIONS: Audio.RecordingOptions = {
 
 export default function SanriFlowScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  useScreenTime("sanri_flow", user?.id);
+
+  useEffect(() => {
+    trackEvent("page_view", { userId: user?.id, meta: { page: "sanri_flow" } });
+  }, []);
 
   const params = useLocalSearchParams<{
   lang?: string;
@@ -320,13 +329,14 @@ export default function SanriFlowScreen() {
 
   const switchMode = useCallback((m: SanriMode) => {
     if (busy || m === mode) return;
+    trackEvent("mode_switch", { userId: user?.id, mode: m });
     setMode(m);
     loaderIdRef.current = "";
     setError("");
     setInput("");
     setMessages([{ id: uid("a"), role: "assistant", text: MODE_COPY[lang][m].welcome }]);
     setIsWaking(false);
-  }, [busy, lang, mode]);
+  }, [busy, lang, mode, user?.id]);
 
   const openMyArea = useCallback(() => {
     router.push("/(tabs)/my_area" as any);
@@ -336,6 +346,8 @@ export default function SanriFlowScreen() {
     async (raw: string) => {
       const text = raw.trim();
       if (!text || busy) return;
+
+      trackEvent("message_sent", { userId: user?.id, mode });
 
       lastSentRef.current = text;
       setBusy(true);

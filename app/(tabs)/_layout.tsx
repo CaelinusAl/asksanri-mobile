@@ -45,6 +45,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="world_events" />
       <Tabs.Screen name="vip" />
       <Tabs.Screen name="explore" />
+      <Tabs.Screen name="admin" />
     </Tabs>
   );
 }
