@@ -77,22 +77,24 @@ export const CITY_01: Record<CityCode, City7> = {
       tr: {
         title: "01 · Ateşin Çağrısı",
         story:
-          "Adana bir sıcaklık değil—bir testtir. İçindeki kıvılcım “bahane” sevmez." +
-          N2 +
-          "$ open_gate 01" +
-          NL +
-          "$ ignite",
-        reflection: "Bugün seni yakan şey aslında hangi dönüşümü başlatmak istiyor?",
+          "Adana bir sıcaklık değil, bir çağrıdır." + N2 +
+          "İçindeki kıvılcım burada saklanamaz. Ya yön bulur ya seni içten yakar. 01’in frekansı başlangıçtır—ama bu başlangıç konforlu değildir; hareket ister." + N2 +
+          "Burada mesele ateşi bastırmak değil, onu bilinçle yönlendirmektir. Her erteleme, alevden değil kordan yanar. Sessiz sessiz birikir; sonra tek seferde çöker." + N2 +
+          "01 sana şunu öğretir: İlk adımın mükemmel olması gerekmez. Ama atılması gerekir. Çünkü ateş beklemez; ya yol açar ya kül bırakır." + N2 +
+          "Bu kapıdan geçen, artık eski haline dönemez. Çünkü ilk adım atılmıştır—ve geri dönüş için artık çok geç değil, çok erkendir.",
+        reflection:
+          "Bugün seni yakan şey aslında hangi dönüşümü başlatmak istiyor?",
       },
       en: {
         title: "01 · Call of Fire",
         story:
-          "Adana is not heat—it is a test. Your spark does not tolerate excuses." +
-          N2 +
-          "$ open_gate 01" +
-          NL +
-          "$ ignite",
-        reflection: "What is burning in you that wants to become transformation?",
+          "Adana is not heat—it is a calling." + N2 +
+          "The spark inside you cannot hide here. It either finds direction or burns you from within. The frequency of 01 is initiation—but this beginning is not comfortable; it demands movement." + N2 +
+          "The point is not to suppress the fire, but to guide it with awareness. Every delay burns not from flame but from ember. It accumulates in silence, then collapses all at once." + N2 +
+          "01 teaches you this: your first step does not need to be perfect. But it needs to be taken. Because fire does not wait—it either clears the path or leaves ash." + N2 +
+          "Whoever passes through this gate cannot return to who they were. The first step has been taken—and it is not too late to go back, it is too early.",
+        reflection:
+          "What is burning in you that actually wants to become transformation?",
       },
     },
 
@@ -100,30 +102,28 @@ export const CITY_01: Record<CityCode, City7> = {
       tr: {
         title: "01 · Matrix Derin İfşa",
         story:
-          "1 = başlangıç / irade / öz." +
-          N2 +
-          "Ateş = yıkım değil—arınma." +
-          N2 +
-          "Bu kapı seni ‘konfor’dan çıkarır. Çünkü konfor, uyanışı geciktirir." +
-          N2 +
-          "$ deepC" +
-          NL +
-          "$ accept_initiation",
-        reflection: "Bugün ‘başlat’ komutunu hangi alana yazıyorsun?",
+          "Sistem 01’i ‘başlatıcı protokol’ olarak çalıştırır." + N2 +
+          "Bir insan harekete geçmediğinde, sistem onu ‘bekleme modunda’ tutar. Bekleme modu güvenli hissettirir; ama aslında enerjiyi yavaşça çürütür." + N2 +
+          "01’in dersi şudur: İrade, karar anında değil—o kararı her gün yeniden seçtiğinde doğar. Tek seferlik cesaret yetmez; sürekli bir ateş gerekir." + N2 +
+          "Bu kapı seni şu noktaya getirir: ‘Ertelediğim şey aslında ne?’" + NL +
+          "Bunu sorduğun an, sistem bir üst frekansa geçer. Çünkü erteleme kaçıştır; farkındalık başlangıçtır." + N2 +
+          "01’in gölge testi: Konfordan güvenlik üretmek." + NL +
+          "01’in ışık testi: Belirsizliğin içinden yürüyüp yön yaratmak.",
+        reflection:
+          "Ertelediğim şeyin altında aslında hangi korku gizleniyor?",
       },
       en: {
-        title: "01 · Matrix Deep Reveal",
+        title: "01 · Deep Matrix Reveal",
         story:
-          "1 = initiation / will / essence." +
-          N2 +
-          "Fire is not destruction—it is purification." +
-          N2 +
-          "This gate pulls you out of comfort. Comfort delays awakening." +
-          N2 +
-          "$ deepC" +
-          NL +
-          "$ accept_initiation",
-        reflection: "Where will you write the ‘start’ command today?",
+          "The system runs 01 as an ‘initiator protocol.’" + N2 +
+          "When a person does not act, the system holds them in ‘standby mode.’ Standby feels safe—but it slowly corrodes energy." + N2 +
+          "The lesson of 01: willpower is not born at the moment of decision—it is born when you choose that decision again every day. One-time courage is not enough; a sustained fire is required." + N2 +
+          "This gate brings you to one question: ‘What am I actually delaying?’" + NL +
+          "The moment you ask this, the system shifts to a higher frequency. Delay is escape; awareness is initiation." + N2 +
+          "Shadow test of 01: manufacturing safety from comfort." + NL +
+          "Light test of 01: walking through uncertainty and creating direction.",
+        reflection:
+          "What fear is actually hiding beneath what I keep postponing?",
       },
     },
 
@@ -131,26 +131,26 @@ export const CITY_01: Record<CityCode, City7> = {
       tr: {
         title: "01 · Tarih Katmanı",
         story:
-          "Adana; katman katman medeniyet izidir: Hitit, Roma, Bizans, Osmanlı—hepsi aynı toprağa kayıt düşer." +
-          N2 +
-          "Bir şehir, insan gibi: ne kadar eskiyse, o kadar güçlü bir ‘hafıza’ taşır." +
-          N2 +
-          "$ history" +
-          NL +
-          "$ read_layers",
-        reflection: "Senin geçmişinde hâlâ konuşan “en eski katman” hangisi?",
+          "Adana’nın hafızası ateşle yazılmıştır." + N2 +
+          "Hitit, Roma, Bizans, Osmanlı—hepsi aynı toprağa kayıt düşer. Bu şehir yıkılmış, yanmış, tekrar kurulmuştur. Ama her seferinde aynı yerden değil, bir üst katmandan yükselmiştir." + N2 +
+          "Adana sana ‘yeniden başlama’ öğretir: Yıkım son değildir. Yıkım, yeni bir formun habercisidir." + N2 +
+          "Tarih katmanı burada bir sembole dönüşür:" + NL +
+          "‘Kül’ (çöküş) altından ‘tohum’ (yeni başlangıç) çıkar." + N2 +
+          "Bu kapı, kaybı bırakıp yeniden doğuşu seçmeyi öğretir. Çünkü bir şehir gibi sen de her yıkımdan sonra bir üst katmanda yeniden kurulursun.",
+        reflection:
+          "Hayatımda hangi ‘kül’ altından henüz filizlenmemiş bir başlangıç bekliyor?",
       },
       en: {
-        title: "01 · History Layer",
+        title: "01 · Historical Layer",
         story:
-          "Adana carries layered civilizations: Hittite, Roman, Byzantine, Ottoman—each left a record in the same soil." +
-          N2 +
-          "A city is like a human: the older it is, the stronger its memory." +
-          N2 +
-          "$ history" +
-          NL +
-          "$ read_layers",
-        reflection: "Which ‘oldest layer’ is still speaking in your life?",
+          "Adana’s memory is written in fire." + N2 +
+          "Hittite, Roman, Byzantine, Ottoman—each left a record in the same soil. This city has been destroyed, burned, and rebuilt. But each time it rose not from the same ground, but from a higher layer." + N2 +
+          "Adana teaches you ‘starting over’: destruction is not the end. Destruction is the herald of a new form." + N2 +
+          "Here history becomes a symbol:" + NL +
+          "from ‘ash’ (collapse) emerges ‘seed’ (new beginning)." + N2 +
+          "This gate teaches you to release loss and choose rebirth. Because like a city, after every collapse you are rebuilt on a higher layer.",
+        reflection:
+          "What ‘ash’ in my life holds a beginning that has not yet sprouted?",
       },
     },
 
@@ -158,30 +158,38 @@ export const CITY_01: Record<CityCode, City7> = {
       tr: {
         title: "01 · Numeroloji",
         story:
-          "0 → saf potansiyel (boşluk)" +
-          NL +
-          "1 → başlangıç / karar / yön" +
-          N2 +
-          "01 = ‘Sıfırdan doğan irade.’" +
-          N2 +
-          "$ numerology" +
-          NL +
-          "$ sum=1",
-        reflection: "Bir cümleyle: Senin iraden bugün neyi seçiyor?",
+          "01 = sıfırdan doğan irade." + N2 +
+          "0, saf potansiyeldir—henüz biçim almamış alan. 1, o alandan çıkan ilk hareket, ilk seçim, ilk yöndür." + N2 +
+          "01’in gölgesi:" + NL +
+          "• dürtüsellik—düşünmeden atlamak" + NL +
+          "• sabırsızlık—sonucu hemen istemek" + NL +
+          "• ‘ya şimdi ya hiç’ tuzağı" + N2 +
+          "01’in ışığı:" + NL +
+          "• cesaret—belirsizlikte ilk adımı atmak" + NL +
+          "• odak—enerjisini tek noktaya toplamak" + NL +
+          "• başlatma gücü—hiçbir şeyden bir şey yaratabilmek" + N2 +
+          "Bu kapı şunu sorar: ‘Neyi başlatmaktan korkuyorum?’" + NL +
+          "Ve ardından tek bir cevap ister: ‘Bugün ilk adımım ne olacak?’",
+        reflection:
+          "Başlatmaktan korktuğum şey aslında hangi özgürlüğü saklıyor?",
       },
       en: {
         title: "01 · Numerology",
         story:
-          "0 → pure potential (void)" +
-          NL +
-          "1 → initiation / choice / direction" +
-          N2 +
-          "01 = ‘Will born from zero.’" +
-          N2 +
-          "$ numerology" +
-          NL +
-          "$ sum=1",
-        reflection: "One sentence: What does your will choose today?",
+          "01 = will born from zero." + N2 +
+          "0 is pure potential—a field that has not yet taken form. 1 is the first movement from that field, the first choice, the first direction." + N2 +
+          "Shadow of 01:" + NL +
+          "• impulsiveness—leaping without thinking" + NL +
+          "• impatience—wanting results immediately" + NL +
+          "• the ‘now or never’ trap" + N2 +
+          "Light of 01:" + NL +
+          "• courage—taking the first step in uncertainty" + NL +
+          "• focus—gathering energy into a single point" + NL +
+          "• initiating power—creating something from nothing" + N2 +
+          "This gate asks: ‘What am I afraid to begin?’" + NL +
+          "Then it wants one answer: ‘What will my first step be today?’",
+        reflection:
+          "What freedom is actually hidden in what I am afraid to start?",
       },
     },
 
@@ -189,34 +197,24 @@ export const CITY_01: Record<CityCode, City7> = {
       tr: {
         title: "01 · Sembol Decode",
         story:
-          "Ateş → arınma / hız / dürüstlük" +
-          NL +
-          "Güneş → görünürlük / açıklık" +
-          NL +
-          "Sıcak → bahane yakar" +
-          N2 +
-          "Sembol mesajı: “Erteleme yanar.”" +
-          N2 +
-          "$ symbols" +
-          NL +
-          "$ decode",
-        reflection: "Hangi sembol gün içinde sana tekrar tekrar görünüyor?",
+          "Ateş → arınma, dönüşüm, dürüstlük. Ateş süslemez; çıplak bırakır." + N2 +
+          "Güneş → görünürlük, netlik, kaynak. Güneş saklanamaz; aydınlatır ya da yakar." + N2 +
+          "Kıvılcım → ilk impuls, ilham anı. Kıvılcım gelir ve gider; yakalayan kazanır." + N2 +
+          "Sembol mesajı: ‘Erteleme kül olur. Hareket ışık olur.’" + N2 +
+          "01’in sembolleri sana şunu fısıldar: Sen ateşin kendisi değilsin—ateşin yönüsün. Ateş seni yakmaz; yönlendirmezsen yakar.",
+        reflection:
+          "Bugün hangi kıvılcımı yakalamadan geçiriyorsun?",
       },
       en: {
         title: "01 · Symbol Decode",
         story:
-          "Fire → purification / speed / truth" +
-          NL +
-          "Sun → visibility / clarity" +
-          NL +
-          "Heat → excuses burn" +
-          N2 +
-          "Symbol message: “Delay burns.”" +
-          N2 +
-          "$ symbols" +
-          NL +
-          "$ decode",
-        reflection: "Which symbol keeps repeating in your day?",
+          "Fire → purification, transformation, honesty. Fire does not decorate; it strips bare." + N2 +
+          "Sun → visibility, clarity, source. The sun cannot hide; it illuminates or it burns." + N2 +
+          "Spark → first impulse, moment of inspiration. The spark comes and goes; whoever catches it wins." + N2 +
+          "Symbol message: ‘Delay becomes ash. Movement becomes light.’" + N2 +
+          "The symbols of 01 whisper this: you are not the fire itself—you are the direction of the fire. Fire does not burn you; it burns when you fail to direct it.",
+        reflection:
+          "What spark are you letting pass uncaught today?",
       },
     },
 
@@ -224,30 +222,26 @@ export const CITY_01: Record<CityCode, City7> = {
       tr: {
         title: "01 · Ritüel",
         story:
-          "1 dakika." +
-          NL +
-          "• 4 nefes al (burundan) – 4 saniye tut – 6 saniye ver." +
-          NL +
-          "• Son nefeste içinden söyle: “Başlatıyorum.”" +
-          N2 +
-          "$ ritual" +
-          NL +
-          "$ start_now",
-        reflection: "Şimdi tek cümle yaz: Bugün neyi başlatıyorsun?",
+          "1 dakika. Sessiz bir yer bul." + N2 +
+          "Gözlerini kapat. 4 saniye burundan nefes al. 4 saniye tut. 6 saniye ağızdan ver. Bunu 3 kez tekrarla." + N2 +
+          "Son nefesi verirken içinden tek bir kelime söyle: ‘Başlıyorum.’" + N2 +
+          "Sonra gözlerini aç ve kendin için şu soruyu yaz:" + NL +
+          "‘Bugün neyi başlatıyorum?’" + N2 +
+          "Cevabı düşünme. İlk gelen ne ise onu yaz. Ateş düşünmez; akar.",
+        reflection:
+          "Şimdi tek cümle yaz: Bugün neyi başlatıyorsun?",
       },
       en: {
         title: "01 · Ritual",
         story:
-          "1 minute." +
-          NL +
-          "• 4 breaths in – hold 4 – exhale 6." +
-          NL +
-          "• On the last exhale, say: “I begin.”" +
-          N2 +
-          "$ ritual" +
-          NL +
-          "$ start_now",
-        reflection: "Write one sentence: What do you begin today?",
+          "1 minute. Find a quiet place." + N2 +
+          "Close your eyes. Breathe in through the nose for 4 seconds. Hold for 4. Exhale through the mouth for 6. Repeat 3 times." + N2 +
+          "As you release the final breath, say one word inside: ‘I begin.’" + N2 +
+          "Then open your eyes and write this question for yourself:" + NL +
+          "‘What do I begin today?’" + N2 +
+          "Do not think about the answer. Write whatever comes first. Fire does not think; it flows.",
+        reflection:
+          "Write one sentence: What do you begin today?",
       },
     },
 
@@ -255,30 +249,28 @@ export const CITY_01: Record<CityCode, City7> = {
       tr: {
         title: "01 · LAB: Rewrite Engine",
         story:
-          "$ lab" +
-          NL +
-          "Kod gözü aktif. Artık olay okumuyorsun—kural motorunu görüyorsun." +
-          N2 +
-          "Komut: REWRITE" +
-          NL +
-          "Kural: “Bahane = güvenlik”" +
-          NL +
-          "Yeni Kural: “Eylem = güvenlik”",
-        reflection: "Bir komut yaz: Bugün hangi kuralı değiştiriyorsun?",
+          "Kod gözü aktif. Artık olay okumuyorsun—kural motorunu görüyorsun." + N2 +
+          "Eski kural: ‘Bahane = güvenlik.’ Zihin ertelemeyi koruma olarak kodlar. Hareket etmemek, risk almamak demektir. Ama bu kodun bedeli: durgunluk." + N2 +
+          "Yeni kural: ‘Eylem = güvenlik.’ Gerçek güvenlik konfordan değil, hareketten doğar. Adım atan zemin bulur; bekleyen zemin kaybeder." + N2 +
+          "Komut: REWRITE" + NL +
+          "Eski: bahane → güvenlik" + NL +
+          "Yeni: eylem → güvenlik" + N2 +
+          "Bu lab sana şunu gösterir: Kurallarını değiştirebilirsin. Çünkü onları sen yazdın.",
+        reflection:
+          "Bugün hangi eski kuralı silip yenisini yazıyorsun?",
       },
       en: {
         title: "01 · LAB: Rewrite Engine",
         story:
-          "$ lab" +
-          NL +
-          "Code eye active. You’re not reading events—you’re reading the rule engine." +
-          N2 +
-          "Command: REWRITE" +
-          NL +
-          "Rule: “Excuse = safety”" +
-          NL +
-          "New Rule: “Action = safety”",
-        reflection: "Write one command: Which rule do you rewrite today?",
+          "Code eye active. You are no longer reading events—you are reading the rule engine." + N2 +
+          "Old rule: ‘Excuse = safety.’ The mind codes delay as protection. Not acting means not risking. But the cost of this code: stagnation." + N2 +
+          "New rule: ‘Action = safety.’ True safety is born not from comfort but from movement. Those who step find ground; those who wait lose it." + N2 +
+          "Command: REWRITE" + NL +
+          "Old: excuse → safety" + NL +
+          "New: action → safety" + N2 +
+          "This lab shows you: you can change your rules. Because you wrote them.",
+        reflection:
+          "What old rule are you erasing and rewriting today?",
       },
     },
   },
