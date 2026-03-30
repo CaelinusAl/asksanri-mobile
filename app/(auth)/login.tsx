@@ -157,19 +157,10 @@ export default function LoginScreen() {
         }
 
         if (data?.token && data?.user) {
-          await setSession({
-            token: String(data.token),
-            user: {
-              id: String(data.user.id ?? ""),
-              name: data.user.name ?? "",
-              email: data.user.email ?? normalizedEmail,
-              phone: data.user.phone ?? "",
-              isPremium: data.user.is_premium ?? false,
-              role: data.user.role ?? "free",
-            },
-          });
-
-          router.replace("/rabbit" as any);
+          router.replace({
+            pathname: "/(auth)/verify-email",
+            params: { email: normalizedEmail, lang, token: data.token },
+          } as any);
           return;
         }
 
@@ -311,6 +302,17 @@ export default function LoginScreen() {
                 <Text style={styles.hint}>
                   {tab === "register" ? t.registerHint : ""}
                 </Text>
+
+                {tab === "login" ? (
+                  <Pressable
+                    onPress={() => router.push({ pathname: "/(auth)/forgot-password", params: { lang } } as any)}
+                    style={styles.forgotBtn}
+                  >
+                    <Text style={styles.forgotTxt}>
+                      {lang === "tr" ? "Şifremi Unuttum" : "Forgot Password?"}
+                    </Text>
+                  </Pressable>
+                ) : null}
               </BlurView>
             </LinearGradient>
           </View>
@@ -434,5 +436,17 @@ const styles = StyleSheet.create({
     marginTop: 14,
     textAlign: "center",
     lineHeight: 20,
+  },
+
+  forgotBtn: {
+    marginTop: 8,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+
+  forgotTxt: {
+    color: "#7cf7d8",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });

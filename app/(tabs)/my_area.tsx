@@ -495,6 +495,17 @@ export default function MyAreaScreen() {
           </Pressable>
 
           <Pressable
+            style={styles.accountBtn}
+            onPress={() => {
+              router.push("/(auth)/change-password" as any);
+            }}
+          >
+            <Text style={styles.accountBtnText}>
+              {lang === "tr" ? "Şifre Değiştir" : "Change Password"}
+            </Text>
+          </Pressable>
+
+          <Pressable
             style={styles.logoutBtn}
             onPress={() => {
               Alert.alert(
