@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
-import { hasVipEntitlement } from "../../lib/revenuecat";
 import { CATEGORIES as ANKOD_CATS } from "../../lib/ankodData";
 import { getFeatured } from "../../lib/okumaAlaniData";
 import { BOOKS } from "../../lib/booksData";
@@ -21,6 +20,12 @@ import {
   getActiveModuleId,
 } from "../../lib/kodOkumaProgress";
 import { MODULES } from "../../lib/kodOkumaData";
+import {
+  getActiveEntitlements,
+  ENTITLEMENT_META,
+  type EntitlementId,
+  type EntitlementStatus,
+} from "../../lib/premium";
 
 const ACCENT = "#7cf7d8";
 const BG = "#0a0b10";
@@ -33,12 +38,16 @@ type LibSection = {
   accent: string;
   route: string;
   badge?: string;
-  vipOnly?: boolean;
+  entitlement?: EntitlementId;
 };
 
 export default function KutuphaneScreen() {
   const { user } = useAuth();
-  const [isPremium, setIsPremium] = useState(false);
+  const [entitlements, setEntitlements] = useState<EntitlementStatus>({
+    vip_access: false,
+    role_access: false,
+    code_training_access: false,
+  });
   const [kodProgress, setKodProgress] = useState(0);
   const [activeModule, setActiveModule] = useState("");
   const [ankodDone, setAnkodDone] = useState(0);
@@ -49,7 +58,7 @@ export default function KutuphaneScreen() {
 
   useEffect(() => {
     (async () => {
-      try { setIsPremium(await hasVipEntitlement()); } catch { /* */ }
+      try { setEntitlements(await getActiveEntitlements()); } catch { /* */ }
     })();
     (async () => {
       try {
@@ -97,17 +106,17 @@ export default function KutuphaneScreen() {
       accent: "rgba(168,85,247,0.85)",
       route: "/(tabs)/ankod",
       badge: ankodDone > 0 ? `${ankodDone}/4` : undefined,
-      vipOnly: true,
+      entitlement: "vip_access",
     },
     {
       id: "matrix_rol",
       glyph: "◈",
       title: "Matrix Rol Okuma",
       sub: "İsim + doğum tarihi → sistemdeki rolünü hatırla",
-      accent: ACCENT,
+      accent: "#c084fc",
       route: "/(tabs)/matrix_rol",
       badge: hasMatrixCache ? "Kayıt var" : undefined,
-      vipOnly: true,
+      entitlement: "role_access",
     },
     {
       id: "okuma",
@@ -123,10 +132,10 @@ export default function KutuphaneScreen() {
       glyph: "⌬",
       title: "Kod Okuma Sistemi",
       sub: `${activeModule} · %${kodProgress} tamamlandı`,
-      accent: "rgba(234,179,8,0.9)",
+      accent: "#eab308",
       route: "/(tabs)/ust_bilinc",
       badge: kodProgress > 0 ? `%${kodProgress}` : undefined,
-      vipOnly: true,
+      entitlement: "code_training_access",
     },
   ];
 
@@ -139,7 +148,7 @@ export default function KutuphaneScreen() {
           <Pressable onPress={() => router.back()} hitSlop={12}>
             <Text style={s.backText}>← Kapılar</Text>
           </Pressable>
-          {isPremium && (
+          {entitlements.vip_access && (
             <View style={s.vipBadge}>
               <Text style={s.vipText}>VIP</Text>
             </View>
@@ -158,39 +167,45 @@ export default function KutuphaneScreen() {
         </View>
 
         {/* ─── MAIN SECTIONS ─── */}
-        {sections.map((sec) => (
-          <Pressable
-            key={sec.id}
-            style={s.sectionCard}
-            onPress={() => router.push(sec.route as any)}
-          >
-            <View style={s.sectionTop}>
-              <Text style={[s.sectionGlyph, { color: sec.accent }]}>{sec.glyph}</Text>
-              <View style={s.sectionInfo}>
-                <View style={s.sectionTitleRow}>
-                  <Text style={[s.sectionTitle, { color: sec.accent }]}>{sec.title}</Text>
-                  {sec.vipOnly && !isPremium && (
-                    <View style={s.vipTagSmall}>
-                      <Text style={s.vipTagText}>VIP</Text>
-                    </View>
-                  )}
+        {sections.map((sec) => {
+          const ent = sec.entitlement;
+          const isLocked = ent ? !entitlements[ent] : false;
+          const meta = ent ? ENTITLEMENT_META[ent] : null;
+
+          return (
+            <Pressable
+              key={sec.id}
+              style={s.sectionCard}
+              onPress={() => router.push(sec.route as any)}
+            >
+              <View style={s.sectionTop}>
+                <Text style={[s.sectionGlyph, { color: sec.accent }]}>{sec.glyph}</Text>
+                <View style={s.sectionInfo}>
+                  <View style={s.sectionTitleRow}>
+                    <Text style={[s.sectionTitle, { color: sec.accent }]}>{sec.title}</Text>
+                    {meta && isLocked && (
+                      <View style={[s.entTag, { backgroundColor: `${meta.color}18`, borderColor: `${meta.color}30` }]}>
+                        <Text style={[s.entTagText, { color: meta.color }]}>{meta.label}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={s.sectionSub}>
+                    {sec.sub}
+                    {meta && isLocked ? ` · ${meta.label} ile açılır` : ""}
+                  </Text>
                 </View>
-                <Text style={s.sectionSub}>
-                  {sec.sub}
-                  {sec.vipOnly && !isPremium ? " · derin katmanlar VIP" : ""}
-                </Text>
+                {sec.badge && (
+                  <View style={[s.badge, { backgroundColor: `${sec.accent}22` }]}>
+                    <Text style={[s.badgeText, { color: sec.accent }]}>{sec.badge}</Text>
+                  </View>
+                )}
               </View>
-              {sec.badge && (
-                <View style={[s.badge, { backgroundColor: `${sec.accent}22` }]}>
-                  <Text style={[s.badgeText, { color: sec.accent }]}>{sec.badge}</Text>
-                </View>
-              )}
-            </View>
-            <View style={s.sectionArrow}>
-              <Text style={s.arrowText}>→</Text>
-            </View>
-          </Pressable>
-        ))}
+              <View style={s.sectionArrow}>
+                <Text style={s.arrowText}>→</Text>
+              </View>
+            </Pressable>
+          );
+        })}
 
         {/* ─── AN-KOD CATEGORIES PREVIEW ─── */}
         <Text style={s.divider}>AN-KOD Alanları</Text>
@@ -312,8 +327,8 @@ const s = StyleSheet.create({
   sectionInfo: { flex: 1 },
   sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3 },
   sectionTitle: { fontSize: 16, fontWeight: "800" },
-  vipTagSmall: { backgroundColor: "rgba(234,179,8,0.15)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: "rgba(234,179,8,0.25)" },
-  vipTagText: { color: "#eab308", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
+  entTag: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1 },
+  entTagText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.5 },
   sectionSub: { color: "rgba(255,255,255,0.45)", fontSize: 12, lineHeight: 17 },
   sectionArrow: { marginLeft: 8 },
   arrowText: { color: "rgba(255,255,255,0.3)", fontSize: 20, fontWeight: "700" },

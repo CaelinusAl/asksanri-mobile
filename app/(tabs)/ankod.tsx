@@ -322,6 +322,7 @@ export default function AnkodScreen() {
           <VipWall
             title="Derin Okuma — VIP"
             message={"Ön okumayı gördün.\nDerin katmanlara inmek için VIP erişim gerekli."}
+            entitlement="vip_access"
             targetAfterPurchase="/(tabs)/ankod"
           />
         )}

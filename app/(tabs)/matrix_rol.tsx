@@ -14,7 +14,7 @@ import { router } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { MATRIX_ROL_URL } from "../../lib/ankodData";
 import { storageGet, storageSet } from "../../lib/storage";
-import { hasVipEntitlement } from "../../lib/premium";
+import { hasRoleAccess } from "../../lib/premium";
 import VipWall from "../../components/VipWall";
 
 const ACCENT = "#7cf7d8";
@@ -156,7 +156,7 @@ export default function MatrixRolScreen() {
         }
       } catch { /* ignore */ }
     })();
-    hasVipEntitlement().then((v) => setIsVip(Boolean(v))).catch(() => {});
+    hasRoleAccess().then((v) => setIsVip(Boolean(v))).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -356,8 +356,9 @@ export default function MatrixRolScreen() {
 
         {!isVip && (
           <VipWall
-            title="Derin Okuma Katmanları — VIP"
-            message={"Rolünü ve ana temayı gördün.\nİlişki, para, içsel yapı, kör nokta ve daha fazlası için VIP'e geç."}
+            title="Derin Okuma Katmanları"
+            message={"Rolünü ve ana temayı gördün.\nİlişki, para, içsel yapı, kör nokta ve daha fazlası için Rol Okuma'yı aç."}
+            entitlement="role_access"
             targetAfterPurchase="/(tabs)/matrix_rol"
           />
         )}

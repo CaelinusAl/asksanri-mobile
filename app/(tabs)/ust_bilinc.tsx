@@ -18,7 +18,7 @@ import {
   getModuleProgress,
   type ProgressMap,
 } from "../../lib/kodOkumaProgress";
-import { hasVipEntitlement } from "../../lib/premium";
+import { hasCodeTrainingAccess } from "../../lib/premium";
 import VipWall from "../../components/VipWall";
 
 type Lang = "tr" | "en";
@@ -70,7 +70,7 @@ export default function KodOkumaScreen() {
 
   useEffect(() => {
     getProgress().then(setProgress);
-    hasVipEntitlement()
+    hasCodeTrainingAccess()
       .then((v) => { setIsVip(Boolean(v)); setVipChecked(true); })
       .catch(() => setVipChecked(true));
   }, []);
@@ -88,7 +88,7 @@ export default function KodOkumaScreen() {
 
   const onOpenLesson = (lesson: Lesson) => {
     if (!lesson.isFree && !isVip) {
-      router.push("/(tabs)/vip" as any);
+      router.push({ pathname: "/(tabs)/vip", params: { entitlement: "code_training_access", target: "/(tabs)/ust_bilinc" } } as any);
       return;
     }
     router.push({
@@ -145,8 +145,9 @@ export default function KodOkumaScreen() {
       {vipChecked && !isVip ? (
         <View style={{ flex: 1 }}>
           <VipWall
-            title="Kod Okuma Sistemi — VIP"
-            message={"Bu alan VIP erişim gerektirir.\nTüm derslere ve kod okuma modüllerine erişmek için VIP'e geç."}
+            title="Kod Okuma Sistemi"
+            message={"Bu alan Kod Eğitimi erişimi gerektirir.\nTüm derslere ve modüllere erişmek için Kod Eğitimi'ni aç."}
+            entitlement="code_training_access"
             targetAfterPurchase="/(tabs)/ust_bilinc"
           />
         </View>
