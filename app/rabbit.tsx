@@ -4,16 +4,12 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  ImageBackground,
   Image,
   StatusBar,
 } from "react-native";
 import { router } from "expo-router";
-import { BlurView } from "expo-blur";
-import MatrixRain from "../lib/MatrixRain";
 import { useAuth } from "../context/AuthContext";
 
-const BG = require("../assets/sanri_glass_bg.jpg");
 const RABBIT = require("../assets/rabbit.jpg");
 
 type Lang = "tr" | "en";
@@ -28,7 +24,7 @@ const COPY = {
     guestDesc:
       "Sanrı bilgi üretmez.\nAlan açar. Anlam sende şekillenir.",
     guestCardTitle: "SANRI AI",
-    guestCardText: "Sanrı bilgi üretmez. Alan açar. Anlam sende şekillenir.",
+    guestCardText: "Alanı açmak için giriş yap. Frekansın seni bekliyor.",
     guestButton: "🔑 Frekans Alanı Aç",
     welcome: "Hoş geldin,",
     authedDesc:
@@ -47,7 +43,7 @@ const COPY = {
     guestDesc:
       "SANRI doesn't produce information.\nIt opens meaning — reflects you back to you.",
     guestCardTitle: "SANRI AI",
-    guestCardText: "SANRI doesn't produce information. It opens meaning.",
+    guestCardText: "Sign in to open the field. Your frequency awaits.",
     guestButton: "🔑 Open Frequency Gate",
     welcome: "Welcome,",
     authedDesc:
@@ -89,20 +85,6 @@ export default function RabbitScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      <ImageBackground
-        source={BG}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
-
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        <MatrixRain opacity={0.15} speedMs={9000} />
-      </View>
-
-      <View pointerEvents="none" style={styles.overlay} />
-      <View pointerEvents="none" style={styles.glowA} />
-      <View pointerEvents="none" style={styles.glowB} />
-
       <View style={styles.topRight}>
         <Pressable
           onPress={() => setLang("tr")}
@@ -143,7 +125,7 @@ export default function RabbitScreen() {
           </>
         )}
 
-        <BlurView intensity={24} tint="dark" style={styles.infoCard}>
+        <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>
             {isAuthenticated ? t.authedCardTitle : t.guestCardTitle}
           </Text>
@@ -169,7 +151,7 @@ export default function RabbitScreen() {
               <Text style={styles.logoutTxt}>{t.logout}</Text>
             </Pressable>
           ) : null}
-        </BlurView>
+        </View>
       </View>
     </View>
   );
@@ -178,32 +160,7 @@ export default function RabbitScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#06070b",
-  },
-
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(5,8,18,0.56)",
-  },
-
-  glowA: {
-    position: "absolute",
-    width: 420,
-    height: 420,
-    borderRadius: 220,
-    top: 60,
-    left: -140,
-    backgroundColor: "rgba(94,59,255,0.16)",
-  },
-
-  glowB: {
-    position: "absolute",
-    width: 460,
-    height: 460,
-    borderRadius: 230,
-    bottom: -120,
-    right: -160,
-    backgroundColor: "rgba(124,247,216,0.10)",
+    backgroundColor: "#0a0b10",
   },
 
   topRight: {

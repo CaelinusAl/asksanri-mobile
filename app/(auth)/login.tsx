@@ -5,7 +5,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  ImageBackground,
   StatusBar,
   KeyboardAvoidingView,
   Platform,
@@ -16,11 +15,8 @@ import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 
-import MatrixRain from "../../lib/MatrixRain";
 import { useAuth } from "../../context/AuthContext";
 import { API, apiPostJson } from "../../lib/apiClient";
-
-const BG = require("../../assets/sanri_glass_bg.jpg");
 
 type Lang = "tr" | "en";
 type Tab = "login" | "register";
@@ -40,6 +36,8 @@ const COPY = {
     registerExists: "Bu e-posta zaten kayıtlı. Giriş Yap sekmesine geç.",
     registerOk: "Kayıt tamamlandı. Şimdi giriş yapabilirsin.",
     network: "Bağlantı hatası.",
+    forgotPassword: "Şifremi Unuttum",
+    verifyEmail: "E-postamı Doğrula",
   },
   en: {
     title: "Consciousness & Meaning\nIntelligence",
@@ -55,6 +53,8 @@ const COPY = {
     registerExists: "This email is already registered. Switch to Login.",
     registerOk: "Registration completed. You can log in now.",
     network: "Connection error.",
+    forgotPassword: "Forgot Password",
+    verifyEmail: "Verify My Email",
   },
 } as const;
 
@@ -177,13 +177,6 @@ export default function LoginScreen() {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
-      <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.14} speedMs={9000} />
-      </View>
-
-      <View pointerEvents="none" style={styles.veil} />
 
       <View style={styles.topbar}>
         <Pressable onPress={() => router.replace("/rabbit" as any)} style={styles.backBtn}>
@@ -294,9 +287,33 @@ export default function LoginScreen() {
                   </LinearGradient>
                 </Pressable>
 
-                <Text style={styles.hint}>
-                  {tab === "register" ? t.registerHint : ""}
-                </Text>
+                {tab === "login" ? (
+                  <View style={styles.linkRow}>
+                    <Pressable
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(auth)/reset-password",
+                          params: { email: email.trim().toLowerCase() },
+                        } as any)
+                      }
+                    >
+                      <Text style={styles.linkTxt}>{t.forgotPassword}</Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(auth)/verify-email",
+                          params: { email: email.trim().toLowerCase() },
+                        } as any)
+                      }
+                    >
+                      <Text style={styles.linkTxt}>{t.verifyEmail}</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Text style={styles.hint}>{t.registerHint}</Text>
+                )}
               </BlurView>
             </LinearGradient>
           </View>
@@ -307,8 +324,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,8,20,0.52)" },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   topbar: {
     paddingTop: 12,
@@ -420,5 +436,17 @@ const styles = StyleSheet.create({
     marginTop: 14,
     textAlign: "center",
     lineHeight: 20,
+  },
+
+  linkRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingHorizontal: 4,
+  },
+  linkTxt: {
+    color: "rgba(124,247,216,0.85)",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });

@@ -5,14 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  ImageBackground,
   StatusBar,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import MatrixRain from "../../lib/MatrixRain";
 
-const BG = require("../../assets/sanri_glass_bg.jpg");
-const AY_CICEGI = require("../../assets/ay_cicegi.jpg");
 
 export default function WeeklySymbolScreen() {
   const params = useLocalSearchParams<{
@@ -204,18 +200,6 @@ Mature consciousness knows its direction.`;
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      <ImageBackground
-        source={BG}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
-
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.12} />
-      </View>
-
-      <View pointerEvents="none" style={styles.overlay} />
-
       <View style={styles.topbar}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
@@ -227,24 +211,17 @@ Mature consciousness knows its direction.`;
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <Text style={styles.kicker}>
-          {lang === "tr" ? "HAFTANIN SEMBOLÜ" : "SYMBOL OF THE WEEK"}
+          {lang === "tr" ? "HAFTANIN KODU" : "CODE OF THE WEEK"}
         </Text>
 
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
 
-        <ImageBackground
-          source={AY_CICEGI}
-          resizeMode="cover"
-          style={styles.hero}
-          imageStyle={{ borderRadius: 24 }}
-        >
-          <View style={styles.heroOverlay} />
-        </ImageBackground>
+        <View style={styles.hero} />
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>
-            {lang === "tr" ? "Derin Matrix Okuma" : "Deep Matrix Reading"}
+            {lang === "tr" ? "Derin Kod Okuma" : "Deep Code Reading"}
           </Text>
           <Text style={styles.body}>{body}</Text>
         </View>
@@ -276,11 +253,7 @@ Mature consciousness knows its direction.`;
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#06070c",
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.36)",
+    backgroundColor: "#0a0b10",
   },
   topbar: {
     paddingTop: 10,

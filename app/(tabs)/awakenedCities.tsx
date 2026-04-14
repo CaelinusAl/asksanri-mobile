@@ -7,16 +7,11 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  ImageBackground,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import MatrixRain from "../../lib/MatrixRain";
-
 type Lang = "tr" | "en";
-
-const HOLOGRAM_BG = require("../../assets/hologram_gate_bg.jpg");
 
 const goBackToGates = () => router.replace("/(tabs)/gates");
 
@@ -172,12 +167,6 @@ export default function AwakenedCitiesScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground source={HOLOGRAM_BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-      <View pointerEvents="none" style={styles.veil} />
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.16} />
-      </View>
-
       {/* Top bar */}
       <View style={styles.topbar}>
         <Pressable
@@ -258,8 +247,7 @@ export default function AwakenedCitiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(6,10,22,0.45)" },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   topbar: { paddingTop: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },

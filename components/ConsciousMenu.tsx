@@ -1,11 +1,17 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet, Modal } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { router } from "expo-router";
+import { hasVipEntitlement } from "../lib/revenuecat";
 
 export default function ConsciousMenu() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [isVip, setIsVip] = useState(false);
+
+  useEffect(() => {
+    hasVipEntitlement().then(setIsVip).catch(() => setIsVip(false));
+  }, [open]);
 
   return (
     <View style={styles.wrap}>
@@ -21,14 +27,15 @@ export default function ConsciousMenu() {
             {user ? user.email : "Misafir"}
           </Text>
 
-          <Text style={styles.level}>Level 2 — Pattern Walker</Text>
-          <Text style={styles.vip}>VIP: Pasif</Text>
+          <Text style={styles.vip}>
+            {isVip ? "VIP: Aktif ✦" : "VIP: Pasif"}
+          </Text>
 
-          <Pressable style={styles.item} onPress={() => router.push("/(tabs)/history")}>
-            <Text style={styles.itemText}>Konuşma Geçmişi</Text>
+          <Pressable style={styles.item} onPress={() => { setOpen(false); router.push("/(tabs)/my_area"); }}>
+            <Text style={styles.itemText}>Bilinç Alanım</Text>
           </Pressable>
 
-          <Pressable style={styles.item} onPress={() => router.push("/(tabs)/vip")}>
+          <Pressable style={styles.item} onPress={() => { setOpen(false); router.push("/(tabs)/vip"); }}>
             <Text style={styles.itemText}>VIP Kapısını Aç</Text>
           </Pressable>
 

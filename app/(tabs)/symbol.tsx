@@ -1,4 +1,4 @@
-// app/(tabs)/pattern.tsx
+// app/(tabs)/symbol.tsx
 import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
@@ -16,53 +16,53 @@ import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { API, apiPostJson } from "../../lib/apiClient";
+import { useAuth } from "../../context/AuthContext";
 type Lang = "tr" | "en";
 
 const T = {
   tr: {
-    title: "Level 2 — Örüntü",
-    sub: "Tek olayı değil, tekrar eden kodu yakala.",
-    e1: "Olay 1 (kısa)",
-    e2: "Olay 2 (kısa)",
-    e3: "Olay 3 (kısa)",
-    theme: "Ortak tema / kelime (örn: para, güven, güç)",
-    emotion: "Ortak duygu (tek kelime)",
+    title: "Modül 3 — Matrix Oku",
+    sub: "Olayı değil, matrixteki mesajı oku.",
+    event: "Olay (kısa açıklama)",
+    symbol: "Sembol / imge (rüyada, haberde, hayatta gördüğün)",
+    emotion: "Ana duygu (tek kelime)",
     optional: "Opsiyonel: Link",
-    go: "Oku",
+    go: "Matrixi Oku",
     back: "←",
     hint:
-      "Çıktı 5 parçalı gelir: (1) Ortak Motif (2) Gizli Kod (3) Döngü (4) Kırılma Noktası (5) Mikro Ritüel",
-    errFill: "Lütfen Olay 1–3, Tema ve Duygu alanlarını doldur.",
+      "Çıktı 6 parçalı gelir: (1) Sembolün Özü (2) Arketip (3) Matrix Mesajı (4) Kolektif Yansıma (5) Kişisel Sorumluluk (6) Mini Ritüel",
+    errFill: "Lütfen Olay, Sembol ve Duygu alanlarını doldur.",
     empty: "Cevap boş döndü.",
   },
   en: {
-    title: "Level 2 — Pattern",
-    sub: "Not one event — the repeating code.",
-    e1: "Event 1 (short)",
-    e2: "Event 2 (short)",
-    e3: "Event 3 (short)",
-    theme: "Common theme / word (e.g., money, trust, power)",
-    emotion: "Common emotion (one word)",
+    title: "Module 3 — Read the Matrix",
+    sub: "Not the event — the message in the matrix.",
+    event: "Event (short description)",
+    symbol: "Symbol / image (seen in a dream, news, or life)",
+    emotion: "Core emotion (one word)",
     optional: "Optional: Link",
-    go: "Read",
+    go: "Read the Matrix",
     back: "←",
     hint:
-      "Output has 5 parts: (1) Common Motif (2) Hidden Code (3) Loop (4) Breakpoint (5) Micro Ritual",
-    errFill: "Please fill Event 1–3, Theme and Emotion.",
+      "Output has 6 parts: (1) Symbol Essence (2) Archetype (3) Matrix Message (4) Collective Reflection (5) Personal Responsibility (6) Mini Ritual",
+    errFill: "Please fill Event, Symbol and Emotion.",
     empty: "Empty response.",
   },
 } as const;
 
-export default function PatternScreen() {
+export default function SymbolScreen() {
+  const { user } = useAuth();
   const params = useLocalSearchParams<{ lang?: string }>();
   const initialLang: Lang = String(params.lang || "tr").toLowerCase() === "en" ? "en" : "tr";
 
   const [lang, setLang] = useState<Lang>(initialLang);
 
-  const [event1, setEvent1] = useState("");
-  const [event2, setEvent2] = useState("");
-  const [event3, setEvent3] = useState("");
-  const [themeWord, setThemeWord] = useState("");
+  const userName = user?.name?.trim() || "";
+  const userEmail = user?.email?.trim() || "";
+  const nameForPrompt = userName || userEmail?.split("@")[0] || "";
+
+  const [event, setEvent] = useState("");
+  const [symbolWord, setSymbolWord] = useState("");
   const [emotion, setEmotion] = useState("");
   const [link, setLink] = useState("");
 
@@ -73,69 +73,62 @@ export default function PatternScreen() {
   const bg = useMemo<[string, string, string]>(() => ["#07080d", "#0b0620", "#050610"], []);
 
   const buildMessage = useCallback(() => {
-    const e1 = event1.trim();
-    const e2 = event2.trim();
-    const e3 = event3.trim();
-    const th = themeWord.trim();
+    const ev = event.trim();
+    const sym = symbolWord.trim();
     const emo = emotion.trim();
     const u = link.trim();
 
     if (lang === "tr") {
       return (
         "[SANRI_MODE=mirror]\n" +
-        "INTENT: PATTERN_LEVEL_3\n" +
+        "INTENT: SYMBOL_LEVEL_3\n" +
         "LANG: TR\n" +
+        "KİŞİ: " + (nameForPrompt || "Anonim") + " (" + (userEmail || "mail yok") + ")\n" +
+        "NOT: Bu kişiyi tanı, ismini kullan, kişisel hitap et.\n" +
         (u ? "LINK: " + u + "\n" : "") +
-        "EVENTS:\n" +
-        "- " + e1 + "\n" +
-        "- " + e2 + "\n" +
-        "- " + e3 + "\n" +
-        "THEME: " + th + "\n" +
+        "EVENT: " + ev + "\n" +
+        "SYMBOL: " + sym + "\n" +
         "EMOTION: " + emo + "\n\n" +
-
         "FORMAT ZORUNLU (Sembol katmanı, bilinç dili):\n" +
-"1) SEMBOLÜN ÖZÜ (sembol neyi temsil eder?)\n" +
-"2) ARKETİP (hangi bilinç rolü çalışıyor?)\n" +
-"3) OLAYIN SEMBOLİK MESAJI\n" +
-"4) KOLEKTİF YANSIMA (toplumsal katman)\n" +
-"5) KİŞİSEL SORUMLULUK CÜMLESİ\n" +
-"6) MİNİ RİTÜEL (sembolik ama uygulanabilir)\n" +
-"KURAL: Yüzeysel koçluk yazma. Derin ama net yaz.\n"
+        "1) SEMBOLÜN ÖZÜ (sembol neyi temsil eder?)\n" +
+        "2) ARKETİP (hangi bilinç rolü çalışıyor?)\n" +
+        "3) OLAYIN SEMBOLİK MESAJI\n" +
+        "4) KOLEKTİF YANSIMA (toplumsal katman)\n" +
+        "5) KİŞİSEL SORUMLULUK CÜMLESİ\n" +
+        "6) MİNİ RİTÜEL (sembolik ama uygulanabilir)\n" +
+        "KURAL: Yüzeysel koçluk yazma. Derin ama net yaz.\n"
       );
     }
 
     return (
       "[SANRI_MODE=mirror]\n" +
-      "INTENT: PATTERN_LEVEL_2\n" +
+      "INTENT: SYMBOL_LEVEL_3\n" +
       "LANG: EN\n" +
+      "PERSON: " + (nameForPrompt || "Anonymous") + " (" + (userEmail || "no email") + ")\n" +
+      "NOTE: Recognize this person, address them by name, make it personal.\n" +
       (u ? "LINK: " + u + "\n" : "") +
-      "EVENTS:\n" +
-      "- " + e1 + "\n" +
-      "- " + e2 + "\n" +
-      "- " + e3 + "\n" +
-      "THEME: " + th + "\n" +
+      "EVENT: " + ev + "\n" +
+      "SYMBOL: " + sym + "\n" +
       "EMOTION: " + emo + "\n\n" +
-
-      "REQUIRED FORMAT (Pattern voice, no generic coaching):\n" +
-      "1) COMMON MOTIF (one sentence)\n" +
-      "2) HIDDEN CODE (archetype / defense mechanism)\n" +
-      "3) LOOP (trigger → reaction → outcome, max 3 lines)\n" +
-      "4) BREAKPOINT (one intervention that breaks the loop)\n" +
-      "5) MICRO RITUAL (1–2 min: breath / phrase / boundary / closure)\n" +
-      "RULE: Be sharp and concrete.\n"
+      "REQUIRED FORMAT (Symbol layer, consciousness language):\n" +
+      "1) SYMBOL ESSENCE (what does the symbol represent?)\n" +
+      "2) ARCHETYPE (which consciousness role is active?)\n" +
+      "3) SYMBOLIC MESSAGE OF THE EVENT\n" +
+      "4) COLLECTIVE REFLECTION (societal layer)\n" +
+      "5) PERSONAL RESPONSIBILITY STATEMENT\n" +
+      "6) MINI RITUAL (symbolic yet actionable)\n" +
+      "RULE: No surface-level coaching. Deep but clear.\n"
     );
-  }, [emotion, event1, event2, event3, lang, link, themeWord]);
+  }, [emotion, event, lang, link, symbolWord]);
 
   const run = useCallback(async () => {
     if (busy) return;
 
-    const e1 = event1.trim();
-    const e2 = event2.trim();
-    const e3 = event3.trim();
-    const th = themeWord.trim();
+    const ev = event.trim();
+    const sym = symbolWord.trim();
     const emo = emotion.trim();
 
-    if (!e1 || !e2 || !e3 || !th || !emo) {
+    if (!ev || !sym || !emo) {
       setErr(T[lang].errFill);
       return;
     }
@@ -164,7 +157,7 @@ export default function PatternScreen() {
     } finally {
       setBusy(false);
     }
-  }, [buildMessage, busy, emotion, event1, event2, event3, lang, themeWord]);
+  }, [buildMessage, busy, emotion, event, lang, symbolWord]);
 
   return (
     <View style={styles.root}>
@@ -213,42 +206,22 @@ export default function PatternScreen() {
             style={styles.input}
           />
 
-          <Text style={styles.label}>{T[lang].e1}</Text>
+          <Text style={styles.label}>{T[lang].event}</Text>
           <TextInput
-            value={event1}
-            onChangeText={setEvent1}
-            maxLength={200}
-            placeholder={T[lang].e1}
+            value={event}
+            onChangeText={setEvent}
+            maxLength={500}
+            placeholder={T[lang].event}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
           />
 
-          <Text style={styles.label}>{T[lang].e2}</Text>
+          <Text style={styles.label}>{T[lang].symbol}</Text>
           <TextInput
-            value={event2}
-            onChangeText={setEvent2}
-            maxLength={200}
-            placeholder={T[lang].e2}
-            placeholderTextColor="rgba(255,255,255,0.35)"
-            style={styles.input}
-          />
-
-          <Text style={styles.label}>{T[lang].e3}</Text>
-          <TextInput
-            value={event3}
-            onChangeText={setEvent3}
-            maxLength={200}
-            placeholder={T[lang].e3}
-            placeholderTextColor="rgba(255,255,255,0.35)"
-            style={styles.input}
-          />
-
-          <Text style={styles.label}>{T[lang].theme}</Text>
-          <TextInput
-            value={themeWord}
-            onChangeText={setThemeWord}
-            maxLength={200}
-            placeholder={T[lang].theme}
+            value={symbolWord}
+            onChangeText={setSymbolWord}
+            maxLength={300}
+            placeholder={T[lang].symbol}
             placeholderTextColor="rgba(255,255,255,0.35)"
             style={styles.input}
           />
@@ -267,7 +240,7 @@ export default function PatternScreen() {
 
           <Pressable
             onPress={run}
-            style={[styles.btn, (busy || !event1.trim() || !event2.trim() || !event3.trim() || !themeWord.trim() || !emotion.trim()) && { opacity: 0.6 }]}
+            style={[styles.btn, (busy || !event.trim() || !symbolWord.trim() || !emotion.trim()) && { opacity: 0.6 }]}
             disabled={busy}
           >
             <Text style={styles.btnTxt}>{busy ? (lang === "tr" ? "Okuyor…" : "Reading…") : T[lang].go}</Text>
@@ -288,7 +261,7 @@ export default function PatternScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   topbar: {
     paddingTop: 14,

@@ -8,21 +8,17 @@ import {
   Pressable,
   TextInput,
   ScrollView,
-  ImageBackground,
   StatusBar,
   Platform,
   Alert,
 } from "react-native";
 import { router } from "expo-router";
 
-import MatrixRain from "../../lib/MatrixRain";
 import { hasVipEntitlement } from "../../lib/premium";
 import { getCurrentMonthlyPackage } from "../../lib/revenuecat";
 
 type Lang = "tr" | "en";
 type Mode = "name" | "dob";
-
-const BG = require("../../assets/matrix_rain.jpg");
 
 const T = {
   tr: {
@@ -149,12 +145,6 @@ export default function MatrixScreen() {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" translucent={false} />
-
-      <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-      <View pointerEvents="none" style={styles.overlay} />
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.16} />
-      </View>
 
       {/* TOP BAR */}
       <View style={styles.topbar}>
@@ -322,8 +312,7 @@ export default function MatrixScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   topbar: {
     paddingTop: Platform.OS === "android" ? 12 : 10,

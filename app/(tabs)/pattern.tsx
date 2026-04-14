@@ -16,19 +16,20 @@ import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { API, apiPostJson } from "../../lib/apiClient";
+import { useAuth } from "../../context/AuthContext";
 type Lang = "tr" | "en";
 
 const T = {
   tr: {
-    title: "Level 2 — Örüntü",
-    sub: "Tek olayı değil, tekrar eden kodu yakala.",
+    title: "Modül 2 — İlişki Kodu",
+    sub: "Tek olayı değil, tekrar eden ilişki kodunu yakala.",
     e1: "Olay 1 (kısa)",
     e2: "Olay 2 (kısa)",
     e3: "Olay 3 (kısa)",
     theme: "Ortak tema / kelime (örn: para, güven, güç)",
     emotion: "Ortak duygu (tek kelime)",
     optional: "Opsiyonel: Link",
-    go: "Oku",
+    go: "Kodu Oku",
     back: "←",
     hint:
       "Çıktı 5 parçalı gelir: (1) Ortak Motif (2) Gizli Kod (3) Döngü (4) Kırılma Noktası (5) Mikro Ritüel",
@@ -36,15 +37,15 @@ const T = {
     empty: "Cevap boş döndü.",
   },
   en: {
-    title: "Level 2 — Pattern",
-    sub: "Not one event — the repeating code.",
+    title: "Module 2 — Relationship Code",
+    sub: "Not one event — the repeating relationship code.",
     e1: "Event 1 (short)",
     e2: "Event 2 (short)",
     e3: "Event 3 (short)",
     theme: "Common theme / word (e.g., money, trust, power)",
     emotion: "Common emotion (one word)",
     optional: "Optional: Link",
-    go: "Read",
+    go: "Read the Code",
     back: "←",
     hint:
       "Output has 5 parts: (1) Common Motif (2) Hidden Code (3) Loop (4) Breakpoint (5) Micro Ritual",
@@ -54,10 +55,15 @@ const T = {
 } as const;
 
 export default function PatternScreen() {
+  const { user } = useAuth();
   const params = useLocalSearchParams<{ lang?: string }>();
   const initialLang: Lang = String(params.lang || "tr").toLowerCase() === "en" ? "en" : "tr";
 
   const [lang, setLang] = useState<Lang>(initialLang);
+
+  const userName = user?.name?.trim() || "";
+  const userEmail = user?.email?.trim() || "";
+  const nameForPrompt = userName || userEmail?.split("@")[0] || "";
 
   const [event1, setEvent1] = useState("");
   const [event2, setEvent2] = useState("");
@@ -85,6 +91,8 @@ export default function PatternScreen() {
         "[SANRI_MODE=mirror]\n" +
         "INTENT: PATTERN_LEVEL_2\n" +
         "LANG: TR\n" +
+        "KİŞİ: " + (nameForPrompt || "Anonim") + " (" + (userEmail || "mail yok") + ")\n" +
+        "NOT: Bu kişiyi tanı, ismini kullan, kişisel hitap et.\n" +
         (u ? "LINK: " + u + "\n" : "") +
         "EVENTS:\n" +
         "- " + e1 + "\n" +
@@ -107,6 +115,8 @@ export default function PatternScreen() {
       "[SANRI_MODE=mirror]\n" +
       "INTENT: PATTERN_LEVEL_2\n" +
       "LANG: EN\n" +
+      "PERSON: " + (nameForPrompt || "Anonymous") + " (" + (userEmail || "no email") + ")\n" +
+      "NOTE: Recognize this person, address them by name, make it personal.\n" +
       (u ? "LINK: " + u + "\n" : "") +
       "EVENTS:\n" +
       "- " + e1 + "\n" +
@@ -287,7 +297,7 @@ export default function PatternScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   topbar: {
     paddingTop: 14,

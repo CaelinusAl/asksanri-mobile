@@ -42,7 +42,12 @@ export default function TabsLayout() {
       <Tabs.Screen name="awakenedCities" />
       <Tabs.Screen name="matrix" />
       <Tabs.Screen name="ust_bilinc" />
+      <Tabs.Screen name="kod_ders" />
       <Tabs.Screen name="world_events" />
+      <Tabs.Screen name="okuma_detail" />
+      <Tabs.Screen name="ankod" />
+      <Tabs.Screen name="matrix_rol" />
+      <Tabs.Screen name="book_reader" />
       <Tabs.Screen name="vip" />
       <Tabs.Screen name="explore" />
     </Tabs>

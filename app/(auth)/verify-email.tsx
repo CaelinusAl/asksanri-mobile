@@ -5,7 +5,6 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  ImageBackground,
   StatusBar,
   Alert,
   ActivityIndicator,
@@ -13,9 +12,6 @@ import {
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import MatrixRain from "../../lib/MatrixRain";
-
-const BG = require("../../assets/sanri_glass_bg.jpg");
 
 type Lang = "tr" | "en";
 
@@ -90,11 +86,6 @@ export default function VerifyEmailScreen() {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
-      <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.16} speedMs={9000} />
-      </View>
-      <View pointerEvents="none" style={styles.veil} />
 
       <View style={styles.container}>
         <Text style={styles.title}>{t.title}</Text>
@@ -150,8 +141,7 @@ export default function VerifyEmailScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-  veil: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,8,20,0.58)" },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   container: {
     flex: 1,

@@ -7,14 +7,11 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  ImageBackground,
   Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { CODES, type CityCode } from "../../data/awakenedCities";
 import { logEvent } from "../../lib/LogEvent";
-
-const TURKEY_BG = require("../../assets/turkiye_hologram.jpg");
 
 function miniTag(code: CityCode) {
   if (code === "34") return "wake up";
@@ -41,18 +38,6 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.root} pointerEvents="box-none">
-      
-
-      {/* Background layer (touch yakalamaz) */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <ImageBackground
-          source={TURKEY_BG}
-          style={StyleSheet.absoluteFillObject}
-          resizeMode="cover"
-        />
-        <View style={styles.overlay} />
-      </View>
-
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
@@ -74,7 +59,7 @@ export default function ExploreScreen() {
             return (
               <Pressable
                 key={code}
-                onPress={() => router.push("/(tabs)/awakenedCities")}
+                onPress={() => router.push(`/city/${code}`)}
                 style={[styles.cell, active && styles.cellActive]}
                 hitSlop={10}
               >
@@ -93,12 +78,7 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   container: { paddingTop: 22, paddingHorizontal: 18, paddingBottom: 24 },
 

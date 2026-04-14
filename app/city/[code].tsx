@@ -18,7 +18,6 @@ import { CITY_NAMES, type CityCode } from "@/data/awakenedCities";
 import { getCityContent, type Layer } from "@/data/awakenedContent";
 import { hasVipEntitlement } from "../../lib/premium";
 
-import MatrixRain from "../../lib/MatrixRain";
 import VipSheet from "../../components/VipSheet";
 import { consumeVipJustActivated } from "@/lib/vipPulse";
 
@@ -232,15 +231,6 @@ export default function CityCodeScreen() {
 
   return (
     <View style={styles.root}>
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <Image source={KEY_BG} style={styles.bg} resizeMode="cover" />
-      </View>
-
-      <View pointerEvents="none" style={styles.overlay} />
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={vipRain ? 0.28 : 0.14} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.topbar}>
           <Pressable onPress={onBack} style={styles.topBtn}>
@@ -380,17 +370,7 @@ export default function CityCodeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#05060B",
-  },
-
-  bg: {
-    width: "100%",
-    height: "100%",
-  },
-
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(3,6,18,0.58)",
+    backgroundColor: "#0a0b10",
   },
 
   scroll: {

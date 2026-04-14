@@ -9,20 +9,18 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   StatusBar,
-  ImageBackground,
   Share,
   Platform,
-  
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
-import { BlurView } from "expo-blur";
+
 
 import { apiPostJson, apiPostForm, API } from "../../lib/apiClient";
+import { useAuth } from "../../context/AuthContext";
 import ConsciousMenu from "../../components/ConsciousMenu";
-import SanriShareButtons from "../../components/SanriShareButtons";
 
 
 type Lang = "tr" | "en";
@@ -44,8 +42,6 @@ const IOS_STORE_URL = "https://asksanri.com";
 const ANDROID_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.caelinusai.asksanri";
 const FALLBACK_URL = "https://asksanri.com";
-
-const BG = require("../../assets/sanri_bg.jpg");
 
 const T = {
   tr: {
@@ -109,6 +105,7 @@ const RECORDING_OPTIONS: Audio.RecordingOptions = {
 };
 
 export default function SanriFlowScreen() {
+  const { user } = useAuth();
   const router = useRouter();
 
   const params = useLocalSearchParams<{
@@ -284,11 +281,35 @@ export default function SanriFlowScreen() {
           }, 650);
         }
 
-        const payload = {
+        const userName = user?.name?.trim() || "";
+        const userEmail = user?.email?.trim() || "";
+        const nameForPrompt = userName || userEmail?.split("@")[0] || "";
+
+        const payload: Record<string, any> = {
   message: text,
   session_id: "mobile-default",
   lang,
+  user_name: userName,
+  user_email: userEmail,
 };
+
+        if (nameForPrompt) {
+          payload.message = `[KİŞİ: ${nameForPrompt}]\n${text}`;
+        }
+
+        if (params.domain) payload.domain = params.domain;
+        if (params.gateMode) payload.gate_mode = params.gateMode;
+        if (params.intent) payload.intent = params.intent;
+
+        if (params.city || params.code || params.layer || params.seed) {
+          payload.context = {
+            ...(params.city && { city: params.city }),
+            ...(params.code && { code: params.code }),
+            ...(params.layer && { layer: params.layer }),
+            ...(params.seed && { seed: params.seed }),
+          };
+        }
+
         if (__DEV__) console.log("SANRI_SEND", payload);
         const data: any = await apiPostJson(API.ask, payload, 60000);
 
@@ -496,16 +517,11 @@ const stopRec = useCallback(async () => {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-      <View pointerEvents="none" style={styles.veil} />
-      <View pointerEvents="none" style={styles.glowA} />
-      <View pointerEvents="none" style={styles.glowB} />
-
       <View style={styles.topbar}>
         <Pressable onPress={openMyArea} style={styles.profileBtn} hitSlop={10}>
-          <BlurView intensity={20} tint="dark" style={styles.profileBtnInner}>
+          <View style={styles.profileBtnInner}>
             <Text style={styles.profileTxt}>◎</Text>
-          </BlurView>
+          </View>
         </Pressable>
 
         <View style={{ flex: 1 }}>
@@ -519,9 +535,9 @@ const stopRec = useCallback(async () => {
             style={[styles.langChip, lang === "tr" && styles.langChipActive]}
             hitSlop={10}
           >
-            <BlurView intensity={20} tint="dark" style={styles.langChipInner}>
+            <View style={styles.langChipInner}>
               <Text style={[styles.langText, lang === "tr" && styles.langTextActive]}>TR</Text>
-            </BlurView>
+            </View>
           </Pressable>
 
           <Pressable
@@ -529,24 +545,24 @@ const stopRec = useCallback(async () => {
             style={[styles.langChip, lang === "en" && styles.langChipActive]}
             hitSlop={10}
           >
-            <BlurView intensity={20} tint="dark" style={styles.langChipInner}>
+            <View style={styles.langChipInner}>
               <Text style={[styles.langText, lang === "en" && styles.langTextActive]}>EN</Text>
-            </BlurView>
+            </View>
           </Pressable>
         </View>
 
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
-          <BlurView intensity={20} tint="dark" style={styles.backBtnInner}>
+          <View style={styles.backBtnInner}>
             <Text style={styles.backBtnText}>←</Text>
-          </BlurView>
+          </View>
         </Pressable>
       </View>
 
       <View style={styles.actionRow}>
         <Pressable onPress={resetChat} style={styles.newChatBtn} hitSlop={10}>
-          <BlurView intensity={24} tint="dark" style={styles.newChatInner}>
+          <View style={styles.newChatInner}>
             <Text style={styles.newChatTxt}>{t.newChat}</Text>
-          </BlurView>
+          </View>
         </Pressable>
       </View>
 
@@ -570,15 +586,13 @@ const stopRec = useCallback(async () => {
               <View style={styles.bubbleWrap}>
                {isUser ? <View style={styles.userGlow} /> : null}
 
-               <BlurView
-                intensity={24}
-                tint="dark"
+               <View
                 style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}
         >
 
           <Text style={styles.bubbleText}>{m.text}</Text>
 
-        </BlurView>
+        </View>
 
         {!isUser && (
           <Pressable
@@ -597,7 +611,7 @@ const stopRec = useCallback(async () => {
 
           {error ? (
             <View style={styles.errWrap}>
-              <BlurView intensity={24} tint="dark" style={styles.errCard}>
+              <View style={styles.errCard}>
                 <Text style={styles.errorText}>{error}</Text>
 
                 <Pressable
@@ -608,7 +622,7 @@ const stopRec = useCallback(async () => {
                 >
                   <Text style={styles.retryTxt}>{t.retry}</Text>
                 </Pressable>
-              </BlurView>
+              </View>
             </View>
           ) : null}
 
@@ -616,7 +630,7 @@ const stopRec = useCallback(async () => {
         </ScrollView>
 
         <View style={styles.inputBar}>
-          <BlurView intensity={24} tint="dark" style={styles.inputShell}>
+          <View style={styles.inputShell}>
             <TextInput
               value={input}
               onChangeText={setInput}
@@ -626,7 +640,7 @@ const stopRec = useCallback(async () => {
               style={styles.input}
               multiline
             />
-          </BlurView>
+          </View>
 
           <Pressable
              onPressIn={startRec}
@@ -640,10 +654,10 @@ const stopRec = useCallback(async () => {
           disabled={busy}
           >
           
-            <BlurView intensity={24} tint="dark" style={styles.micInner}>
+            <View style={styles.micInner}>
               <Text style={styles.micTxt}>{isRecording ? "■" : "🎙"}</Text>
               <Text style={styles.micHint}>{t.micHold}</Text>
-            </BlurView>
+            </View>
           </Pressable>
 
 <Pressable
@@ -653,12 +667,12 @@ const stopRec = useCallback(async () => {
   }}
   style={[styles.sendBtn, (!input.trim() || busy) && { opacity: 0.6 }]}
   hitSlop={10}
-  disabled={false}
+  disabled={!input.trim() || busy}
 >
-  <BlurView intensity={24} tint="dark" style={styles.sendInner}>
+  <View style={styles.sendInner}>
     <View style={styles.sendGlow} />
     <Text style={styles.sendTxt}>✦</Text>
-  </BlurView>
+  </View>
 </Pressable>
         </View>
 
@@ -672,32 +686,7 @@ const stopRec = useCallback(async () => {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-
-  veil: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(6,8,16,0.34)",
-  },
-
-  glowA: {
-    position: "absolute",
-    width: 320,
-    height: 320,
-    borderRadius: 999,
-    backgroundColor: "rgba(101, 72, 255, 0.16)",
-    top: 140,
-    left: -90,
-  },
-
-  glowB: {
-    position: "absolute",
-    width: 300,
-    height: 300,
-    borderRadius: 999,
-    backgroundColor: "rgba(130, 103, 255, 0.12)",
-    bottom: 70,
-    right: -90,
-  },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   topbar: {
     paddingTop: 54,

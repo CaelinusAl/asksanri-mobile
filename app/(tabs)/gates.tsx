@@ -1,19 +1,16 @@
 // app/(tabs)/gates.tsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
-  ImageBackground,
   ScrollView,
   StatusBar,
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-
-import MatrixRain from "../../lib/MatrixRain";
+import { hasVipEntitlement } from "../../lib/premium";
 
 type Lang = "tr" | "en";
 
@@ -23,8 +20,6 @@ type GateItemType = {
   route: string;
   vip?: boolean;
 };
-
-const BG = require("../../assets/hologram_gate_bg.jpg");
 
 const COPY: Record<
   Lang,
@@ -43,11 +38,11 @@ const COPY: Record<
       { title: "SANRI", sub: "Kişisel yansıma alanı", route: "/(tabs)/sanri_flow" },
       { title: "UYANAN ŞEHİRLER", sub: "Şehrin kodunu seç", route: "/(tabs)/awakenedCities" },
       { title: "MATRIX", sub: "Akışı decode et", route: "/(tabs)/matrix", vip: true },
-      { title: "ÜST BİLİNÇ", sub: "Seviye 1–5 katmanları", route: "/(tabs)/ust_bilinc", vip: true },
+      { title: "KOD OKUMA", sub: "Gerçekliğin kodunu oku", route: "/(tabs)/ust_bilinc", vip: true },
       { title: "RİTÜEL ALANI", sub: "Oku, hisset, dinle", route: "/(tabs)/rituals", vip: true },
-      { title: "DÜNYA OLAYLARI", sub: "Haberlerden anlam okuması", route: "/(tabs)/world" },
-      { title: "SİSTEM AKIŞI", sub: "Sanrı günlük bilinç akışı", route: "/(tabs)/system_feed", vip: true },
-      { title: "GLOBAL SİNYAL", sub: "Dünyaya tek bir cümle bırak", route: "/global-signal" },
+      { title: "OKUMA ALANI", sub: "Gerçekliğin kodlarını çöz, derinliğe in", route: "/(tabs)/world_events" },
+      { title: "KÜTÜPHANE", sub: "Tüm SANRI okuma modülleri", route: "/(tabs)/system_feed" },
+      { title: "ANLAŞILMA ALANI", sub: "Hisset, frekansını bul, yankını gör", route: "/global-signal" },
     ],
   },
   en: {
@@ -58,18 +53,23 @@ const COPY: Record<
       { title: "SANRI", sub: "Personal reflection field", route: "/(tabs)/sanri_flow" },
       { title: "AWAKENED CITIES", sub: "Choose the code of a city", route: "/(tabs)/awakenedCities" },
       { title: "MATRIX", sub: "Decode the stream", route: "/(tabs)/matrix", vip: true },
-      { title: "HIGHER MIND", sub: "Layers from level 1 to 5", route: "/(tabs)/ust_bilinc", vip: true },
+      { title: "CODE READING", sub: "Read the code of reality", route: "/(tabs)/ust_bilinc", vip: true },
       { title: "RITUAL SPACE", sub: "Read, feel, and listen", route: "/(tabs)/rituals", vip: true },
-      { title: "WORLD EVENTS", sub: "Meaning reading from world news", route: "/(tabs)/world" },
-      { title: "SYSTEM FEED", sub: "Sanri daily consciousness stream", route: "/(tabs)/system_feed", vip: true },
-      { title: "GLOBAL SIGNAL", sub: "Leave one sentence for the world", route: "/global-signal" },
+      { title: "READING AREA", sub: "Decode the codes of reality, go deep", route: "/(tabs)/world_events" },
+      { title: "LIBRARY", sub: "All SANRI reading modules", route: "/(tabs)/system_feed" },
+      { title: "UNDERSTANDING", sub: "Feel, find your frequency, see your echo", route: "/global-signal" },
     ],
   },
 };
 
 export default function GatesScreen() {
   const [lang, setLang] = useState<Lang>("tr");
+  const [isVip, setIsVip] = useState(false);
   const t = useMemo(() => COPY[lang], [lang]);
+
+  useEffect(() => {
+    hasVipEntitlement().then((v) => setIsVip(Boolean(v))).catch(() => {});
+  }, []);
 
   const toggleLang = () => setLang((prev) => (prev === "tr" ? "en" : "tr"));
 
@@ -78,7 +78,7 @@ export default function GatesScreen() {
   };
 
   const onOpenGate = (item: GateItemType) => {
-    if (item.vip) {
+    if (item.vip && !isVip) {
       router.push("/(tabs)/vip" as any);
       return;
     }
@@ -91,13 +91,7 @@ export default function GatesScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <StatusBar barStyle="light-content" translucent={false} />
 
-      <ImageBackground source={BG} style={styles.bg} resizeMode="cover">
-        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-          <MatrixRain opacity={0.18} />
-        </View>
-
-        <View pointerEvents="none" style={styles.overlay} />
-
+      <View style={styles.bg}>
         <View style={styles.topbar}>
           <Pressable onPress={openProfile} style={styles.profileBtn} hitSlop={10}>
             <Text style={styles.profileTxt}>◎</Text>
@@ -137,7 +131,7 @@ export default function GatesScreen() {
               : "Sanri is an AI tool designed for personal development and self-reflection. It is not a substitute for professional health, psychology or financial advice."}
           </Text>
         </ScrollView>
-      </ImageBackground>
+      </View>
     </SafeAreaView>
   );
 }
@@ -157,16 +151,7 @@ function GateItem({
 }) {
   return (
     <Pressable onPress={onPress} style={styles.card}>
-      <LinearGradient
-        colors={[
-          "rgba(255,255,255,0.10)",
-          "rgba(255,255,255,0.06)",
-          vip ? "rgba(203,188,255,0.10)" : "rgba(124,247,216,0.06)",
-        ]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.cardGlass}
-      >
+      <View style={styles.cardGlass}>
         <View style={{ flex: 1 }}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{title}</Text>
@@ -184,18 +169,14 @@ function GateItem({
         <View style={styles.chevWrap}>
           <Text style={styles.chev}>›</Text>
         </View>
-      </LinearGradient>
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#07080d" },
+  safe: { flex: 1, backgroundColor: "#0a0b10" },
   bg: { flex: 1 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
 
   topbar: {
     flexDirection: "row",

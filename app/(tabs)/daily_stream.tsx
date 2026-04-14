@@ -5,15 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  ImageBackground,
   StatusBar,
   ActivityIndicator,
 } from "react-native";
-import { router } from "expo-router";
-import MatrixRain from "../../lib/MatrixRain";
+import { router, useLocalSearchParams } from "expo-router";
 import { API, apiPostJson } from "@/lib/apiClient";
-
-const BG = require("../../assets/sanri_glass_bg.jpg");
 
 type Lang = "tr" | "en";
 
@@ -23,10 +19,28 @@ type DailyResult = {
 };
 
 export default function DailyStreamScreen() {
-  const [lang, setLang] = useState<Lang>("tr");
-  const [busy, setBusy] = useState(true);
+  const params = useLocalSearchParams<{
+    lang?: string;
+    title?: string;
+    body?: string;
+    tags?: string;
+    day?: string;
+  }>();
+
+  const hasPreloaded = !!(params.body && params.body.trim());
+
+  const initialLang: Lang = String(params.lang || "tr").toLowerCase() === "en" ? "en" : "tr";
+  const [lang, setLang] = useState<Lang>(initialLang);
+  const [busy, setBusy] = useState(!hasPreloaded);
   const [err, setErr] = useState("");
-  const [result, setResult] = useState<DailyResult | null>(null);
+  const [result, setResult] = useState<DailyResult | null>(
+    hasPreloaded
+      ? {
+          title: params.title || (initialLang === "tr" ? "Bugünün Akışı" : "Today's Stream"),
+          body: params.body!,
+        }
+      : null
+  );
 
   const t = useMemo(
     () =>
@@ -147,24 +161,12 @@ Write in English.`;
   }, [lang, t.error]);
 
   useEffect(() => {
-    loadDaily();
-  }, [loadDaily]);
+    if (!hasPreloaded) loadDaily();
+  }, [loadDaily, hasPreloaded]);
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
-
-      <ImageBackground
-        source={BG}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
-
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.12} />
-      </View>
-
-      <View pointerEvents="none" style={styles.overlay} />
 
       <View style={styles.topbar}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -234,11 +236,7 @@ Write in English.`;
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.38)",
-  },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   topbar: {
     paddingTop: 10,

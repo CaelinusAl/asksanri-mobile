@@ -2,7 +2,6 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import MatrixRain from "../../lib/MatrixRain";
 
 type Lang = "tr" | "en";
 type Mode = "name" | "dob";
@@ -162,11 +161,6 @@ export default function MatrixMiniScreen() {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.14} />
-      </View>
-      <View pointerEvents="none" style={styles.overlay} />
-
       <View style={styles.topbar}>
         <Pressable onPress={goBack} style={styles.backBtn} hitSlop={10}>
           <Text style={styles.backTxt}>←</Text>
@@ -210,8 +204,7 @@ export default function MatrixMiniScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.40)" },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   topbar: {
     paddingTop: 10,

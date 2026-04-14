@@ -15,40 +15,46 @@ import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { API, apiPostJson } from "../../lib/apiClient";
+import { useAuth } from "../../context/AuthContext";
 type Lang = "tr" | "en";
 
 const T = {
   tr: {
-    title: "Level 1 — Gözlemci",
-    sub: "Ham veriyi ayır. Yorum sonra gelir.",
+    title: "Modül 1 — Kodu Gör",
+    sub: "Ham veriyi ayır. Gürültüyü sil. Kodu gör.",
     e1: "Olay (tek cümle)",
     e2: "Kim / Ne / Nerede (3 madde, kısa)",
     e3: "Duygu (tek kelime)",
     optional: "Opsiyonel: Link",
-    go: "Oku",
+    go: "Kodu Oku",
     back: "←",
     hint:
-      "Çıktı 3 parçalı gelir: (1) Gözlem Özeti (2) Gürültü vs Gerçek (3) Tek Adım",
+      "Çıktı 5 parçalı gelir: (1) Gözlem Özeti (2) Kök Neden (3) Gürültü vs Gerçek (4) Tek Adım (5) Mikro Ritüel",
   },
   en: {
-    title: "Level 1 — Observer",
-    sub: "Separate raw data. Interpretation comes after.",
+    title: "Module 1 — See the Code",
+    sub: "Separate raw data. Clear the noise. See the code.",
     e1: "Event (one sentence)",
     e2: "Who / What / Where (3 bullets, short)",
     e3: "Emotion (one word)",
     optional: "Optional: Link",
-    go: "Read",
+    go: "Read the Code",
     back: "←",
     hint:
-      "Output will be 3 parts: (1) Observation Summary (2) Noise vs Signal (3) One Action",
+      "Output has 5 parts: (1) Observation Summary (2) Root Cause (3) Noise vs Signal (4) One Action (5) Micro Ritual",
   },
 } as const;
 
 export default function ObserverScreen() {
+  const { user } = useAuth();
   const params = useLocalSearchParams<{ lang?: string }>();
   const initialLang: Lang = String(params.lang || "tr").toLowerCase() === "en" ? "en" : "tr";
 
   const [lang, setLang] = useState<Lang>(initialLang);
+
+  const userName = user?.name?.trim() || "";
+  const userEmail = user?.email?.trim() || "";
+  const nameForPrompt = userName || userEmail?.split("@")[0] || "";
 
   const [eventLine, setEventLine] = useState("");
   const [whoWhatWhere, setWhoWhatWhere] = useState("");
@@ -72,6 +78,8 @@ export default function ObserverScreen() {
       "[SANRI_MODE=mirror]\n" +
       "INTENT: OBSERVER_LEVEL_1\n" +
       "LANG: TR\n" +
+      "KİŞİ: " + (nameForPrompt || "Anonim") + " (" + (userEmail || "mail yok") + ")\n" +
+      "NOT: Bu kişiyi tanı, ismini kullan, kişisel hitap et.\n" +
       (u ? "LINK: " + u + "\n" : "") +
       "EVENT: " + e + "\n" +
       "WHO_WHAT_WHERE:\n" + www + "\n" +
@@ -91,6 +99,8 @@ export default function ObserverScreen() {
     "[SANRI_MODE=mirror]\n" +
     "INTENT: OBSERVER_LEVEL_1\n" +
     "LANG: EN\n" +
+    "PERSON: " + (nameForPrompt || "Anonymous") + " (" + (userEmail || "no email") + ")\n" +
+    "NOTE: Recognize this person, address them by name, make it personal.\n" +
     (u ? "LINK: " + u + "\n" : "") +
     "EVENT: " + e + "\n" +
     "WHO_WHAT_WHERE:\n" + www + "\n" +
@@ -247,7 +257,7 @@ export default function ObserverScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   topbar: {
     paddingTop: 14,

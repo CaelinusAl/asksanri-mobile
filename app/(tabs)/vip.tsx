@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ImageBackground,
   Pressable,
   StatusBar,
   ScrollView,
@@ -15,7 +14,6 @@ import {
 
 import { router, useLocalSearchParams } from "expo-router";
 
-import MatrixRain from "../../lib/MatrixRain";
 import {
   buySanriPremium,
   getCustomerInfo,
@@ -25,9 +23,6 @@ import {
   getCurrentMonthlyPackage,
 } from "../../lib/revenuecat";
 import { setVipJustActivated } from "../../lib/vipPulse";
-
-const BG = require("../../assets/sanri_glass_bg.jpg");
-const RABBIT = require("../../assets/rabbit.jpg");
 
 const PRIVACY_URL = "https://asksanri.com/privacy";
 const TERMS_URL = "https://asksanri.com/terms";
@@ -207,33 +202,7 @@ export default function VipScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      <ImageBackground
-        source={BG}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
-
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.12} />
-      </View>
-
-      <View pointerEvents="none" style={styles.overlay} />
-
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.rabbitWrap}>
-          <View style={styles.rabbitFrame}>
-            <ImageBackground
-              source={RABBIT}
-              resizeMode="contain"
-              style={styles.rabbitImg}
-            />
-            <View style={styles.rabbitTint} />
-          </View>
-
-          <Text style={styles.rabbitTag}>SANRI ELITE</Text>
-          <Text style={styles.rabbitSub}>WHITE RABBIT PROTOCOL</Text>
-        </View>
-
         <View style={styles.card}>
           <Text style={styles.kicker}>SYSTEM TERMINAL</Text>
 
@@ -307,60 +276,13 @@ export default function VipScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#07080d" },
-
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
+  root: { flex: 1, backgroundColor: "#0a0b10" },
 
   container: {
     padding: 20,
     paddingTop: 80,
     paddingBottom: 60,
     gap: 20,
-  },
-
-  rabbitWrap: {
-    alignItems: "center",
-  },
-
-  rabbitFrame: {
-    width: 170,
-    height: 170,
-    borderRadius: 24,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-
-  rabbitImg: {
-    width: 150,
-    height: 150,
-  },
-
-  rabbitTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(94,59,255,0.10)",
-  },
-
-  rabbitTag: {
-    marginTop: 12,
-    color: "rgba(124,247,216,0.80)",
-    letterSpacing: 4,
-    fontSize: 12,
-    fontWeight: "900",
-  },
-
-  rabbitSub: {
-    marginTop: 6,
-    color: "rgba(255,255,255,0.45)",
-    letterSpacing: 1.6,
-    fontSize: 11,
-    fontWeight: "700",
   },
 
   card: {
