@@ -33,6 +33,7 @@ type LibSection = {
   accent: string;
   route: string;
   badge?: string;
+  vipOnly?: boolean;
 };
 
 export default function KutuphaneScreen() {
@@ -96,6 +97,7 @@ export default function KutuphaneScreen() {
       accent: "rgba(168,85,247,0.85)",
       route: "/(tabs)/ankod",
       badge: ankodDone > 0 ? `${ankodDone}/4` : undefined,
+      vipOnly: true,
     },
     {
       id: "matrix_rol",
@@ -105,6 +107,7 @@ export default function KutuphaneScreen() {
       accent: ACCENT,
       route: "/(tabs)/matrix_rol",
       badge: hasMatrixCache ? "Kayıt var" : undefined,
+      vipOnly: true,
     },
     {
       id: "okuma",
@@ -123,6 +126,7 @@ export default function KutuphaneScreen() {
       accent: "rgba(234,179,8,0.9)",
       route: "/(tabs)/ust_bilinc",
       badge: kodProgress > 0 ? `%${kodProgress}` : undefined,
+      vipOnly: true,
     },
   ];
 
@@ -163,8 +167,18 @@ export default function KutuphaneScreen() {
             <View style={s.sectionTop}>
               <Text style={[s.sectionGlyph, { color: sec.accent }]}>{sec.glyph}</Text>
               <View style={s.sectionInfo}>
-                <Text style={[s.sectionTitle, { color: sec.accent }]}>{sec.title}</Text>
-                <Text style={s.sectionSub}>{sec.sub}</Text>
+                <View style={s.sectionTitleRow}>
+                  <Text style={[s.sectionTitle, { color: sec.accent }]}>{sec.title}</Text>
+                  {sec.vipOnly && !isPremium && (
+                    <View style={s.vipTagSmall}>
+                      <Text style={s.vipTagText}>VIP</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={s.sectionSub}>
+                  {sec.sub}
+                  {sec.vipOnly && !isPremium ? " · derin katmanlar VIP" : ""}
+                </Text>
               </View>
               {sec.badge && (
                 <View style={[s.badge, { backgroundColor: `${sec.accent}22` }]}>
@@ -296,7 +310,10 @@ const s = StyleSheet.create({
   sectionTop: { flex: 1, flexDirection: "row", alignItems: "center", gap: 14 },
   sectionGlyph: { fontSize: 28 },
   sectionInfo: { flex: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: "800", marginBottom: 3 },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3 },
+  sectionTitle: { fontSize: 16, fontWeight: "800" },
+  vipTagSmall: { backgroundColor: "rgba(234,179,8,0.15)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: "rgba(234,179,8,0.25)" },
+  vipTagText: { color: "#eab308", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
   sectionSub: { color: "rgba(255,255,255,0.45)", fontSize: 12, lineHeight: 17 },
   sectionArrow: { marginLeft: 8 },
   arrowText: { color: "rgba(255,255,255,0.3)", fontSize: 20, fontWeight: "700" },

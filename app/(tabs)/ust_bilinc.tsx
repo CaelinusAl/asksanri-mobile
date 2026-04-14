@@ -19,6 +19,7 @@ import {
   type ProgressMap,
 } from "../../lib/kodOkumaProgress";
 import { hasVipEntitlement } from "../../lib/premium";
+import VipWall from "../../components/VipWall";
 
 type Lang = "tr" | "en";
 
@@ -65,9 +66,13 @@ export default function KodOkumaScreen() {
 
   const t = T[lang];
 
+  const [vipChecked, setVipChecked] = useState(false);
+
   useEffect(() => {
     getProgress().then(setProgress);
-    hasVipEntitlement().then((v) => setIsVip(Boolean(v))).catch(() => {});
+    hasVipEntitlement()
+      .then((v) => { setIsVip(Boolean(v)); setVipChecked(true); })
+      .catch(() => setVipChecked(true));
   }, []);
 
   const refreshProgress = useCallback(async () => {
@@ -137,6 +142,15 @@ export default function KodOkumaScreen() {
         </View>
       </View>
 
+      {vipChecked && !isVip ? (
+        <View style={{ flex: 1 }}>
+          <VipWall
+            title="Kod Okuma Sistemi — VIP"
+            message={"Bu alan VIP erişim gerektirir.\nTüm derslere ve kod okuma modüllerine erişmek için VIP'e geç."}
+            targetAfterPurchase="/(tabs)/ust_bilinc"
+          />
+        </View>
+      ) : (
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.headerRow}>
@@ -277,6 +291,7 @@ export default function KodOkumaScreen() {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+      )}
     </View>
   );
 }

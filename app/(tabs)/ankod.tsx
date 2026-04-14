@@ -25,6 +25,8 @@ import {
   getStepOptions,
 } from "../../lib/ankodData";
 import { storageGet, storageSet } from "../../lib/storage";
+import { hasVipEntitlement } from "../../lib/premium";
+import VipWall from "../../components/VipWall";
 
 const ACCENT = "#7cf7d8";
 const BG = "#0a0b10";
@@ -44,6 +46,7 @@ export default function AnkodScreen() {
   const [deepSections, setDeepSections] = useState<Record<string, string>>({});
   const [completedCats, setCompletedCats] = useState<string[]>([]);
   const [teaserLocal, setTeaserLocal] = useState(false);
+  const [isVip, setIsVip] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -54,6 +57,7 @@ export default function AnkodScreen() {
         if (raw) setCompletedCats(JSON.parse(raw));
       } catch { /* ignore */ }
     })();
+    hasVipEntitlement().then((v) => setIsVip(Boolean(v))).catch(() => {});
   }, []);
 
   React.useEffect(() => {
@@ -306,13 +310,21 @@ export default function AnkodScreen() {
 
         <Text style={s.sectionDivider}>Derin Okuma</Text>
 
-        {DEEP_SECTIONS.map((sec) => (
-          <View key={sec.key} style={s.deepCard}>
-            <Text style={s.deepIcon}>{sec.icon}</Text>
-            <Text style={s.deepTitle}>{sec.title}</Text>
-            <Text style={s.deepText}>{deepSections[sec.key] || "—"}</Text>
-          </View>
-        ))}
+        {isVip ? (
+          DEEP_SECTIONS.map((sec) => (
+            <View key={sec.key} style={s.deepCard}>
+              <Text style={s.deepIcon}>{sec.icon}</Text>
+              <Text style={s.deepTitle}>{sec.title}</Text>
+              <Text style={s.deepText}>{deepSections[sec.key] || "—"}</Text>
+            </View>
+          ))
+        ) : (
+          <VipWall
+            title="Derin Okuma — VIP"
+            message={"Ön okumayı gördün.\nDerin katmanlara inmek için VIP erişim gerekli."}
+            targetAfterPurchase="/(tabs)/ankod"
+          />
+        )}
 
         <Pressable
           style={s.ctaBtn}

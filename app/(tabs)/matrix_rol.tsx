@@ -14,6 +14,8 @@ import { router } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { MATRIX_ROL_URL } from "../../lib/ankodData";
 import { storageGet, storageSet } from "../../lib/storage";
+import { hasVipEntitlement } from "../../lib/premium";
+import VipWall from "../../components/VipWall";
 
 const ACCENT = "#7cf7d8";
 const BG = "#0a0b10";
@@ -140,6 +142,7 @@ export default function MatrixRolScreen() {
   const [fullName, setFullName] = useState("");
   const [loadingLine, setLoadingLine] = useState(0);
   const [hasCached, setHasCached] = useState(false);
+  const [isVip, setIsVip] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -153,6 +156,7 @@ export default function MatrixRolScreen() {
         }
       } catch { /* ignore */ }
     })();
+    hasVipEntitlement().then((v) => setIsVip(Boolean(v))).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -318,6 +322,8 @@ export default function MatrixRolScreen() {
   }
 
   // ─── RESULT ───
+  const FREE_SECTIONS: (keyof NarrativeSections)[] = ["opening", "ana_tema"];
+
   return (
     <View style={st.screen}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
@@ -337,6 +343,9 @@ export default function MatrixRolScreen() {
           SECTION_LABELS.map((sec) => {
             const text = narrative[sec.key];
             if (!text) return null;
+
+            if (!isVip && !FREE_SECTIONS.includes(sec.key)) return null;
+
             return (
               <View key={sec.key} style={st.sectionCard}>
                 <Text style={st.sectionLabel}>{sec.label}</Text>
@@ -344,6 +353,14 @@ export default function MatrixRolScreen() {
               </View>
             );
           })}
+
+        {!isVip && (
+          <VipWall
+            title="Derin Okuma Katmanları — VIP"
+            message={"Rolünü ve ana temayı gördün.\nİlişki, para, içsel yapı, kör nokta ve daha fazlası için VIP'e geç."}
+            targetAfterPurchase="/(tabs)/matrix_rol"
+          />
+        )}
 
         <Pressable style={st.submitBtn} onPress={() => setFlow("form")}>
           <Text style={st.submitText}>Yeni Okuma Yap</Text>
