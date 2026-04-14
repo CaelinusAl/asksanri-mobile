@@ -15,7 +15,6 @@ import {
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import MatrixRain from "../../lib/MatrixRain";
 
 const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 const BG = require("../../assets/sanri_glass_bg.jpg");
@@ -88,7 +87,7 @@ export default function ForgotPasswordScreen() {
       <StatusBar barStyle="light-content" />
       <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
       <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.14} speedMs={9000} />
+        {/* background effect removed */}
       </View>
       <View pointerEvents="none" style={styles.veil} />
 

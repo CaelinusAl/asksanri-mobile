@@ -15,7 +15,7 @@ import {
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import MatrixRain from "../../lib/MatrixRain";
+
 import { useAuth } from "../../context/AuthContext";
 import { apiPostJson, API } from "../../lib/apiClient";
 
@@ -101,7 +101,7 @@ export default function ChangePasswordScreen() {
       <StatusBar barStyle="light-content" />
       <ImageBackground source={BG} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
       <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        <MatrixRain opacity={0.14} speedMs={9000} />
+        {/* background effect removed */}
       </View>
       <View pointerEvents="none" style={styles.veil} />
 
