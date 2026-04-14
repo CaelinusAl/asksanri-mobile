@@ -50,6 +50,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="book_reader" />
       <Tabs.Screen name="vip" />
       <Tabs.Screen name="explore" />
+      <Tabs.Screen name="admin" />
     </Tabs>
   );
 }

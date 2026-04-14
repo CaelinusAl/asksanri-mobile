@@ -127,7 +127,7 @@ export async function apiGetJson(url: string, timeout = 15000) {
 export async function apiPostJson(
   url: string,
   body: Record<string, any>,
-  timeout = 20000
+  timeout = 25000
 ) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
@@ -135,12 +135,20 @@ export async function apiPostJson(
   try {
     const headers = await buildHeaders(true);
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (netErr: any) {
+      if (netErr?.name === "AbortError") {
+        throw new Error("Bağlantı zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.");
+      }
+      throw new Error("Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.");
+    }
 
     const text = await res.text();
     const data = parseResponseText(text);

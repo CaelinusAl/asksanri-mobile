@@ -23,6 +23,8 @@ import {
   getCurrentMonthlyPackage,
 } from "../../lib/revenuecat";
 import { setVipJustActivated } from "../../lib/vipPulse";
+import { useAuth } from "../../context/AuthContext";
+import { trackEvent } from "../../lib/analytics";
 
 const PRIVACY_URL = "https://asksanri.com/privacy";
 const TERMS_URL = "https://asksanri.com/terms";
@@ -37,9 +39,14 @@ export default function VipScreen() {
 
   const lang = params.lang === "en" ? "en" : "tr";
   const tr = lang === "tr";
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [priceString, setPriceString] = useState<string | null>(null);
+
+  useEffect(() => {
+    trackEvent("vip_click", { userId: user?.id });
+  }, []);
 
   useEffect(() => {
     getCurrentMonthlyPackage().then((pkg) => {
@@ -158,6 +165,7 @@ export default function VipScreen() {
         return;
       }
 
+      trackEvent("vip_unlock", { userId: user?.id, meta: { method: "purchase" } });
       Alert.alert("OK", copy.vipActive);
       goAfterSuccess();
     } catch (e: any) {
@@ -188,6 +196,7 @@ export default function VipScreen() {
         return;
       }
 
+      trackEvent("vip_unlock", { userId: user?.id, meta: { method: "restore" } });
       Alert.alert("OK", copy.restored);
       goAfterSuccess();
     } catch (e: any) {

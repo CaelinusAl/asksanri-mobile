@@ -20,6 +20,9 @@ import { hasVipEntitlement } from "../../lib/premium";
 
 import VipSheet from "../../components/VipSheet";
 import { consumeVipJustActivated } from "@/lib/vipPulse";
+import { useAuth } from "../../context/AuthContext";
+import { trackEvent } from "../../lib/analytics";
+import { useScreenTime } from "../../lib/useScreenTime";
 
 const KEY_BG = require("../../assets/key_holo.jpg");
 const DOOR_IMG = require("../../assets/door_holo.jpg");
@@ -28,10 +31,12 @@ export default function CityCodeScreen() {
   const router = useRouter();
   const appLang = useLangStore((s) => s.lang);
   const toggleLang = useLangStore((s) => s.toggle);
+  const { user, isAdmin } = useAuth();
 
   const { code } = useLocalSearchParams<{ code?: string }>();
   const cityCode = String(code || "01").padStart(2, "0") as CityCode;
   const cityName = CITY_NAMES?.[cityCode] ?? "Unknown";
+  useScreenTime(`city_${cityCode}`, user?.id);
 
   const [layer, setLayer] = useState<Layer>("base");
   const [isVip, setIsVip] = useState(false);
@@ -44,15 +49,20 @@ export default function CityCodeScreen() {
   const [doorOpen, setDoorOpen] = useState(false);
 
   const refreshVipStatus = useCallback(async () => {
+    if (isAdmin) {
+      if (__DEV__) console.log("ADMIN BYPASS ACTIVE — city VIP");
+      setIsVip(true);
+      return true;
+    }
     try {
-      const ok = await hasVipEntitlement();
+      const ok = await hasVipEntitlement(user);
       setIsVip(Boolean(ok));
       return Boolean(ok);
     } catch {
       setIsVip(false);
       return false;
     }
-  }, []);
+  }, [isAdmin, user]);
 
   useEffect(() => {
     Animated.loop(
@@ -140,6 +150,7 @@ export default function CityCodeScreen() {
       screen: "city",
       code: cityCode,
     });
+    trackEvent("city_open", { userId: user?.id, city: cityCode, meta: { cityName } });
   }, [cityCode]);
 
   const headerTitle = useMemo(() => `${cityCode} · ${cityName}`, [cityCode, cityName]);

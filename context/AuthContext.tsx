@@ -6,6 +6,8 @@ import React, {
   useState,
 } from "react";
 import { storageDelete, storageGet, storageSet } from "../lib/storage";
+import { isAdmin as checkAdmin } from "../lib/admin";
+import { trackEvent } from "../lib/analytics";
 
 type User = {
   id: string | number;
@@ -29,6 +31,7 @@ type AuthContextValue = {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   bootstrapAuth: () => Promise<void>;
   setSession: (payload: SessionPayload) => Promise<void>;
   setUser: (u: User | null) => Promise<void>;
@@ -79,6 +82,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         parsedUser?.id !== undefined && parsedUser?.id !== null
           ? String(parsedUser.id)
           : null;
+
+      trackEvent("session_start", {
+        userId: parsedUser?.id,
+        meta: { source: "bootstrap", role: parsedUser?.role },
+      });
     } catch (e) {
       if (__DEV__) console.log("bootstrapAuth error:", e);
       _setUser(null);
@@ -111,6 +119,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       if (__DEV__) console.log("setSession storage error:", e);
     }
+
+    trackEvent("session_start", {
+      userId: safeUser.id,
+      meta: { source: "login", role: safeUser.role },
+    });
   };
 
   const setUser = async (u: User | null) => {
@@ -141,18 +154,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const adminFlag = checkAdmin(user);
+
+  if (adminFlag) {
+    console.log("ADMIN VIP ACTIVE");
+  }
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       token,
       isLoading,
       isAuthenticated: Boolean(user && token),
+      isAdmin: adminFlag,
       bootstrapAuth,
       setSession,
       setUser,
       logout,
     }),
-    [user, token, isLoading]
+    [user, token, isLoading, adminFlag]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
