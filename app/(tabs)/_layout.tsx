@@ -1,10 +1,21 @@
-import React, { useEffect } from "react";
-import { Tabs, router } from "expo-router";
+import React, { useEffect, useRef } from "react";
+import { Tabs, router, usePathname } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 import { useAuth } from "../../context/AuthContext";
+import { trackScreenView } from "../../lib/analytics";
 
 export default function TabsLayout() {
   const { user, isLoading } = useAuth();
+  const pathname = usePathname();
+  const prevPath = useRef<string>("");
+
+  useEffect(() => {
+    if (pathname && pathname !== prevPath.current) {
+      prevPath.current = pathname;
+      const screenName = pathname.replace(/^\/\(tabs\)\/?/, "").replace(/^\//, "") || "gates";
+      trackScreenView(screenName);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (!isLoading && !user) {

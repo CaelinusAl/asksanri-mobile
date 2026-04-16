@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { AuthProvider } from "../context/AuthContext";
 import { initRevenueCat } from "../lib/revenuecat";
 import { useEntitlementStore } from "../lib/entitlementStore";
+import { initSessionTracking, cleanupSessionTracking } from "../lib/analytics";
 
 export default function RootLayout() {
   const refreshEntitlements = useEntitlementStore((s) => s.refresh);
@@ -16,6 +17,11 @@ export default function RootLayout() {
         if (__DEV__) console.log("RevenueCat init error:", e);
       });
   }, [refreshEntitlements]);
+
+  useEffect(() => {
+    initSessionTracking();
+    return () => cleanupSessionTracking();
+  }, []);
 
   return (
     <AuthProvider>
