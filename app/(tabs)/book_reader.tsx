@@ -12,8 +12,8 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
-import { hasVipEntitlement } from "../../lib/revenuecat";
 import { BookPage, getBookById } from "../../lib/booksData";
+import { useEntitlementStore } from "../../lib/entitlementStore";
 
 const ACCENT = "#7cf7d8";
 const BG = "#0a0b10";
@@ -37,14 +37,8 @@ export default function BookReaderScreen() {
   const [flow, setFlow] = useState<FlowState>("cover");
   const [pages, setPages] = useState<BookPage[]>([]);
   const [pageIdx, setPageIdx] = useState(0);
-  const [isPremium, setIsPremium] = useState(false);
+  const isPremium = useEntitlementStore((s) => s.status.vip_access);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    (async () => {
-      try { setIsPremium(await hasVipEntitlement()); } catch { /* */ }
-    })();
-  }, []);
 
   useEffect(() => {
     if (!bookId || !bookModules[bookId]) return;

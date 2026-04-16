@@ -45,7 +45,7 @@ export async function initRevenueCat(): Promise<boolean> {
   } catch (error: any) {
     configured = false;
     lastInitError = error?.message || "RevenueCat init failed";
-    console.log("RC INIT ERROR =", error);
+    if (__DEV__) console.log("RC INIT ERROR =", error);
     return false;
   } finally {
     configuring = false;
@@ -54,11 +54,11 @@ export async function initRevenueCat(): Promise<boolean> {
 
 export async function getCustomerInfoSafe(): Promise<CustomerInfo | null> {
   const ok = await initRevenueCat();
-  if (!ok) { console.log("RC INIT FAIL"); return null; }
+  if (!ok) { if (__DEV__) console.log("RC INIT FAIL"); return null; }
 
   try {
     const info = await Purchases.getCustomerInfo();
-    if (!info) { console.log("RC INFO NULL"); return null; }
+    if (!info) { if (__DEV__) console.log("RC INFO NULL"); return null; }
 
     if (__DEV__) {
       const activeKeys = Object.keys(info.entitlements?.active || {});
@@ -67,7 +67,7 @@ export async function getCustomerInfoSafe(): Promise<CustomerInfo | null> {
 
     return info;
   } catch (error: any) {
-    console.log("RC ERROR =", error);
+    if (__DEV__) console.log("RC ERROR =", error);
     lastInitError = error?.message || "Customer info alınamadı";
     return null;
   }
@@ -77,24 +77,13 @@ export async function getCustomerInfo(): Promise<CustomerInfo | null> {
   return await getCustomerInfoSafe();
 }
 
+/**
+ * @deprecated Use `hasVipEntitlement` from `./premium` or `useEntitlementStore` instead.
+ * Kept for backward compat — delegates to the canonical premium.ts check.
+ */
 export async function hasVipEntitlement(): Promise<boolean> {
-  try {
-    const { storageGet } = require("./storage");
-    const raw = await storageGet("user_data");
-    if (raw) {
-      const user = JSON.parse(raw);
-      const email = (user?.email || "").toLowerCase().trim();
-      const ADMIN_EMAILS = [
-        "caelinusai.asksanri@gmail.com",
-        "selin.irmak89@gmail.com",
-      ];
-      if (ADMIN_EMAILS.includes(email)) return true;
-    }
-  } catch {}
-
-  const info = await getCustomerInfoSafe();
-  if (!info || !info.entitlements) return false;
-  return Boolean(info.entitlements.active?.["vip_access"]);
+  const { hasVipEntitlement: canonical } = require("./premium") as typeof import("./premium");
+  return canonical();
 }
 
 // ─── Offering → Package resolution per entitlement ───
@@ -103,6 +92,12 @@ const OFFERING_MAP: Record<EntitlementId, string> = {
   vip_access: "default",
   role_access: "role",
   code_training_access: "code_training",
+  general_reading_access: "general_reading",
+  relationship_deep_access: "relationship_deep",
+  career_deep_access: "career_deep",
+  weekly_flow_access: "weekly_flow",
+  person_deep_access: "person_deep",
+  money_deep_access: "money_deep",
 };
 
 export async function getPackageForEntitlement(
@@ -132,7 +127,7 @@ export async function getPackageForEntitlement(
     );
   } catch (error: any) {
     lastInitError = error?.message || "Offerings alınamadı";
-    console.log("RC OFFERINGS ERROR =", error);
+    if (__DEV__) console.log("RC OFFERINGS ERROR =", error);
     return null;
   }
 }
@@ -212,7 +207,7 @@ export async function restoreSanriPurchases(): Promise<boolean> {
 
     return activeKeys.length > 0;
   } catch (error) {
-    console.log("RC RESTORE ERROR =", error);
+    if (__DEV__) console.log("RC RESTORE ERROR =", error);
     return false;
   }
 }

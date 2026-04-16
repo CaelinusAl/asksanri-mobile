@@ -1,17 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Pressable, StyleSheet, Modal } from "react-native";
+import React, { useState } from "react";
+import { View, Text, Pressable, StyleSheet, Modal, Alert } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { router } from "expo-router";
-import { hasVipEntitlement } from "../lib/revenuecat";
+import { useEntitlementStore } from "../lib/entitlementStore";
+import { restoreSanriPurchases } from "../lib/revenuecat";
 
 export default function ConsciousMenu() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
-  const [isVip, setIsVip] = useState(false);
-
-  useEffect(() => {
-    hasVipEntitlement().then(setIsVip).catch(() => setIsVip(false));
-  }, [open]);
+  const entitlements = useEntitlementStore((s) => s.status);
+  const isVip = entitlements.vip_access;
 
   return (
     <View style={styles.wrap}>
@@ -30,6 +28,12 @@ export default function ConsciousMenu() {
           <Text style={styles.vip}>
             {isVip ? "VIP: Aktif ✦" : "VIP: Pasif"}
           </Text>
+          {entitlements.role_access && (
+            <Text style={[styles.vip, { color: "#c084fc" }]}>Rol Okuma: Aktif ◈</Text>
+          )}
+          {entitlements.code_training_access && (
+            <Text style={[styles.vip, { color: "#eab308" }]}>Kod Eğitimi: Aktif ⌬</Text>
+          )}
 
           <Pressable style={styles.item} onPress={() => { setOpen(false); router.push("/(tabs)/my_area"); }}>
             <Text style={styles.itemText}>Bilinç Alanım</Text>
@@ -37,6 +41,19 @@ export default function ConsciousMenu() {
 
           <Pressable style={styles.item} onPress={() => { setOpen(false); router.push("/(tabs)/vip"); }}>
             <Text style={styles.itemText}>VIP Kapısını Aç</Text>
+          </Pressable>
+
+          <Pressable style={styles.item} onPress={async () => {
+            const restored = await restoreSanriPurchases();
+            if (restored) {
+              await useEntitlementStore.getState().refresh();
+              Alert.alert("OK", "Satın alımlar geri yüklendi.");
+            } else {
+              Alert.alert("Bilgi", "Aktif bir satın alım bulunamadı.");
+            }
+            setOpen(false);
+          }}>
+            <Text style={styles.itemText}>Satın Alımı Geri Yükle</Text>
           </Pressable>
 
           <Pressable

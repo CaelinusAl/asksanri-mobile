@@ -18,8 +18,8 @@ import {
   getModuleProgress,
   type ProgressMap,
 } from "../../lib/kodOkumaProgress";
-import { hasCodeTrainingAccess } from "../../lib/premium";
 import VipWall from "../../components/VipWall";
+import { useEntitlementStore } from "../../lib/entitlementStore";
 
 type Lang = "tr" | "en";
 
@@ -61,18 +61,22 @@ const T = {
 export default function KodOkumaScreen() {
   const [lang, setLang] = useState<Lang>("tr");
   const [progress, setProgress] = useState<ProgressMap>({});
-  const [isVip, setIsVip] = useState(false);
+  const entitlements = useEntitlementStore((s) => s.status);
+  const entitlementLoading = useEntitlementStore((s) => s.loading);
+  const isVip = entitlements.code_training_access;
   const [expandedModule, setExpandedModule] = useState<number | null>(null);
 
   const t = T[lang];
 
-  const [vipChecked, setVipChecked] = useState(false);
+  const vipChecked = !entitlementLoading;
 
   useEffect(() => {
+    if (__DEV__) {
+      console.log("vip:", entitlements.vip_access);
+      console.log("role:", entitlements.role_access);
+      console.log("code:", entitlements.code_training_access);
+    }
     getProgress().then(setProgress);
-    hasCodeTrainingAccess()
-      .then((v) => { setIsVip(Boolean(v)); setVipChecked(true); })
-      .catch(() => setVipChecked(true));
   }, []);
 
   const refreshProgress = useCallback(async () => {

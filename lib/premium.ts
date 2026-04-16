@@ -1,7 +1,16 @@
 import { getCustomerInfo } from "./revenuecat";
 import { storageGet } from "./storage";
 
-export type EntitlementId = "vip_access" | "role_access" | "code_training_access";
+export type EntitlementId =
+  | "vip_access"
+  | "role_access"
+  | "code_training_access"
+  | "general_reading_access"
+  | "relationship_deep_access"
+  | "career_deep_access"
+  | "weekly_flow_access"
+  | "person_deep_access"
+  | "money_deep_access";
 
 const ADMIN_EMAILS = [
   "caelinusai.asksanri@gmail.com",
@@ -50,7 +59,17 @@ export async function getActiveEntitlements(): Promise<EntitlementStatus> {
   const admin = await isAdminUser();
   if (admin) {
     if (__DEV__) console.log("[ENTITLEMENT] Admin user — all entitlements active");
-    return { vip_access: true, role_access: true, code_training_access: true };
+    return {
+      vip_access: true,
+      role_access: true,
+      code_training_access: true,
+      general_reading_access: true,
+      relationship_deep_access: true,
+      career_deep_access: true,
+      weekly_flow_access: true,
+      person_deep_access: true,
+      money_deep_access: true,
+    };
   }
 
   const info = await getCustomerInfo();
@@ -60,6 +79,12 @@ export async function getActiveEntitlements(): Promise<EntitlementStatus> {
     vip_access: Boolean(active?.["vip_access"]),
     role_access: Boolean(active?.["role_access"]),
     code_training_access: Boolean(active?.["code_training_access"]),
+    general_reading_access: Boolean(active?.["general_reading_access"]),
+    relationship_deep_access: Boolean(active?.["relationship_deep_access"]),
+    career_deep_access: Boolean(active?.["career_deep_access"]),
+    weekly_flow_access: Boolean(active?.["weekly_flow_access"]),
+    person_deep_access: Boolean(active?.["person_deep_access"]),
+    money_deep_access: Boolean(active?.["money_deep_access"]),
   };
 
   if (__DEV__) {
@@ -96,5 +121,47 @@ export const ENTITLEMENT_META: Record<EntitlementId, {
     color: "#eab308",
     glyph: "⌬",
     offering: "code_training",
+  },
+  general_reading_access: {
+    label: "Genel Okuma",
+    labelEn: "General Reading",
+    color: "#c084fc",
+    glyph: "◈",
+    offering: "general_reading",
+  },
+  relationship_deep_access: {
+    label: "Derin İlişki",
+    labelEn: "Deep Relationship",
+    color: "#f472b6",
+    glyph: "♡",
+    offering: "relationship_deep",
+  },
+  career_deep_access: {
+    label: "Derin Kariyer",
+    labelEn: "Deep Career",
+    color: "#38bdf8",
+    glyph: "⬡",
+    offering: "career_deep",
+  },
+  weekly_flow_access: {
+    label: "Derin Haftalık",
+    labelEn: "Deep Weekly",
+    color: "#a78bfa",
+    glyph: "⦿",
+    offering: "weekly_flow",
+  },
+  person_deep_access: {
+    label: "Derin Kişi",
+    labelEn: "Deep Person",
+    color: "#fb923c",
+    glyph: "✦",
+    offering: "person_deep",
+  },
+  money_deep_access: {
+    label: "Derin Para",
+    labelEn: "Deep Money",
+    color: "#fbbf24",
+    glyph: "◇",
+    offering: "money_deep",
   },
 };

@@ -14,8 +14,8 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 
-import { hasVipEntitlement } from "../../lib/premium";
 import { getCurrentMonthlyPackage } from "../../lib/revenuecat";
+import { useEntitlementStore } from "../../lib/entitlementStore";
 import { trackEvent } from "../../lib/analytics";
 import { useScreenTime } from "../../lib/useScreenTime";
 
@@ -80,15 +80,20 @@ export default function MatrixScreen() {
   const now = new Date();
   const cycle = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`;
 
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   useScreenTime("matrix", user?.id);
 
-  const isPremium = isAdmin || !!user?.isPremium;
-  const matrixRoleUnlocked = isAdmin || !!user?.matrixRoleUnlocked;
+  const entitlements = useEntitlementStore((s) => s.status);
+  const isPremium = entitlements.vip_access;
+  const matrixRoleUnlocked = entitlements.role_access;
 
   useEffect(() => {
     trackEvent("page_view", { userId: user?.id, meta: { page: "matrix" } });
-    if (isAdmin && __DEV__) console.log("ADMIN BYPASS ACTIVE — matrix premium");
+    if (__DEV__) {
+      console.log("vip:", entitlements.vip_access);
+      console.log("role:", entitlements.role_access);
+      console.log("code:", entitlements.code_training_access);
+    }
   }, []);
 
   const onBack = () => {
@@ -122,22 +127,20 @@ export default function MatrixScreen() {
     } as any);
   };
 
-  const goVip = async (source: "role" | "premium_monthly") => {
-    const ok = isAdmin || await hasVipEntitlement(user).catch(() => false);
-    if (ok) {
-      Alert.alert(
-        "Sanrı",
-        lang === "tr"
-          ? "VIP aktif. İlgili katmanlar açılabilir."
-          : "VIP is active. Related layers can be opened."
-      );
-      return;
+  const goVip = (source: "role" | "premium_monthly") => {
+    if (source === "role") {
+      if (matrixRoleUnlocked) {
+        Alert.alert("Sanrı", lang === "tr" ? "Rol Okuma zaten aktif." : "Role Reading is already active.");
+        return;
+      }
+      router.push({ pathname: "/(tabs)/vip", params: { lang, entitlement: "role_access" } } as any);
+    } else {
+      if (isPremium) {
+        Alert.alert("Sanrı", lang === "tr" ? "VIP zaten aktif." : "VIP is already active.");
+        return;
+      }
+      router.push({ pathname: "/(tabs)/vip", params: { lang, entitlement: "vip_access" } } as any);
     }
-
-    router.push({
-      pathname: "/(tabs)/vip",
-      params: { lang, source },
-    } as any);
   };
 
   const [dynamicPrice, setDynamicPrice] = useState<string | null>(null);
@@ -265,16 +268,7 @@ export default function MatrixScreen() {
           <View style={styles.payRight}>
             <Text style={styles.priceTag}>{priceDisplay}</Text>
             <Pressable
-  onPress={() => {
-    if (matrixRoleUnlocked) {
-      Alert.alert("Sanrı", lang === "tr" ? "Rol katmanı zaten açık." : "Role layer is already unlocked.");
-      return;
-    }
-    router.push({
-      pathname: "/(tabs)/vip",
-      params: { lang, source: "role" },
-    } as any);
-  }}
+  onPress={() => goVip("role")}
   style={styles.ghostBtn}
   hitSlop={10}
 >
@@ -295,21 +289,12 @@ export default function MatrixScreen() {
           <View style={styles.payRight}>
             <Text style={styles.priceTag}>{priceDisplay}</Text>
             <Pressable
-  onPress={() => {
-    if (isPremium) {
-      Alert.alert("Sanrı", lang === "tr" ? "Premium aktif." : "Premium is active.");
-      return;
-    }
-    router.push({
-      pathname: "/(tabs)/vip",
-      params: { lang, source: "premium_monthly" },
-    } as any);
-  }}
+  onPress={() => goVip("premium_monthly")}
   style={styles.ghostBtn}
   hitSlop={10}
 >
   <Text style={styles.ghostBtnTxt}>
-    {isPremium ? (lang === "tr" ? "Premium Aktif" : "Premium Active") : t.premiumBtn}
+    {isPremium ? (lang === "tr" ? "VIP Aktif" : "VIP Active") : t.premiumBtn}
   </Text>
 </Pressable>
           </View>

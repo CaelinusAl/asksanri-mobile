@@ -25,8 +25,8 @@ import {
   getStepOptions,
 } from "../../lib/ankodData";
 import { storageGet, storageSet } from "../../lib/storage";
-import { hasVipEntitlement } from "../../lib/premium";
 import VipWall from "../../components/VipWall";
+import { useEntitlementStore } from "../../lib/entitlementStore";
 
 const ACCENT = "#7cf7d8";
 const BG = "#0a0b10";
@@ -46,7 +46,7 @@ export default function AnkodScreen() {
   const [deepSections, setDeepSections] = useState<Record<string, string>>({});
   const [completedCats, setCompletedCats] = useState<string[]>([]);
   const [teaserLocal, setTeaserLocal] = useState(false);
-  const [isVip, setIsVip] = useState(false);
+  const isVip = useEntitlementStore((s) => s.status.vip_access);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -57,7 +57,6 @@ export default function AnkodScreen() {
         if (raw) setCompletedCats(JSON.parse(raw));
       } catch { /* ignore */ }
     })();
-    hasVipEntitlement().then((v) => setIsVip(Boolean(v))).catch(() => {});
   }, []);
 
   React.useEffect(() => {

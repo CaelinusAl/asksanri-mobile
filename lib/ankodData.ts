@@ -293,3 +293,4 @@ export function buildLocalDeep(cat: AnkodCategoryId, answers: Record<AnkodStepId
 export const ANKOD_API_BASE = "https://sanri-api-production-4a7b.up.railway.app";
 export const ANKOD_COMMENTARY_URL = `${ANKOD_API_BASE}/sanri/ankod-commentary`;
 export const MATRIX_ROL_URL = `${ANKOD_API_BASE}/matrix-rol`;
+export const MATRIX_DEEP_URL = `${ANKOD_API_BASE}/matrix-rol/deep`;

@@ -1,5 +1,5 @@
 // app/(tabs)/gates.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,15 +7,21 @@ import {
   StyleSheet,
   ScrollView,
   StatusBar,
+  Image,
+  ImageBackground,
+  Animated,
+  Easing,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  getActiveEntitlements,
   ENTITLEMENT_META,
   type EntitlementId,
-  type EntitlementStatus,
 } from "../../lib/premium";
+import { useEntitlementStore } from "../../lib/entitlementStore";
+
+const DOOR_BG = require("../../assets/door_holo.jpg");
 
 type Lang = "tr" | "en";
 
@@ -26,13 +32,30 @@ type GateItemType = {
   entitlement?: EntitlementId;
 };
 
+const GATE_ICONS: Record<string, string> = {
+  SANRI: "◈",
+  "UYANAN ŞEHİRLER": "◎",
+  MATRIX: "⬡",
+  "KOD OKUMA": "⟁",
+  "RİTÜEL ALANI": "☽",
+  "OKUMA ALANI": "⊛",
+  "KÜTÜPHANE": "⊞",
+  "ANLAŞILMA ALANI": "∞",
+  "AWAKENED CITIES": "◎",
+  "CODE READING": "⟁",
+  "RITUAL SPACE": "☽",
+  "READING AREA": "⊛",
+  LIBRARY: "⊞",
+  UNDERSTANDING: "∞",
+};
+
 const COPY: Record<
   Lang,
   { title: string; sub: string; items: GateItemType[] }
 > = {
   tr: {
     title: "Kapılar",
-    sub: "Hangi alana geçmek istiyorsun?",
+    sub: "Her kapı bir hatırlatma.\nHangisi seni çağırıyor?",
     items: [
       { title: "SANRI", sub: "Kişisel yansıma alanı", route: "/(tabs)/sanri_flow" },
       { title: "UYANAN ŞEHİRLER", sub: "Şehrin kodunu seç", route: "/(tabs)/awakenedCities" },
@@ -46,7 +69,7 @@ const COPY: Record<
   },
   en: {
     title: "Gates",
-    sub: "Which field would you like to enter?",
+    sub: "Every gate is a reminder.\nWhich one is calling you?",
     items: [
       { title: "SANRI", sub: "Personal reflection field", route: "/(tabs)/sanri_flow" },
       { title: "AWAKENED CITIES", sub: "Choose the code of a city", route: "/(tabs)/awakenedCities" },
@@ -62,16 +85,27 @@ const COPY: Record<
 
 export default function GatesScreen() {
   const [lang, setLang] = useState<Lang>("tr");
-  const [entitlements, setEntitlements] = useState<EntitlementStatus>({
-    vip_access: false,
-    role_access: false,
-    code_training_access: false,
-  });
+  const entitlements = useEntitlementStore((s) => s.status);
+  const refreshEntitlements = useEntitlementStore((s) => s.refresh);
   const t = useMemo(() => COPY[lang], [lang]);
 
+  const fadeIn = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    getActiveEntitlements().then(setEntitlements).catch(() => {});
-  }, []);
+    refreshEntitlements();
+  }, [refreshEntitlements]);
+
+  useEffect(() => {
+    Animated.timing(fadeIn, { toValue: 1, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [fadeIn]);
+
+  useEffect(() => {
+    if (__DEV__) {
+      console.log("vip:", entitlements.vip_access);
+      console.log("role:", entitlements.role_access);
+      console.log("code:", entitlements.code_training_access);
+    }
+  }, [entitlements]);
 
   const toggleLang = () => setLang((prev) => (prev === "tr" ? "en" : "tr"));
 
@@ -112,34 +146,48 @@ export default function GatesScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>{t.title}</Text>
-          <Text style={styles.sub}>{t.sub}</Text>
+          {/* Hero door image */}
+          <View style={styles.heroWrap}>
+            <Image source={DOOR_BG} style={styles.heroImage} resizeMode="cover" />
+            <LinearGradient
+              colors={["transparent", "#0a0b10"]}
+              style={styles.heroFade}
+            />
+          </View>
 
-          <View style={{ height: 14 }} />
+          <Animated.View style={{ opacity: fadeIn }}>
+            <Text style={styles.title}>{t.title}</Text>
+            <Text style={styles.sub}>{t.sub}</Text>
 
-          {t.items.map((it) => {
-            const ent = it.entitlement;
-            const isLocked = ent ? !entitlements[ent] : false;
-            const meta = ent ? ENTITLEMENT_META[ent] : null;
+            <View style={{ height: 20 }} />
 
-            return (
-              <GateItem
-                key={it.route + it.title}
-                title={it.title}
-                sub={it.sub}
-                locked={isLocked}
-                badgeLabel={meta ? meta.label : undefined}
-                badgeColor={meta ? meta.color : undefined}
-                onPress={() => onOpenGate(it)}
-              />
-            );
-          })}
+            {t.items.map((it, idx) => {
+              const ent = it.entitlement;
+              const isLocked = ent ? !entitlements[ent] : false;
+              const meta = ent ? ENTITLEMENT_META[ent] : null;
+              const icon = GATE_ICONS[it.title] || "◈";
 
-          <Text style={styles.disclaimer}>
-            {lang === "tr"
-              ? "Sanri, kisisel gelisim ve oz-yansima icin tasarlanmis bir yapay zeka aracidir. Profesyonel saglik, psikoloji veya finansal danismanlik yerine gecmez."
-              : "Sanri is an AI tool designed for personal development and self-reflection. It is not a substitute for professional health, psychology or financial advice."}
-          </Text>
+              return (
+                <GateItem
+                  key={it.route + it.title}
+                  title={it.title}
+                  sub={it.sub}
+                  locked={isLocked}
+                  badgeLabel={meta ? meta.label : undefined}
+                  badgeColor={meta ? meta.color : undefined}
+                  icon={icon}
+                  index={idx}
+                  onPress={() => onOpenGate(it)}
+                />
+              );
+            })}
+
+            <Text style={styles.disclaimer}>
+              {lang === "tr"
+                ? "Sanri, kişisel gelişim ve öz-yansıma için tasarlanmış bir yapay zeka aracıdır. Profesyonel sağlık, psikoloji veya finansal danışmanlık yerine geçmez."
+                : "Sanri is an AI tool designed for personal development and self-reflection. It is not a substitute for professional health, psychology or financial advice."}
+            </Text>
+          </Animated.View>
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -152,6 +200,8 @@ function GateItem({
   locked,
   badgeLabel,
   badgeColor,
+  icon,
+  index,
   onPress,
 }: {
   title: string;
@@ -159,39 +209,58 @@ function GateItem({
   locked: boolean;
   badgeLabel?: string;
   badgeColor?: string;
+  icon: string;
+  index: number;
   onPress: () => void;
 }) {
-  return (
-    <Pressable onPress={onPress} style={styles.card}>
-      <View style={styles.cardGlass}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>{title}</Text>
+  const slideIn = useRef(new Animated.Value(20)).current;
+  const fadeIn = useRef(new Animated.Value(0)).current;
 
-            {badgeLabel ? (
-              <View
-                style={[
-                  styles.badge,
-                  locked
-                    ? { backgroundColor: `${badgeColor}18`, borderColor: `${badgeColor}30` }
-                    : { backgroundColor: `${badgeColor}22`, borderColor: `${badgeColor}40` },
-                ]}
-              >
-                <Text style={[styles.badgeTxt, { color: badgeColor }]}>
-                  {locked ? `🔒 ${badgeLabel}` : `✓ ${badgeLabel}`}
-                </Text>
-              </View>
-            ) : null}
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeIn, { toValue: 1, duration: 500, delay: index * 80, useNativeDriver: true }),
+      Animated.timing(slideIn, { toValue: 0, duration: 500, delay: index * 80, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
+  }, [fadeIn, slideIn, index]);
+
+  return (
+    <Animated.View style={{ opacity: fadeIn, transform: [{ translateY: slideIn }] }}>
+      <Pressable onPress={onPress} style={styles.card}>
+        <View style={styles.cardAccent} />
+        <View style={styles.cardGlass}>
+          <View style={styles.gateIconWrap}>
+            <Text style={[styles.gateIcon, locked && { opacity: 0.4 }]}>{icon}</Text>
           </View>
 
-          <Text style={styles.cardSub}>{sub}</Text>
-        </View>
+          <View style={{ flex: 1 }}>
+            <View style={styles.cardHeader}>
+              <Text style={[styles.cardTitle, locked && { opacity: 0.65 }]}>{title}</Text>
 
-        <View style={styles.chevWrap}>
-          <Text style={styles.chev}>›</Text>
+              {badgeLabel ? (
+                <View
+                  style={[
+                    styles.badge,
+                    locked
+                      ? { backgroundColor: `${badgeColor}18`, borderColor: `${badgeColor}30` }
+                      : { backgroundColor: `${badgeColor}22`, borderColor: `${badgeColor}40` },
+                  ]}
+                >
+                  <Text style={[styles.badgeTxt, { color: badgeColor }]}>
+                    {locked ? `🔒 ${badgeLabel}` : `✓ ${badgeLabel}`}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            <Text style={[styles.cardSub, locked && { opacity: 0.5 }]}>{sub}</Text>
+          </View>
+
+          <View style={[styles.chevWrap, locked && { borderColor: "rgba(255,255,255,0.06)" }]}>
+            <Text style={styles.chev}>{locked ? "🔒" : "›"}</Text>
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -206,6 +275,7 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 6,
     gap: 8,
+    zIndex: 10,
   },
 
   profileBtn: {
@@ -233,26 +303,87 @@ const styles = StyleSheet.create({
   langTxt: { color: "#cbbcff", fontWeight: "900", letterSpacing: 1 },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 140 },
+  scrollContent: { paddingHorizontal: 18, paddingTop: 0, paddingBottom: 140 },
 
-  title: { color: "white", fontSize: 40, fontWeight: "900", marginTop: 6 },
-  sub: { color: "rgba(255,255,255,0.70)", marginTop: 6, fontSize: 16 },
+  heroWrap: {
+    width: "100%",
+    height: 180,
+    borderRadius: 24,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+
+  heroImage: {
+    width: "100%",
+    height: "100%",
+    opacity: 0.45,
+  },
+
+  heroFade: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+  },
+
+  title: {
+    color: "white",
+    fontSize: 38,
+    fontWeight: "900",
+    marginTop: 2,
+    letterSpacing: 2,
+  },
+
+  sub: {
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 8,
+    fontSize: 16,
+    lineHeight: 24,
+  },
 
   card: {
-    borderRadius: 26,
+    borderRadius: 22,
     overflow: "hidden",
-    marginTop: 14,
+    marginTop: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(124,247,216,0.08)",
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+
+  cardAccent: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: "rgba(124,247,216,0.25)",
+    borderTopLeftRadius: 22,
+    borderBottomLeftRadius: 22,
   },
 
   cardGlass: {
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
+  },
+
+  gateIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(124,247,216,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.12)",
+  },
+
+  gateIcon: {
+    color: "#7cf7d8",
+    fontSize: 20,
   },
 
   cardHeader: {
@@ -262,7 +393,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
 
-  cardTitle: { color: "white", fontSize: 22, fontWeight: "900" },
+  cardTitle: { color: "white", fontSize: 18, fontWeight: "900", letterSpacing: 1 },
 
   badge: {
     paddingHorizontal: 10,
@@ -273,27 +404,27 @@ const styles = StyleSheet.create({
 
   badgeTxt: { fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
 
-  cardSub: { color: "rgba(255,255,255,0.68)", marginTop: 6, fontSize: 14 },
+  cardSub: { color: "rgba(255,255,255,0.55)", marginTop: 4, fontSize: 13, lineHeight: 18 },
 
   chevWrap: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    borderColor: "rgba(124,247,216,0.10)",
   },
 
-  chev: { color: "rgba(255,255,255,0.85)", fontSize: 26, fontWeight: "900" },
+  chev: { color: "rgba(255,255,255,0.75)", fontSize: 22, fontWeight: "900" },
 
   disclaimer: {
-    marginTop: 20,
+    marginTop: 28,
     marginBottom: 30,
-    color: "rgba(255,255,255,0.30)",
+    color: "rgba(255,255,255,0.25)",
     fontSize: 11,
-    lineHeight: 16,
+    lineHeight: 17,
     textAlign: "center",
     paddingHorizontal: 10,
   },

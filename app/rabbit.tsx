@@ -1,16 +1,23 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
   Image,
+  ImageBackground,
   StatusBar,
+  Animated,
+  Easing,
+  Dimensions,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 
 const RABBIT = require("../assets/rabbit.jpg");
+const MATRIX_BG = require("../assets/matrix_rain.jpg");
+const { width: W, height: H } = Dimensions.get("window");
 
 type Lang = "tr" | "en";
 
@@ -28,10 +35,10 @@ const COPY = {
     guestButton: "🔑 Frekans Alanı Aç",
     welcome: "Hoş geldin,",
     authedDesc:
-      "SANRI alanı seni tanıdı. Çıkış yapmadığın sürece yeniden giriş istenmez.",
+      "Sanrı alanı...\nKendinden kendine yapılan bir yolculuktur.\nHer kapı, sende zaten var olanı hatırlatır.",
     authedCardTitle: "FREKANS ALANI",
-    authedCardText: "Kapı açık. Şimdi frekans alanına geçebilirsin.",
-    authedButton: "Frekans Alanına Gir",
+    authedCardText: "Frekans alanı hazır.\nŞimdi kendi titreşimini duymaya geçebilirsin.",
+    authedButton: "Frekans Alanına Geç",
     logout: "Çıkış Yap",
   },
   en: {
@@ -47,9 +54,9 @@ const COPY = {
     guestButton: "🔑 Open Frequency Gate",
     welcome: "Welcome,",
     authedDesc:
-      "SANRI recognized your field. It won't ask you to log in again unless you sign out.",
+      "The Sanrı field...\nA journey from yourself to yourself.\nEvery gate reminds you of what already exists within.",
     authedCardTitle: "FREQUENCY FIELD",
-    authedCardText: "The gate is open. You may now enter the frequency field.",
+    authedCardText: "The frequency field is ready.\nNow begin to hear your own vibration.",
     authedButton: "Enter Frequency Field",
     logout: "Sign Out",
   },
@@ -64,12 +71,102 @@ function getDisplayName(user: any) {
   return "White Rabbit";
 }
 
+/* ── Animated Matrix Rain Columns ── */
+function MatrixRainOverlay() {
+  const cols = useMemo(() => {
+    const count = Math.floor(W / 22);
+    return Array.from({ length: count }, (_, i) => ({
+      id: i,
+      left: i * 22 + Math.random() * 6,
+      delay: Math.random() * 6000,
+      duration: 4000 + Math.random() * 5000,
+      chars: Array.from({ length: 8 + Math.floor(Math.random() * 12) }, () =>
+        String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96))
+      ).join("\n"),
+    }));
+  }, []);
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {cols.map((col) => (
+        <RainColumn key={col.id} {...col} />
+      ))}
+    </View>
+  );
+}
+
+function RainColumn({ left, delay, duration, chars }: { left: number; delay: number; duration: number; chars: string }) {
+  const translateY = useRef(new Animated.Value(-200)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      Animated.loop(
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(opacity, { toValue: 0.25, duration: 600, useNativeDriver: true }),
+            Animated.timing(translateY, { toValue: H + 100, duration, easing: Easing.linear, useNativeDriver: true }),
+            Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+            Animated.timing(translateY, { toValue: -200, duration: 0, useNativeDriver: true }),
+          ]),
+        ])
+      ).start();
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [delay, duration, opacity, translateY]);
+
+  return (
+    <Animated.Text
+      style={{
+        position: "absolute",
+        left,
+        top: 0,
+        color: "#7cf7d8",
+        fontSize: 13,
+        lineHeight: 16,
+        fontWeight: "300",
+        opacity,
+        transform: [{ translateY }],
+      }}
+    >
+      {chars}
+    </Animated.Text>
+  );
+}
+
 export default function RabbitScreen() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [lang, setLang] = useState<Lang>("tr");
 
   const t = useMemo(() => COPY[lang], [lang]);
   const displayName = useMemo(() => getDisplayName(user), [user]);
+
+  const fadeIn = useRef(new Animated.Value(0)).current;
+  const slideUp = useRef(new Animated.Value(30)).current;
+  const cardFade = useRef(new Animated.Value(0)).current;
+  const cardSlide = useRef(new Animated.Value(40)).current;
+  const bgPulse = useRef(new Animated.Value(0.35)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeIn, { toValue: 1, duration: 1200, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(slideUp, { toValue: 0, duration: 1200, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.sequence([
+        Animated.delay(400),
+        Animated.parallel([
+          Animated.timing(cardFade, { toValue: 1, duration: 900, useNativeDriver: true }),
+          Animated.timing(cardSlide, { toValue: 0, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        ]),
+      ]),
+    ]).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bgPulse, { toValue: 0.5, duration: 4000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(bgPulse, { toValue: 0.35, duration: 4000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, [fadeIn, slideUp, cardFade, cardSlide, bgPulse]);
 
   const onEnter = () => {
     if (isAuthenticated) {
@@ -84,6 +181,23 @@ export default function RabbitScreen() {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
+
+      {/* Matrix rain background */}
+      <ImageBackground source={MATRIX_BG} style={StyleSheet.absoluteFill} resizeMode="cover">
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: "#0a0b10", opacity: bgPulse }]} />
+      </ImageBackground>
+
+      {/* Animated rain columns */}
+      <MatrixRainOverlay />
+
+      {/* Dark gradient overlays for readability */}
+      <LinearGradient
+        colors={["#0a0b10", "transparent", "transparent", "#0a0b10"]}
+        locations={[0, 0.2, 0.7, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(10,11,16,0.72)" }]} pointerEvents="none" />
 
       <View style={styles.topRight}>
         <Pressable
@@ -101,8 +215,9 @@ export default function RabbitScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.container}>
+      <Animated.View style={[styles.container, { opacity: fadeIn, transform: [{ translateY: slideUp }] }]}>
         <View style={styles.rabbitCard}>
+          <View style={styles.rabbitGlow} />
           <Image source={RABBIT} style={styles.rabbit} />
           <Text style={styles.follow}>{t.follow}</Text>
           <Text style={styles.system}>{t.system}</Text>
@@ -113,7 +228,7 @@ export default function RabbitScreen() {
 
         {isAuthenticated ? (
           <>
-            <Text style={styles.quote}>
+            <Text style={styles.welcomeText}>
               {t.welcome} {displayName}
             </Text>
             <Text style={styles.desc}>{t.authedDesc}</Text>
@@ -125,7 +240,8 @@ export default function RabbitScreen() {
           </>
         )}
 
-        <View style={styles.infoCard}>
+        <Animated.View style={[styles.infoCard, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
+          <View style={styles.infoCardGlow} />
           <Text style={styles.infoTitle}>
             {isAuthenticated ? t.authedCardTitle : t.guestCardTitle}
           </Text>
@@ -135,9 +251,16 @@ export default function RabbitScreen() {
           </Text>
 
           <Pressable onPress={onEnter} style={styles.enterBtn}>
-            <Text style={styles.enterTxt}>
-              {isAuthenticated ? t.authedButton : t.guestButton}
-            </Text>
+            <LinearGradient
+              colors={["rgba(145,110,255,0.25)", "rgba(124,247,216,0.12)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.enterGradient}
+            >
+              <Text style={styles.enterTxt}>
+                {isAuthenticated ? t.authedButton : t.guestButton}
+              </Text>
+            </LinearGradient>
           </Pressable>
 
           {isAuthenticated ? (
@@ -151,8 +274,8 @@ export default function RabbitScreen() {
               <Text style={styles.logoutTxt}>{t.logout}</Text>
             </Pressable>
           ) : null}
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </View>
   );
 }
@@ -208,21 +331,30 @@ const styles = StyleSheet.create({
   rabbitCard: {
     width: "100%",
     alignItems: "center",
-    marginBottom: 26,
+    marginBottom: 30,
     paddingHorizontal: 28,
-    paddingVertical: 20,
+    paddingVertical: 24,
     borderRadius: 30,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(124,247,216,0.12)",
     overflow: "hidden",
+  },
+
+  rabbitGlow: {
+    position: "absolute",
+    top: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(124,247,216,0.06)",
   },
 
   rabbit: {
     width: 100,
     height: 100,
     borderRadius: 24,
-    marginBottom: 12,
+    marginBottom: 14,
   },
 
   follow: {
@@ -233,10 +365,10 @@ const styles = StyleSheet.create({
   },
 
   system: {
-    color: "rgba(255,255,255,0.64)",
-    fontSize: 13,
-    marginTop: 6,
-    letterSpacing: 2,
+    color: "rgba(255,255,255,0.50)",
+    fontSize: 12,
+    marginTop: 8,
+    letterSpacing: 3,
     textAlign: "center",
   },
 
@@ -250,83 +382,107 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
-    color: "rgba(255,255,255,0.42)",
+    color: "rgba(255,255,255,0.38)",
     letterSpacing: 5,
     marginTop: 10,
-    marginBottom: 24,
+    marginBottom: 28,
     textAlign: "center",
-    fontSize: 15,
+    fontSize: 14,
+  },
+
+  welcomeText: {
+    color: "#7cf7d8",
+    fontSize: 22,
+    textAlign: "center",
+    fontWeight: "900",
+    lineHeight: 32,
+    marginBottom: 4,
   },
 
   quote: {
     color: "white",
-    fontSize: 24,
+    fontSize: 22,
     textAlign: "center",
     fontWeight: "900",
-    lineHeight: 36,
+    lineHeight: 34,
   },
 
   desc: {
-    color: "rgba(255,255,255,0.78)",
+    color: "rgba(255,255,255,0.68)",
     textAlign: "center",
-    marginTop: 18,
-    lineHeight: 25,
+    marginTop: 16,
+    lineHeight: 26,
     fontSize: 16,
-    marginBottom: 26,
+    marginBottom: 30,
+    paddingHorizontal: 8,
   },
 
   infoCard: {
     width: "100%",
     borderRadius: 28,
-    padding: 22,
+    padding: 24,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(124,247,216,0.10)",
+  },
+
+  infoCardGlow: {
+    position: "absolute",
+    bottom: -30,
+    right: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(94,59,255,0.08)",
   },
 
   infoTitle: {
     color: "#d7c8ff",
     textAlign: "center",
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "900",
-    marginBottom: 10,
-    letterSpacing: 1,
+    marginBottom: 12,
+    letterSpacing: 3,
   },
 
   infoText: {
-    color: "white",
+    color: "rgba(255,255,255,0.75)",
     textAlign: "center",
     fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 20,
+    lineHeight: 25,
+    marginBottom: 22,
   },
 
   enterBtn: {
     borderRadius: 24,
-    backgroundColor: "rgba(145,110,255,0.18)",
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(203,188,255,0.22)",
+    borderColor: "rgba(124,247,216,0.18)",
+  },
+
+  enterGradient: {
     paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
   },
 
   enterTxt: {
-    color: "#d7c8ff",
+    color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "900",
+    letterSpacing: 1,
   },
 
   logoutBtn: {
-    marginTop: 14,
+    marginTop: 16,
     alignItems: "center",
     paddingVertical: 8,
   },
 
   logoutTxt: {
-    color: "rgba(255,255,255,0.66)",
-    fontSize: 15,
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 14,
     fontWeight: "700",
   },
 });

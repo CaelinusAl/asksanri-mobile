@@ -21,11 +21,10 @@ import {
 } from "../../lib/kodOkumaProgress";
 import { MODULES } from "../../lib/kodOkumaData";
 import {
-  getActiveEntitlements,
   ENTITLEMENT_META,
   type EntitlementId,
-  type EntitlementStatus,
 } from "../../lib/premium";
+import { useEntitlementStore } from "../../lib/entitlementStore";
 
 const ACCENT = "#7cf7d8";
 const BG = "#0a0b10";
@@ -43,11 +42,7 @@ type LibSection = {
 
 export default function KutuphaneScreen() {
   const { user } = useAuth();
-  const [entitlements, setEntitlements] = useState<EntitlementStatus>({
-    vip_access: false,
-    role_access: false,
-    code_training_access: false,
-  });
+  const entitlements = useEntitlementStore((s) => s.status);
   const [kodProgress, setKodProgress] = useState(0);
   const [activeModule, setActiveModule] = useState("");
   const [ankodDone, setAnkodDone] = useState(0);
@@ -57,9 +52,6 @@ export default function KutuphaneScreen() {
   const featured = useMemo(() => getFeatured().slice(0, 3), []);
 
   useEffect(() => {
-    (async () => {
-      try { setEntitlements(await getActiveEntitlements()); } catch { /* */ }
-    })();
     (async () => {
       try {
         const progress = await getProgress();

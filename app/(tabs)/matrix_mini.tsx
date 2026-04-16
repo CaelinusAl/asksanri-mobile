@@ -19,13 +19,13 @@ function onlyDigits(x: string) {
 function normalizeName(x: string) {
   return (x || "")
     .toUpperCase()
-    .replace(/İ/g, "I")
-    .replace(/İ/g, "I")
-    .replace(/Ğ/g, "G")
-    .replace(/Ü/g, "U")
-    .replace(/Ş/g, "S")
-    .replace(/Ö/g, "O")
-    .replace(/Ç/g, "C")
+    .replace(/\u0130/g, "I")
+    .replace(/\u0130/g, "I")
+    .replace(/\u011e/g, "G")
+    .replace(/\u00dc/g, "U")
+    .replace(/\u015e/g, "S")
+    .replace(/\u00d6/g, "O")
+    .replace(/\u00c7/g, "C")
     .replace(/[^A-Z ]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -41,7 +41,6 @@ function digitalRoot(n: number) {
   return x === 0 ? 0 : x;
 }
 
-// Basit A1Z26 numerology (A=1..Z=26) -> toplam -> 1..9 kök
 function nameNumber(fullName: string) {
   const name = normalizeName(fullName);
   let sum = 0;
@@ -53,7 +52,6 @@ function nameNumber(fullName: string) {
   return { sum, root: digitalRoot(sum) };
 }
 
-// DDMMYYYY -> toplam -> 1..9 kök
 function dobNumber(dob: string) {
   const digits = onlyDigits(dob);
   let sum = 0;
@@ -63,16 +61,16 @@ function dobNumber(dob: string) {
 
 function archetypeTR(n: number) {
   switch (n) {
-    case 1: return { title: "Başlatan", keys: ["inşa", "karar", "yön"] };
-    case 2: return { title: "Ayna", keys: ["uyum", "bağ", "duyarlılık"] };
-    case 3: return { title: "İfade", keys: ["yaratıcılık", "söz", "neşe"] };
-    case 4: return { title: "Sistem", keys: ["düzen", "emek", "istikrar"] };
-    case 5: return { title: "Kapı", keys: ["değişim", "özgürlük", "deneyim"] };
-    case 6: return { title: "Şifa", keys: ["sorumluluk", "kalp", "denge"] };
-    case 7: return { title: "Göz", keys: ["analiz", "içgörü", "derinlik"] };
-    case 8: return { title: "Güç", keys: ["etki", "para", "otorite"] };
-    case 9: return { title: "Tamamlama", keys: ["bilgelik", "hizmet", "kapanış"] };
-    default: return { title: "Nötr", keys: ["sıfır", "başlangıç", "potansiyel"] };
+    case 1: return { title: "Ba\u015flatan", keys: ["in\u015fa", "karar", "y\u00f6n"] };
+    case 2: return { title: "Ayna", keys: ["uyum", "ba\u011f", "duyarl\u0131l\u0131k"] };
+    case 3: return { title: "\u0130fade", keys: ["yarat\u0131c\u0131l\u0131k", "s\u00f6z", "ne\u015fe"] };
+    case 4: return { title: "Sistem", keys: ["d\u00fczen", "emek", "istikrar"] };
+    case 5: return { title: "Kap\u0131", keys: ["de\u011fi\u015fim", "\u00f6zg\u00fcrl\u00fck", "deneyim"] };
+    case 6: return { title: "\u015eifa", keys: ["sorumluluk", "kalp", "denge"] };
+    case 7: return { title: "G\u00f6z", keys: ["analiz", "i\u00e7g\u00f6r\u00fc", "derinlik"] };
+    case 8: return { title: "G\u00fc\u00e7", keys: ["etki", "para", "otorite"] };
+    case 9: return { title: "Tamamlama", keys: ["bilgelik", "hizmet", "kapan\u0131\u015f"] };
+    default: return { title: "N\u00f6tr", keys: ["s\u0131f\u0131r", "ba\u015flang\u0131\u00e7", "potansiyel"] };
   }
 }
 
@@ -111,7 +109,7 @@ export default function MatrixMiniScreen() {
       const r = dobNumber(dob);
       const a = lang === "tr" ? archetypeTR(r.root) : archetypeEN(r.root);
       return {
-        label: lang === "tr" ? "Doğum Tarihi Kodu" : "Birth Date Code",
+        label: lang === "tr" ? "Do\u011fum Tarihi Kodu" : "Birth Date Code",
         input: dob,
         sum: r.sum,
         root: r.root,
@@ -119,15 +117,15 @@ export default function MatrixMiniScreen() {
         archeKeys: a.keys,
         hint:
           lang === "tr"
-            ? "Bu hızlı okuma bir “ilk iz”dir. Derin okuma için Sanrı akışına geç."
-            : "This is a quick imprint. For deep reading, enter Sanri flow.",
+            ? "Bu h\u0131zl\u0131 okuma bir ilk izdir. Derin katmanlara ge\u00e7mek i\u00e7in devam et."
+            : "This is a quick imprint. Continue for deeper layers.",
       };
     }
 
     const r = nameNumber(name);
     const a = lang === "tr" ? archetypeTR(r.root) : archetypeEN(r.root);
     return {
-      label: lang === "tr" ? "İsim Kodu" : "Name Code",
+      label: lang === "tr" ? "\u0130sim Kodu" : "Name Code",
       input: name,
       sum: r.sum,
       root: r.root,
@@ -135,27 +133,20 @@ export default function MatrixMiniScreen() {
       archeKeys: a.keys,
       hint:
         lang === "tr"
-          ? "Bu hızlı okuma bir “ilk iz”dir. Derin okuma için Sanrı akışına geç."
-          : "This is a quick imprint. For deep reading, enter Sanri flow.",
+          ? "Bu h\u0131zl\u0131 okuma bir ilk izdir. Derin katmanlara ge\u00e7mek i\u00e7in devam et."
+          : "This is a quick imprint. Continue for deeper layers.",
     };
   }, [mode, name, dob, lang]);
 
   const goBack = () => router.back();
 
   const goDeep = () => {
-    // İstersen bunu daha sonra “Matrix Derin Okuma” moduna bağlarız.
-    // Şimdilik Sanrı Flow’a, seed ile gönderiyoruz.
-    const seed =
-      mode === "dob"
-        ? `MODE=dob; DOB=${calc.input}; TYPE=matrix_mini`
-        : `MODE=name; NAME=${calc.input}; TYPE=matrix_mini`;
-
     router.push({
-      pathname: "/(tabs)/sanri_flow",
+      pathname: "/(tabs)/deep_reading",
       params: {
         lang,
-        title: lang === "tr" ? "Matrix Okuma" : "Matrix Reading",
-        seed,
+        name: name || "",
+        dob: dob || "",
       },
     } as any);
   };
@@ -165,14 +156,14 @@ export default function MatrixMiniScreen() {
       <StatusBar barStyle="light-content" />
       <View style={styles.topbar}>
         <Pressable onPress={goBack} style={styles.backBtn} hitSlop={10}>
-          <Text style={styles.backTxt}>←</Text>
+          <Text style={styles.backTxt}>{"\u2190"}</Text>
         </Pressable>
-        <Text style={styles.kicker}>{lang === "tr" ? "MATRIX · HIZLI OKUMA" : "MATRIX · QUICK READING"}</Text>
+        <Text style={styles.kicker}>{lang === "tr" ? "MATRIX \u00b7 HIZLI OKUMA" : "MATRIX \u00b7 QUICK READING"}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <Text style={styles.h1}>{calc.label}</Text>
-        <Text style={styles.sub}>{calc.input || (lang === "tr" ? "—" : "—")}</Text>
+        <Text style={styles.sub}>{calc.input || "\u2014"}</Text>
 
         <View style={styles.card}>
           <View style={styles.row}>
@@ -188,15 +179,15 @@ export default function MatrixMiniScreen() {
 
           <Text style={styles.big}>{calc.archeTitle}</Text>
           <Text style={styles.keys}>
-            {calc.archeKeys.map((x) => "• " + x).join("\n")}
+            {calc.archeKeys.map((x) => "\u2022 " + x).join("\n")}
           </Text>
 
           <Text style={styles.hint}>{calc.hint}</Text>
         </View>
 
         <Pressable onPress={goDeep} style={styles.primaryBtn} hitSlop={12}>
-          <Text style={styles.primaryTxt}>{lang === "tr" ? "Derin Okumaya Geç" : "Go Deeper"}</Text>
-          <Text style={styles.primaryArrow}>›</Text>
+          <Text style={styles.primaryTxt}>{lang === "tr" ? "Derin Okumaya Ge\u00e7" : "Go Deeper"}</Text>
+          <Text style={styles.primaryArrow}>{"\u203a"}</Text>
         </Pressable>
 
         <View style={{ height: 30 }} />

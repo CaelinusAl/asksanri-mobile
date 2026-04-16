@@ -1,5 +1,5 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { ENTITLEMENT_META, type EntitlementId } from "../lib/premium";
 
@@ -11,6 +11,18 @@ type Props = {
   targetAfterPurchase?: string;
 };
 
+const CTA_LABELS: Record<EntitlementId, { tr: string; en: string }> = {
+  vip_access: { tr: "VIP'e Geç", en: "Go VIP" },
+  role_access: { tr: "Rolünü Aç", en: "Unlock Your Role" },
+  code_training_access: { tr: "Eğitimi Aç", en: "Start Training" },
+};
+
+const BADGE_LABELS: Record<EntitlementId, string> = {
+  vip_access: "VIP ile açılır",
+  role_access: "Rol Okuma ile açılır",
+  code_training_access: "Kod Eğitimi ile açılır",
+};
+
 export default function VipWall({
   title,
   message,
@@ -19,25 +31,23 @@ export default function VipWall({
   targetAfterPurchase,
 }: Props) {
   const meta = ENTITLEMENT_META[entitlement];
+  const pulseAnim = useRef(new Animated.Value(0.15)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.35, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.15, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, [pulseAnim]);
 
   const resolvedTitle = title || meta.label;
   const resolvedMessage =
     message ||
     `Bu alan "${meta.label}" erişimi gerektirir.\nAçmak için satın al.`;
-
-  const ctaLabel =
-    entitlement === "vip_access"
-      ? "VIP'e Geç"
-      : entitlement === "role_access"
-        ? "Rol Okuma Aç"
-        : "Kod Eğitimi Aç";
-
-  const badgeLabel =
-    entitlement === "vip_access"
-      ? "VIP ile açılır"
-      : entitlement === "role_access"
-        ? "Rol Okuma ile açılır"
-        : "Kod Eğitimi ile açılır";
+  const ctaLabel = CTA_LABELS[entitlement].tr;
+  const badgeLabel = BADGE_LABELS[entitlement];
 
   const goStore = () => {
     const params: Record<string, string> = { entitlement };
@@ -65,7 +75,7 @@ export default function VipWall({
 
   return (
     <View style={s.wall}>
-      <Text style={s.glyph}>{meta.glyph}</Text>
+      <Animated.Text style={[s.glyph, { opacity: pulseAnim }]}>{meta.glyph}</Animated.Text>
       <Text style={[s.title, { color: meta.color }]}>{resolvedTitle}</Text>
       <Text style={s.msg}>{resolvedMessage}</Text>
       <View style={[s.badgePill, { backgroundColor: `${meta.color}18`, borderColor: `${meta.color}30` }]}>
@@ -83,8 +93,8 @@ export default function VipWall({
 
 const s = StyleSheet.create({
   wall: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24 },
-  glyph: { color: "rgba(255,255,255,0.15)", fontSize: 48, marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: "900", marginBottom: 10, textAlign: "center" },
+  glyph: { color: "rgba(255,255,255,0.15)", fontSize: 52, marginBottom: 20 },
+  title: { fontSize: 22, fontWeight: "900", marginBottom: 10, textAlign: "center" },
   msg: {
     color: "rgba(255,255,255,0.5)",
     fontSize: 14,
@@ -97,18 +107,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderWidth: 1,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   badgeText: { fontSize: 12, fontWeight: "800" },
   btn: {
-    borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 48,
+    borderRadius: 22,
+    paddingVertical: 18,
+    paddingHorizontal: 52,
     marginBottom: 12,
   },
-  btnText: { color: "#0a0b10", fontSize: 15, fontWeight: "900" },
+  btnText: { color: "#0a0b10", fontSize: 16, fontWeight: "900" },
   secondBtn: { paddingVertical: 10 },
-  secondText: { color: "rgba(255,255,255,0.4)", fontSize: 14, fontWeight: "700" },
+  secondText: { color: "rgba(255,255,255,0.30)", fontSize: 14, fontWeight: "700" },
 
   compactCard: {
     flexDirection: "row",

@@ -17,7 +17,8 @@ import { router } from "expo-router";
 
 import { useAuth } from "../../context/AuthContext";
 import { API, apiGetJson, apiPostJson, apiDeleteJson } from "../../lib/apiClient";
-import { openManageSubscriptions, hasVipEntitlement } from "../../lib/revenuecat";
+import { openManageSubscriptions, restoreSanriPurchases } from "../../lib/revenuecat";
+import { useEntitlementStore } from "../../lib/entitlementStore";
 import { getProgress, countCompleted, getPercentage, getActiveModuleId, getNextIncompleteLesson } from "../../lib/kodOkumaProgress";
 import { MODULES, ALL_LESSONS } from "../../lib/kodOkumaData";
 import { storageGet, storageSet } from "../../lib/storage";
@@ -329,7 +330,7 @@ export default function MyAreaScreen() {
   const [error, setError] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
   const [progress, setProgress] = useState<ProgressMap>({});
-  const [isPremium, setIsPremium] = useState(false);
+  const isPremium = useEntitlementStore((s) => s.status.vip_access);
 
   // Günlük Frekans
   const [dailyEmotion, setDailyEmotion] = useState<string | null>(null);
@@ -359,20 +360,18 @@ export default function MyAreaScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const [profileRes, memoryRes, prog, s, nb, vip] = await Promise.all([
+      const [profileRes, memoryRes, prog, s, nb] = await Promise.all([
         apiGetJson(`${API.base}/bilinc-alani/profile`, 20000).catch(() => null),
         apiGetJson(`${API.base}/bilinc-alani/memory`, 20000).catch(() => []),
         getProgress(),
         bumpStreak(),
         loadNotebook(),
-        hasVipEntitlement().catch(() => false),
       ]);
       setProfile(profileRes?.data || null);
       setMemories(Array.isArray(memoryRes) ? memoryRes : []);
       setProgress(prog);
       setStreak(s);
       setNotebook(nb);
-      setIsPremium(!!vip);
     } catch {
       setError(t.error);
     } finally {
@@ -714,6 +713,17 @@ export default function MyAreaScreen() {
           <Text style={s.accountTitle}>{t.account}</Text>
           <Pressable style={s.accBtn} onPress={() => openManageSubscriptions().catch(() => {})}>
             <Text style={s.accBtnText}>{t.manageSubs}</Text>
+          </Pressable>
+          <Pressable style={s.accBtn} onPress={async () => {
+            const restored = await restoreSanriPurchases();
+            if (restored) {
+              await useEntitlementStore.getState().refresh();
+              Alert.alert("OK", lang === "tr" ? "Satın alımlar geri yüklendi." : "Purchases restored.");
+            } else {
+              Alert.alert(lang === "tr" ? "Bilgi" : "Info", lang === "tr" ? "Aktif bir satın alım bulunamadı." : "No active purchase found.");
+            }
+          }}>
+            <Text style={s.accBtnText}>{lang === "tr" ? "Satın Alımı Geri Yükle" : "Restore Purchases"}</Text>
           </Pressable>
           <Pressable style={s.accBtn} onPress={() => Linking.openURL("https://asksanri.com/privacy")}>
             <Text style={s.accBtnText}>{t.privacy}</Text>

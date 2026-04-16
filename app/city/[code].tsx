@@ -16,9 +16,8 @@ import { logEvent } from "../../lib/LogEvent";
 import { useLangStore } from "@/data/langStore";
 import { CITY_NAMES, type CityCode } from "@/data/awakenedCities";
 import { getCityContent, type Layer } from "@/data/awakenedContent";
-import { hasVipEntitlement } from "../../lib/premium";
-
 import VipSheet from "../../components/VipSheet";
+import { useEntitlementStore } from "../../lib/entitlementStore";
 import { consumeVipJustActivated } from "@/lib/vipPulse";
 import { useAuth } from "../../context/AuthContext";
 import { trackEvent } from "../../lib/analytics";
@@ -31,7 +30,7 @@ export default function CityCodeScreen() {
   const router = useRouter();
   const appLang = useLangStore((s) => s.lang);
   const toggleLang = useLangStore((s) => s.toggle);
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
 
   const { code } = useLocalSearchParams<{ code?: string }>();
   const cityCode = String(code || "01").padStart(2, "0") as CityCode;
@@ -39,7 +38,8 @@ export default function CityCodeScreen() {
   useScreenTime(`city_${cityCode}`, user?.id);
 
   const [layer, setLayer] = useState<Layer>("base");
-  const [isVip, setIsVip] = useState(false);
+  const isVip = useEntitlementStore((s) => s.status.vip_access);
+  const refreshEntitlements = useEntitlementStore((s) => s.refresh);
   const [vipOpen, setVipOpen] = useState(false);
   const [vipRain, setVipRain] = useState(false);
   const [pendingDeepAsk, setPendingDeepAsk] = useState(false);
@@ -49,20 +49,9 @@ export default function CityCodeScreen() {
   const [doorOpen, setDoorOpen] = useState(false);
 
   const refreshVipStatus = useCallback(async () => {
-    if (isAdmin) {
-      if (__DEV__) console.log("ADMIN BYPASS ACTIVE — city VIP");
-      setIsVip(true);
-      return true;
-    }
-    try {
-      const ok = await hasVipEntitlement(user);
-      setIsVip(Boolean(ok));
-      return Boolean(ok);
-    } catch {
-      setIsVip(false);
-      return false;
-    }
-  }, [isAdmin, user]);
+    await refreshEntitlements();
+    return isVip;
+  }, [refreshEntitlements, isVip]);
 
   useEffect(() => {
     Animated.loop(
