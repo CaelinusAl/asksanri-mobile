@@ -112,6 +112,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Rolünü Aç",
     ctaEn: "Unlock Your Role",
     isSubscription: false,
+    legalTr: "Tek seferlik. Fiyat Google Play ödeme ekranında gösterilir.",
+    legalEn: "One-time. Price shown at Google Play checkout.",
   },
   {
     id: "code_training_access",
@@ -138,6 +140,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Eğitimi Aç",
     ctaEn: "Start Training",
     isSubscription: false,
+    legalTr: "Tek seferlik. Fiyat Google Play ödeme ekranında gösterilir.",
+    legalEn: "One-time. Price shown at Google Play checkout.",
   },
   {
     id: "general_reading_access",
@@ -168,6 +172,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Tüm Okumaları Aç",
     ctaEn: "Unlock All Readings",
     isSubscription: false,
+    legalTr: "Tek seferlik (genel kısa okumalar). Fiyat Google Play ödeme ekranında gösterilir.",
+    legalEn: "One-time (general short readings). Price shown at Google Play checkout.",
   },
   {
     id: "relationship_deep_access",
@@ -192,6 +198,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
+    legalTr: "Tek seferlik (derin ilişki). Fiyat Google Play ödeme ekranında gösterilir.",
+    legalEn: "One-time (deep relationship). Price shown at Google Play checkout.",
   },
   {
     id: "career_deep_access",
@@ -216,6 +224,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
+    legalTr: "Tek seferlik (derin kariyer). Fiyat Google Play ödeme ekranında gösterilir.",
+    legalEn: "One-time (deep career). Price shown at Google Play checkout.",
   },
   {
     id: "weekly_flow_access",
@@ -240,6 +250,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
+    legalTr: "Tek seferlik (derin haftalık akış). Fiyat Google Play ödeme ekranında gösterilir.",
+    legalEn: "One-time (deep weekly flow). Price shown at Google Play checkout.",
   },
   {
     id: "person_deep_access",
@@ -264,6 +276,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
+    legalTr: "Tek seferlik (derin kişi analizi). Fiyat Google Play ödeme ekranında gösterilir.",
+    legalEn: "One-time (deep person analysis). Price shown at Google Play checkout.",
   },
   {
     id: "money_deep_access",
@@ -288,6 +302,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
+    legalTr: "Tek seferlik (derin para akışı). Fiyat Google Play ödeme ekranında gösterilir.",
+    legalEn: "One-time (deep money flow). Price shown at Google Play checkout.",
   },
 ];
 

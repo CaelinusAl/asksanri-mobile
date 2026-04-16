@@ -138,7 +138,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
     ],
   },
   astro: {
-    entitlement: "relationship_deep_access",
+    entitlement: "weekly_flow_access",
     cta: "Kozmik Harita",
     color: "#818cf8",
     fields: [
@@ -147,7 +147,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
     ],
   },
   identity: {
-    entitlement: "relationship_deep_access",
+    entitlement: "career_deep_access",
     cta: "Benlik Yolculuğu",
     color: "#34d399",
     fields: [
@@ -157,7 +157,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
     ],
   },
   blindspot: {
-    entitlement: "relationship_deep_access",
+    entitlement: "person_deep_access",
     cta: "Kör Noktanı Aç",
     color: "#ef4444",
     fields: [
@@ -167,7 +167,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
     ],
   },
   cycle: {
-    entitlement: "relationship_deep_access",
+    entitlement: "money_deep_access",
     cta: "Döngüyü Kır",
     color: "#94a3b8",
     fields: [
@@ -350,7 +350,7 @@ function GeneralPaywall({ onBuy, name }: { onBuy: () => void; name: string }) {
           <Text style={st.paywallCtaGlyph}>◈</Text>
           <View style={st.paywallCtaBody}>
             <Text style={st.paywallCtaTitle}>Tüm Okumaları Aç</Text>
-            <Text style={st.paywallCtaSub}>Tüm okumalar açılır. Tek seferlik.</Text>
+            <Text style={st.paywallCtaSub}>Tüm kısa okumalar açılır. Fiyat Google Play ödeme ekranında.</Text>
           </View>
         </LinearGradient>
       </Pressable>

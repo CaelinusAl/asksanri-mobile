@@ -1,6 +1,7 @@
 import Purchases, {
   LOG_LEVEL,
   CustomerInfo,
+  PurchasesOffering,
   PurchasesPackage,
   PURCHASES_ERROR_CODE,
 } from "react-native-purchases";
@@ -88,6 +89,7 @@ export async function hasVipEntitlement(): Promise<boolean> {
 
 // ─── Offering → Package resolution per entitlement ───
 
+/** RevenueCat Dashboard offering identifiers — each must attach the matching Play product (e.g. 369 TRY one-time). */
 const OFFERING_MAP: Record<EntitlementId, string> = {
   vip_access: "default",
   role_access: "role",
@@ -99,6 +101,43 @@ const OFFERING_MAP: Record<EntitlementId, string> = {
   person_deep_access: "person_deep",
   money_deep_access: "money_deep",
 };
+
+const SUBSCRIPTION_ENTITLEMENTS: EntitlementId[] = ["vip_access"];
+
+/**
+ * VIP = monthly subscription package. All other entitlements are one-time IAP in Play —
+ * prefer lifetime/custom package, then any non-monthly package, then first available.
+ * (Wrong package type = purchase fails or wrong product in open testing.)
+ */
+function pickPackageFromOffering(
+  entitlement: EntitlementId,
+  offering: PurchasesOffering
+): PurchasesPackage | null {
+  if (SUBSCRIPTION_ENTITLEMENTS.includes(entitlement)) {
+    return (
+      offering.monthly ||
+      offering.availablePackages?.find((pkg) => pkg.identifier === "$rc_monthly") ||
+      offering.availablePackages?.[0] ||
+      null
+    );
+  }
+
+  const o = offering as PurchasesOffering & {
+    lifetime?: PurchasesPackage;
+    custom?: PurchasesPackage;
+  };
+  if (o.lifetime) return o.lifetime;
+  if (o.custom) return o.custom;
+
+  const pkgs = offering.availablePackages;
+  if (!pkgs?.length) return null;
+
+  const MONTHLY = Purchases.PACKAGE_TYPE.MONTHLY;
+  const nonMonthly = pkgs.find((p) => p.packageType !== MONTHLY);
+  if (nonMonthly) return nonMonthly;
+
+  return pkgs[0];
+}
 
 export async function getPackageForEntitlement(
   entitlement: EntitlementId
@@ -119,12 +158,11 @@ export async function getPackageForEntitlement(
       return null;
     }
 
-    return (
-      offering.monthly ||
-      offering.availablePackages?.find((pkg) => pkg.identifier === "$rc_monthly") ||
-      offering.availablePackages?.[0] ||
-      null
-    );
+    const pkg = pickPackageFromOffering(entitlement, offering);
+    if (__DEV__ && pkg) {
+      console.log(`[RC] Package for ${entitlement}: ${pkg.identifier} (${pkg.packageType})`);
+    }
+    return pkg;
   } catch (error: any) {
     lastInitError = error?.message || "Offerings alınamadı";
     if (__DEV__) console.log("RC OFFERINGS ERROR =", error);
