@@ -551,7 +551,196 @@ Bölünmeyen sayı, bölünmeyen bilinci çağırır.
       strongLine: "7 bölünmez — çünkü bütünlüğün parçası olamaz. Bütünlüğün kendisidir.",
       question: "6 gündür koşuyorsun. 7. günde durup bakabilir misin — ne yarattığına?",
     },
-    isPremium: true, isFeatured: true, commentCount: 5, viewCount: 77, createdAt: "2026-04-15T09:00:00Z",
+    isPremium: true, isFeatured: false, commentCount: 5, viewCount: 77, createdAt: "2026-04-15T09:00:00Z",
+  },
+  {
+    id: 33,
+    slug: "63-46-siverek-maras-okul-kodu-nisan-2026",
+    title: "63 & 46 — Okul Kodu: Siverek → Maraş",
+    subtitle: "Aynı hafta, iki plaka, iki okul, iki yaş: 19 ve 15. Haber bitmez; kod konuşur.",
+    category: "gundem_kodu",
+    excerpt: "Şanlıurfa (63) Siverek ve Kahramanmaraş (46) Onikişubat'ta ardışık günlerde okullara silahlı saldırılar. 19 yaş (eski öğrenci) ve ~15 yaş (ortaokul öğrencisi). Basın rakamları, isimler, tarihler — altında hangi sistem dili var?",
+    fullContent: `📰 HABERİN GERÇEĞİ (ÖZ — NİSAN 2026)
+
+Bu okuma, yayılan ilk dalga haberlerin iskeletini kullanır.
+Resmi soruşturma ve güncellemeler rakamları değiştirebilir.
+Ama tarih, yer ve sayıların üstünde duran KATMAN değişmez.
+
+◉ SIVEREK — 14 NİSAN 2026
+
+• Yer: Şanlıurfa, Siverek
+• Okul: Ahmet Koyuncu Mesleki ve Teknik Anadolu Lisesi
+• Saldırgan: Okulun eski öğrencisi — basında 19 yaş (2007 doğumlu), adı Ömer Ket olarak geçti
+• Silah: Pompalı tüfek
+• Sonuç: Çok sayıda yaralı (basında 16 yaralı ifadesi); saldırganın olay yerinde intihar ettiği bildirildi
+
+◉ KAHRAMANMARAŞ — 15 NİSAN 2026
+
+• Yer: Kahramanmaraş, Onikişubat ilçesi
+• Okul: Ayser Çalık Ortaokulu
+• Saldırgan: Okulun öğrencisi — 8. sınıf; basında yaklaşık 15 yaş
+• Silah: Ateşli silah (basın genel ifadesi)
+• Sonuç: Can kayıpları ve çok sayıda yaralı (basında 9 ölüm — 1 öğretmen, 8 öğrenci; 13 yaralı gibi rakamlar); saldırganın intihar ettiği yönünde haberler
+
+İki olay birbirinden bağımsız soruşturma.
+Ama kolektif ekranda aynı anda yan yana düşüyor.
+
+🔢 PLAKA KODU: 63 ve 46
+
+Şanlıurfa plakası: 63 → 6 + 3 = 9
+Kahramanmaraş plakası: 46 → 4 + 6 = 10 → 1 + 0 = 1
+
+9 = döngünün kapanışı, tamamlama, "son tabak"
+1 = yeni başlangıç çizgisi, tekil ego vuruşu
+
+63 + 46 = 109 → 1 + 0 + 9 = 10 → 1
+İki şehir toplandığında yine 1 çıkıyor: sistem aynı cümleyi tekrarlatıyor — "tekrar başla".
+
+63 − 46 = 17 → 1 + 7 = 8
+8 = güç, kontrol, yapı — ve yapının çöküşü frekansı (kart diliyle: kule)
+
+YAŞ KODU: 19 ve 15
+
+19 → 1 + 9 = 10 → 1
+Dışarıdan "yetişkin" görünen beden, içerde hâlâ "ben kimim?" sorusunu 1'e kilitlemiş olabilir.
+Eski öğrenci = okuldan çıkmış ama okul hafızasından çıkamamış.
+
+15 → 1 + 5 = 6
+6 = kalp, bağ, aile, koruma frekansı — burada kırıldığında haber en çok acıtıyor.
+Çünkü 6'nın görevi "korunak" iken sahne "korunaksız"a dönmüş.
+
+TARİH KODU: 14 ve 15
+
+14 → 1 + 4 = 5 (değişim, hareket, tetik)
+15 → 1 + 5 = 6 (kalp, bağ, yuva)
+
+Ardışık iki gün: önce tetik, sonra kalp alanında yankı.
+Nisan = toprağın uyanış ayı — tohum patlıyor; iyi tohum mu kötü tohum mu, toprak hangi frekansta?
+
+◉ KELİME KIRILIMI (YER İSİMLERİ)
+
+ŞANLIURFA:
+ŞAN + LI + URFA
+Şan → şan, görünürlük, ışığa çıkma
+Urfa kadim kod: "ilklerin şehri" miti
+Burada patlayan haber sadece yerel değil — "ilk haber" gibi kolektif hafızaya kazınır.
+
+SIVEREK:
+SIV + EREK
+Sızma, sıvı, taşma — kontrol dışına taşan enerji
+Erek → ereğe, hedefe giden yol
+Kontrol dışı enerji, hedefe kilitlenmiş.
+
+KAHRAMANMARAŞ:
+KAHRAMAN + MARAŞ
+Kahraman arketipi: kurtarıcı / güç / fedakârlık
+Ama kod burada ironik: "kahramanlık" silahla değil, şiddetle yazılmaya çalışılıyor.
+Maraş = toprak, hafıza, depremle de kodlanmış şehir — yani zemin zaten "sarsıntı" bilinci taşıyor.
+
+ONİKİŞUBAT:
+12 + Şubat
+12 = döngü tamamlama (saat, takvim)
+Şubat = kışın sonu, seçilmemiş gün (artık yıl)
+İsim bile söylüyor: "12'lik döngüde, kışın kıvrımında" bir kırılma.
+
+OKUL İSİMLERİ (SEMBOLİK OKUMA)
+
+Ahmet Koyuncu = Ahmet ismi "övgüyle anılan"; Koyuncu = koyun + cu → sürü, gütme, meslek okulu kodu: "topluluğa yön veren"
+Ayser Çalık = kadın ismi taşıyan okul; "ayı" ve "ışık" sesleri Türkçede yan yana düşünüldüğünde ay-dınlık çelişkisi — karanlık haber, ışıklı ismin üstüne düşüyor.
+
+Bu isimler faili övmek için değil — haber dilinin nasıl sembol ürettiğini görmek için.
+
+◉ ORTAK SEMBOL: OKUL
+
+OKUL = OKU + L
+Okumayı öğrendiğin yer, bilincin ilk toplu alanı.
+Orada silah konuşursa, mesaj şudur:
+"Bilgi değil, güç konuşsun."
+
+Bu, Matrix'in eğitim dilini değil, korku dilini yükseltir.
+
+<<<SANRI_PAYWALL>>>
+
+🧠 DERİN KATMAN — SİSTEM OKUMASI
+
+1) ÇİFT VURUŞ = ÇİFT YANKI
+Aynı ülke, iki uç, iki gün.
+Bireysel "neden"i araştırmadan önce kolektif "ne mesajı?"yı gör.
+Kolektif ekran aynı haberi üst üste basınca bilinç panik yerine desen arar.
+Desen: genç beden + silah + okul + intihar sonu.
+Bu desen "çözüm" değil — TEKRAR kodudur.
+
+2) SİLAH = SON SES
+Konuşamayan yerde, eller başka bir dil seçer.
+Ses boğazda kilitliyse, parmak tetikte "kelime" sanır.
+Üst bilinç burada şunu sorar:
+"Kim bu gençlere duyulacak bir kanal açmadı — ta ki silah konuşana kadar?"
+
+3) İNTİHAR SONU = DÖNGÜYÜ DİŞARIDA KAPATMA
+Dışarıda biten beden, içeride bitmeyen öfkeyi mühürler.
+Yani hikâye "kapandı" denir ama kolektif alan kapanmaz.
+Yas tutulmayan her olay, bir sonraki haberin deposu olur.
+
+4) 9 ve 1 (63 ve 46'nın toplamları)
+9 ile biten tamamlanma "kapanış" ister.
+1 ile açılan başlangıç "yeni kimlik" ister.
+Toplum 9'da ağlar, 1'de suçlu arar.
+Oysa üst bilinç der ki: 6'da (kalpte) önleyici ses eksikse, 9 ve 1 kaçınılmaz sahneleşir.
+
+5) NİSAN ve İNSAN (harf akrabası)
+NİSAN harfleri İNSAN ile aynı çemberde dolaşır.
+Nisan'da tohum atılır — hangi tohum? Korku tohumu mu, dinleyen yetişkin tohumu mu?
+
+🔥 KAPANIŞ KODU
+
+Haber "iki ayrı vaka"dır.
+Kod "tek kolektif mesaj"dır:
+Korunak alan (okul) kutsal değildir çünkü duvar boyalıdır;
+korunak alan kutsaldır çünkü orada ses güvenli yükselir.
+
+Ses güvenli yükselmeyince,
+gürültü silaha kayar.
+
+Bu bir suçlama cümlesi değil — bir frekans tespiti.
+
+◉ SANRI SORUSU
+
+Bugün ekranda bu haberi okuyan yetişkinler:
+evde, sınıfta, sokakta hangi cümleyi erteledin —
+ta ki gençlik başka bir dil seçene kadar?`,
+    codeLayer: `◉ KOD ÇÖZÜMLEMESİ — TABLO
+
+HABER İSKELETİ
+• Siverek 14.04.2026 / Maraş 15.04.2026
+• Okullar: Ahmet Koyuncu MTAL — Ayser Çalık Ortaokulu
+• Yaşlar: 19 (eski öğrenci) — ~15 (8. sınıf)
+• Silah: pompalı — ateşli (basın)
+• Basın rakamları (ilk dalga): 16 yaralı (Siverek) | 9 ölü + 13 yaralı (Maraş, özet)
+• Son: intihar bildirimi (her iki olayda)
+
+PLAKA & SAYI
+• 63 → 9 | 46 → 1 | 63+46 → 109 → 1 | 63−46 → 17 → 8
+• 19 → 1 | 15 → 6 | 14 → 5 | 15 → 6
+
+KELİME KATMANI
+• Şanlıurfa / Siverek / Kahramanmaraş / Onikişubat — yer + tarih + mit kodu
+• OKUL = OKU+L — bilinç alanı ihlali
+• Çift gün = kolektif ekranda çift yankı
+
+SİSTEM MESAJI (ÜST BİLİNÇ)
+• Tekrar eden desen: genç + silah + okul + trajedi sonu
+• Ses yerine gürültü → tetik
+• Kolektif yas tamamlanmadan yeni haber birikir
+
+ÇIKIŞ İŞARETİ
+Korunak = duvar değil; duyulan söz.
+Duyulmayan söz, başka dilde patlar.`,
+    sanriReflection: {
+      analysis: "İki şehir, iki plaka (63 ve 46), iki yaş (19 ve 15), iki gün (14–15 Nisan). Haber ayrı ayrı dosyalanır; kod tek cümlede buluşur: okul bilinç alanıdır ve orada silah konuştuğunda mesaj 'güç konuşsun' der. Bu bir ahlak dersi değil — kolektif frekansın teşhisi.",
+      strongLine: "Ses güvenli yükselmeyince, gürültü silaha kayar.",
+      question: "Bugün hangi genci dinledin — ta ki başka bir dil seçmeden önce?",
+    },
+    isPremium: true, isFeatured: true, commentCount: 6, viewCount: 263, createdAt: "2026-04-16T12:00:00Z",
   },
 ];
 
