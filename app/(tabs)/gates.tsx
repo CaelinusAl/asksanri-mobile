@@ -21,6 +21,7 @@ import {
 } from "../../lib/premium";
 import { useEntitlementStore } from "../../lib/entitlementStore";
 import { useAuth } from "../../context/AuthContext";
+import Constants from "expo-constants";
 
 const DOOR_BG = require("../../assets/door_holo.jpg");
 
@@ -211,6 +212,9 @@ export default function GatesScreen() {
               {lang === "tr"
                 ? "Sanri, kişisel gelişim ve öz-yansıma için tasarlanmış bir yapay zeka aracıdır. Profesyonel sağlık, psikoloji veya finansal danışmanlık yerine geçmez."
                 : "Sanri is an AI tool designed for personal development and self-reflection. It is not a substitute for professional health, psychology or financial advice."}
+            </Text>
+            <Text style={styles.buildFingerprint}>
+              {`AskSanri v${Constants.expoConfig?.version ?? "?"}${Constants.nativeBuildVersion ? ` · ${Constants.nativeBuildVersion}` : ""}`}
             </Text>
           </Animated.View>
         </ScrollView>
@@ -503,11 +507,18 @@ const styles = StyleSheet.create({
 
   disclaimer: {
     marginTop: 28,
-    marginBottom: 30,
+    marginBottom: 8,
     color: "rgba(255,255,255,0.25)",
     fontSize: 11,
     lineHeight: 17,
     textAlign: "center",
     paddingHorizontal: 10,
+  },
+  buildFingerprint: {
+    marginBottom: 28,
+    color: "rgba(255,255,255,0.18)",
+    fontSize: 10,
+    textAlign: "center",
+    letterSpacing: 0.5,
   },
 });
