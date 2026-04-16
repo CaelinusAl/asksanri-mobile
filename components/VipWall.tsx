@@ -11,16 +11,28 @@ type Props = {
   targetAfterPurchase?: string;
 };
 
-const CTA_LABELS: Record<EntitlementId, { tr: string; en: string }> = {
+const CTA_LABELS: Record<string, { tr: string; en: string }> = {
   vip_access: { tr: "VIP'e Geç", en: "Go VIP" },
   role_access: { tr: "Rolünü Aç", en: "Unlock Your Role" },
   code_training_access: { tr: "Eğitimi Aç", en: "Start Training" },
+  general_reading_access: { tr: "Tüm Okumaları Aç", en: "Unlock All Readings" },
+  relationship_deep_access: { tr: "Derine İn", en: "Go Deeper" },
+  career_deep_access: { tr: "Derine İn", en: "Go Deeper" },
+  weekly_flow_access: { tr: "Derine İn", en: "Go Deeper" },
+  person_deep_access: { tr: "Derine İn", en: "Go Deeper" },
+  money_deep_access: { tr: "Derine İn", en: "Go Deeper" },
 };
 
-const BADGE_LABELS: Record<EntitlementId, string> = {
+const BADGE_LABELS: Record<string, string> = {
   vip_access: "VIP ile açılır",
   role_access: "Rol Okuma ile açılır",
   code_training_access: "Kod Eğitimi ile açılır",
+  general_reading_access: "Genel Okuma ile açılır",
+  relationship_deep_access: "Derin İlişki ile açılır",
+  career_deep_access: "Derin Kariyer ile açılır",
+  weekly_flow_access: "Derin Haftalık ile açılır",
+  person_deep_access: "Derin Kişi ile açılır",
+  money_deep_access: "Derin Para ile açılır",
 };
 
 export default function VipWall({
@@ -46,8 +58,8 @@ export default function VipWall({
   const resolvedMessage =
     message ||
     `Bu alan "${meta.label}" erişimi gerektirir.\nAçmak için satın al.`;
-  const ctaLabel = CTA_LABELS[entitlement].tr;
-  const badgeLabel = BADGE_LABELS[entitlement];
+  const ctaLabel = (CTA_LABELS[entitlement] || CTA_LABELS.vip_access).tr;
+  const badgeLabel = BADGE_LABELS[entitlement] || "Satın alımla açılır";
 
   const goStore = () => {
     const params: Record<string, string> = { entitlement };

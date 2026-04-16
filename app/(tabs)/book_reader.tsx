@@ -256,7 +256,7 @@ export default function BookReaderScreen() {
               Bu sayfa ve sonrası VIP erişim gerektirir.{"\n"}
               ₺{meta.price} ile tüm kitabı açabilirsin.
             </Text>
-            <Pressable style={[s.mainBtn, { backgroundColor: meta.color }]} onPress={() => router.push("/(tabs)/vip" as any)}>
+            <Pressable style={[s.mainBtn, { backgroundColor: meta.color }]} onPress={() => router.push({ pathname: "/(tabs)/vip", params: { entitlement: "vip_access" } } as any)}>
               <Text style={s.mainBtnText}>VIP'e Geç</Text>
             </Pressable>
           </View>

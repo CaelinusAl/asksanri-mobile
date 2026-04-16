@@ -79,7 +79,7 @@ type DeepConfig = {
 const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   relationship: {
     entitlement: "relationship_deep_access",
-    cta: "İlişki Yolculuğu – 369₺",
+    cta: "İlişki Yolculuğu",
     color: GLOW_PINK,
     fields: [
       { key: "status", label: "Mevcut ilişki durumun", placeholder: "Bekar / İlişkide / Karmaşık..." },
@@ -89,7 +89,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   career: {
     entitlement: "career_deep_access",
-    cta: "Kariyer Yolculuğu – 369₺",
+    cta: "Kariyer Yolculuğu",
     color: GLOW_CYAN,
     fields: [
       { key: "work_status", label: "Çalışma durumun", placeholder: "Çalışıyor / Arıyor / Geçiş döneminde..." },
@@ -100,7 +100,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   weekly: {
     entitlement: "weekly_flow_access",
-    cta: "Haftalık Akış – 369₺",
+    cta: "Haftalık Akış",
     color: "#a78bfa",
     fields: [
       { key: "focus", label: "Bu haftaki odağın", placeholder: "Bir karar / Bir kişi / İş / Değişim..." },
@@ -109,7 +109,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   person: {
     entitlement: "person_deep_access",
-    cta: "Kişi Analizi – 369₺",
+    cta: "Kişi Analizi",
     color: "#fb923c",
     fields: [
       { key: "person_name", label: "Kişinin adı", placeholder: "Ad Soyad" },
@@ -119,7 +119,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   money: {
     entitlement: "money_deep_access",
-    cta: "Para Yolculuğu – 369₺",
+    cta: "Para Yolculuğu",
     color: GLOW_AMBER,
     fields: [
       { key: "income_status", label: "Gelir durumun", placeholder: "Düzenli / Düzensiz / Yok..." },
@@ -129,7 +129,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   emotion: {
     entitlement: "relationship_deep_access",
-    cta: "Duygusal Derinlik – 369₺",
+    cta: "Duygusal Derinlik",
     color: "#e879f9",
     fields: [
       { key: "dominant_emotion", label: "Şu an en baskın duygun", placeholder: "Öfke / Hüzün / Kaygı / Boşluk / Suçluluk..." },
@@ -139,7 +139,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   astro: {
     entitlement: "relationship_deep_access",
-    cta: "Kozmik Harita – 369₺",
+    cta: "Kozmik Harita",
     color: "#818cf8",
     fields: [
       { key: "curiosity", label: "En çok merak ettiğin alan", placeholder: "Aşk / Kariyer / Aile / Sağlık / Ruhsal gelişim..." },
@@ -148,7 +148,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   identity: {
     entitlement: "relationship_deep_access",
-    cta: "Benlik Yolculuğu – 369₺",
+    cta: "Benlik Yolculuğu",
     color: "#34d399",
     fields: [
       { key: "self_description", label: "Kendini nasıl tanımlarsın?", placeholder: "Güçlü ama yorgun / Kayıp / Arayan / Saklanan..." },
@@ -158,7 +158,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   blindspot: {
     entitlement: "relationship_deep_access",
-    cta: "Kör Noktanı Aç – 369₺",
+    cta: "Kör Noktanı Aç",
     color: "#ef4444",
     fields: [
       { key: "feedback", label: "En çok duyduğun eleştiri", placeholder: "Çok hassassın / Mesafelisin / Bencilsin..." },
@@ -168,7 +168,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   cycle: {
     entitlement: "relationship_deep_access",
-    cta: "Döngüyü Kır – 369₺",
+    cta: "Döngüyü Kır",
     color: "#94a3b8",
     fields: [
       { key: "repeating", label: "Hayatında tekrar eden olay", placeholder: "Terk edilme / Başarısızlık / Aynı ilişki kalıbı..." },
@@ -178,7 +178,7 @@ const DEEP_CONFIG: Record<DeepId, DeepConfig> = {
   },
   breakpoint: {
     entitlement: "relationship_deep_access",
-    cta: "Kırılma Noktanı Gör – 369₺",
+    cta: "Kırılma Noktanı Gör",
     color: "#fcd34d",
     fields: [
       { key: "turning_point", label: "Hayatında bir şeyin değiştiğini hissettiğin an", placeholder: "Bir kayıp / Bir karar / Bir farkındalık..." },
@@ -349,7 +349,7 @@ function GeneralPaywall({ onBuy, name }: { onBuy: () => void; name: string }) {
         >
           <Text style={st.paywallCtaGlyph}>◈</Text>
           <View style={st.paywallCtaBody}>
-            <Text style={st.paywallCtaTitle}>Kapıyı Aç – 369₺</Text>
+            <Text style={st.paywallCtaTitle}>Tüm Okumaları Aç</Text>
             <Text style={st.paywallCtaSub}>Tüm okumalar açılır. Tek seferlik.</Text>
           </View>
         </LinearGradient>
@@ -409,7 +409,7 @@ function ShortSectionCard({
             <Text style={[st.deepCtaIcon, { color: deepConfig.color }]}>◈</Text>
             <View style={st.deepCtaBody}>
               <Text style={[st.deepCtaTitle, { color: deepConfig.color }]}>Derine İn</Text>
-              <Text style={st.deepCtaPrice}>369₺ · tek seferlik</Text>
+              <Text style={st.deepCtaPrice}>Tek seferlik · kişiye özel</Text>
             </View>
             <Text style={[st.deepCtaArrow, { color: deepConfig.color }]}>›</Text>
           </Pressable>
@@ -457,7 +457,7 @@ function DeepOnlyCard({
       </View>
       <View style={[st.deepOnlyCta, { backgroundColor: hasDeep ? config.color + "12" : config.color + "15" }]}>
         <Text style={[st.deepOnlyCtaText, { color: config.color }]}>
-          {hasDeep ? "Derin Okumayı Aç" : "Derine İn · 369₺"}
+          {hasDeep ? "Derin Okumayı Aç" : "Derine İn"}
         </Text>
         <Text style={[st.deepCtaArrow, { color: config.color }]}>›</Text>
       </View>
@@ -732,7 +732,17 @@ export default function DeepReadingScreen() {
   // ── Handlers ──
 
   const buyGeneral = () => router.push({ pathname: "/(tabs)/vip", params: { entitlement: "general_reading_access", target: "/(tabs)/deep_reading" } } as any);
-  const openDeepForm = (d: DeepId) => { setActiveDeepId(d); setFlow("deep_form"); };
+  const openDeepForm = (d: DeepId) => {
+    const cfg = DEEP_CONFIG[d];
+    if (!cfg) return;
+    const hasDeep = Boolean(ent[cfg.entitlement]);
+    if (!hasDeep) {
+      router.push({ pathname: "/(tabs)/vip", params: { entitlement: cfg.entitlement, target: "/(tabs)/deep_reading" } } as any);
+      return;
+    }
+    setActiveDeepId(d);
+    setFlow("deep_form");
+  };
   const onDeepFormSubmit = (d: DeepId, data: Record<string, string>) => { setActiveDeepId(d); fetchDeepReading(d, data); };
   const onDeepFormCancel = () => { setFlow("result"); setActiveDeepId(null); };
   const onDeepResultBack = () => { setFlow("result"); setActiveDeepId(null); setDeepSections([]); };
