@@ -4,6 +4,7 @@ const ADMIN_EMAILS = [
   "selin@asksanri.com",
   "admin@asksanri.com",
   "selin@caelinusai.com",
+  "caelinusai.asksanri@gmail.com",
 ];
 
 export function isAdmin(user: UserLike): boolean {
