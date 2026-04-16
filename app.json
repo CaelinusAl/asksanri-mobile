@@ -3,7 +3,7 @@
     "name": "AskSanri",
     "slug": "asksanri",
     "scheme": "asksanri",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "dark",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.caelinusai.asksanri",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "supportsTablet": true,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "AskSanri uses the microphone only when the user starts a voice ritual or chooses voice input. The audio is used to capture the user's spoken intention, convert speech into text, and generate a ritual or AI response inside the app.",
@@ -57,6 +57,7 @@
     },
     "android": {
       "package": "com.caelinusai.asksanri",
+      "versionCode": 60,
       "permissions": [
         "RECORD_AUDIO"
       ],
