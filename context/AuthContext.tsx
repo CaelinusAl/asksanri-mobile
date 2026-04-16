@@ -156,8 +156,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const adminFlag = checkAdmin(user);
 
-  if (adminFlag) {
-    console.log("ADMIN VIP ACTIVE");
+  if (__DEV__ && adminFlag) {
+    console.log("[AUTH] Admin detected:", user?.email, "role:", user?.role);
   }
 
   const value = useMemo<AuthContextValue>(

@@ -20,6 +20,7 @@ import {
   type EntitlementId,
 } from "../../lib/premium";
 import { useEntitlementStore } from "../../lib/entitlementStore";
+import { useAuth } from "../../context/AuthContext";
 
 const DOOR_BG = require("../../assets/door_holo.jpg");
 
@@ -85,6 +86,7 @@ const COPY: Record<
 
 export default function GatesScreen() {
   const [lang, setLang] = useState<Lang>("tr");
+  const { isAdmin } = useAuth();
   const entitlements = useEntitlementStore((s) => s.status);
   const refreshEntitlements = useEntitlementStore((s) => s.refresh);
   const t = useMemo(() => COPY[lang], [lang]);
@@ -181,6 +183,29 @@ export default function GatesScreen() {
                 />
               );
             })}
+
+            {isAdmin && (
+              <Pressable
+                onPress={() => router.push("/(tabs)/admin" as any)}
+                style={styles.adminCard}
+              >
+                <View style={styles.adminAccent} />
+                <View style={styles.adminGlass}>
+                  <View style={styles.adminIconWrap}>
+                    <Text style={styles.adminIcon}>⚙</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.adminTitle}>ADMIN PANEL</Text>
+                    <Text style={styles.adminSub}>
+                      {lang === "tr" ? "Analytics, kullanıcılar, sistem durumu" : "Analytics, users, system status"}
+                    </Text>
+                  </View>
+                  <View style={styles.chevWrap}>
+                    <Text style={styles.chev}>›</Text>
+                  </View>
+                </View>
+              </Pressable>
+            )}
 
             <Text style={styles.disclaimer}>
               {lang === "tr"
@@ -418,6 +443,63 @@ const styles = StyleSheet.create({
   },
 
   chev: { color: "rgba(255,255,255,0.75)", fontSize: 22, fontWeight: "900" },
+
+  adminCard: {
+    borderRadius: 22,
+    overflow: "hidden",
+    marginTop: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,59,59,0.20)",
+    backgroundColor: "rgba(255,59,59,0.06)",
+  },
+
+  adminAccent: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: "rgba(255,59,59,0.50)",
+    borderTopLeftRadius: 22,
+    borderBottomLeftRadius: 22,
+  },
+
+  adminGlass: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+
+  adminIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,59,59,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,59,59,0.25)",
+  },
+
+  adminIcon: {
+    color: "#ff6b6b",
+    fontSize: 20,
+  },
+
+  adminTitle: {
+    color: "#ff6b6b",
+    fontSize: 16,
+    fontWeight: "900",
+    letterSpacing: 2,
+  },
+
+  adminSub: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 12,
+    marginTop: 2,
+  },
 
   disclaimer: {
     marginTop: 28,
