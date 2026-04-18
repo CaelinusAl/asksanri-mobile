@@ -9,15 +9,16 @@ import {
   StatusBar,
   Animated,
   Easing,
-  Dimensions,
+  ScrollView,
+  useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 
 const RABBIT = require("../assets/rabbit.jpg");
 const MATRIX_BG = require("../assets/matrix_rain.jpg");
-const { width: W, height: H } = Dimensions.get("window");
 
 type Lang = "tr" | "en";
 
@@ -72,9 +73,9 @@ function getDisplayName(user: any) {
 }
 
 /* ── Animated Matrix Rain Columns ── */
-function MatrixRainOverlay() {
+function MatrixRainOverlay({ width: W, height: H }: { width: number; height: number }) {
   const cols = useMemo(() => {
-    const count = Math.floor(W / 22);
+    const count = Math.max(6, Math.floor(W / 22));
     return Array.from({ length: count }, (_, i) => ({
       id: i,
       left: i * 22 + Math.random() * 6,
@@ -84,18 +85,30 @@ function MatrixRainOverlay() {
         String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96))
       ).join("\n"),
     }));
-  }, []);
+  }, [W, H]);
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {cols.map((col) => (
-        <RainColumn key={col.id} {...col} />
+        <RainColumn key={col.id} {...col} screenH={H} />
       ))}
     </View>
   );
 }
 
-function RainColumn({ left, delay, duration, chars }: { left: number; delay: number; duration: number; chars: string }) {
+function RainColumn({
+  left,
+  delay,
+  duration,
+  chars,
+  screenH,
+}: {
+  left: number;
+  delay: number;
+  duration: number;
+  chars: string;
+  screenH: number;
+}) {
   const translateY = useRef(new Animated.Value(-200)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -105,7 +118,7 @@ function RainColumn({ left, delay, duration, chars }: { left: number; delay: num
         Animated.parallel([
           Animated.sequence([
             Animated.timing(opacity, { toValue: 0.25, duration: 600, useNativeDriver: true }),
-            Animated.timing(translateY, { toValue: H + 100, duration, easing: Easing.linear, useNativeDriver: true }),
+            Animated.timing(translateY, { toValue: screenH + 100, duration, easing: Easing.linear, useNativeDriver: true }),
             Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }),
             Animated.timing(translateY, { toValue: -200, duration: 0, useNativeDriver: true }),
           ]),
@@ -113,7 +126,7 @@ function RainColumn({ left, delay, duration, chars }: { left: number; delay: num
       ).start();
     }, delay);
     return () => clearTimeout(timeout);
-  }, [delay, duration, opacity, translateY]);
+  }, [delay, duration, opacity, translateY, screenH]);
 
   return (
     <Animated.Text
@@ -134,9 +147,32 @@ function RainColumn({ left, delay, duration, chars }: { left: number; delay: num
   );
 }
 
+const MAX_FONT_MULT = 1.28 as const;
+
 export default function RabbitScreen() {
+  const { width: W, height: H } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [lang, setLang] = useState<Lang>("tr");
+
+  const compact = H < 740;
+
+  const dyn = useMemo(
+    () => ({
+      title: compact ? 28 : 38,
+      titleLH: compact ? 34 : 48,
+      subtitle: compact ? 11 : 14,
+      quote: compact ? 17 : 21,
+      welcome: compact ? 18 : 22,
+      desc: compact ? 14 : 16,
+      descLH: compact ? 22 : 26,
+      follow: compact ? 13 : 16,
+      rabbitSize: compact ? 86 : 100,
+      rabbitCardPadV: compact ? 16 : 24,
+      rabbitMb: compact ? 18 : 30,
+    }),
+    [compact]
+  );
 
   const t = useMemo(() => COPY[lang], [lang]);
   const displayName = useMemo(() => getDisplayName(user), [user]);
@@ -188,7 +224,7 @@ export default function RabbitScreen() {
       </ImageBackground>
 
       {/* Animated rain columns */}
-      <MatrixRainOverlay />
+      <MatrixRainOverlay width={W} height={H} />
 
       {/* Dark gradient overlays for readability */}
       <LinearGradient
@@ -199,7 +235,7 @@ export default function RabbitScreen() {
       />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(10,11,16,0.72)" }]} pointerEvents="none" />
 
-      <View style={styles.topRight}>
+      <View style={[styles.topRight, { top: insets.top + 10 }]}>
         <Pressable
           onPress={() => setLang("tr")}
           style={[styles.langChip, lang === "tr" && styles.langChipActive]}
@@ -215,67 +251,125 @@ export default function RabbitScreen() {
         </Pressable>
       </View>
 
-      <Animated.View style={[styles.container, { opacity: fadeIn, transform: [{ translateY: slideUp }] }]}>
-        <View style={styles.rabbitCard}>
-          <View style={styles.rabbitGlow} />
-          <Image source={RABBIT} style={styles.rabbit} />
-          <Text style={styles.follow}>{t.follow}</Text>
-          <Text style={styles.system}>{t.system}</Text>
-        </View>
-
-        <Text style={styles.title}>{t.title}</Text>
-        <Text style={styles.subtitle}>{t.subtitle}</Text>
-
-        {isAuthenticated ? (
-          <>
-            <Text style={styles.welcomeText}>
-              {t.welcome} {displayName}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 8),
+            paddingBottom: insets.bottom + 16,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        bounces
+        keyboardShouldPersistTaps="handled"
+      >
+        <Animated.View
+          style={[styles.scrollInner, { opacity: fadeIn, transform: [{ translateY: slideUp }] }]}
+        >
+          <View
+            style={[
+              styles.rabbitCard,
+              { paddingVertical: dyn.rabbitCardPadV, marginBottom: dyn.rabbitMb },
+            ]}
+          >
+            <View style={styles.rabbitGlow} />
+            <Image
+              source={RABBIT}
+              style={[styles.rabbit, { width: dyn.rabbitSize, height: dyn.rabbitSize }]}
+            />
+            <Text style={[styles.follow, { fontSize: dyn.follow }]} maxFontSizeMultiplier={MAX_FONT_MULT}>
+              {t.follow}
             </Text>
-            <Text style={styles.desc}>{t.authedDesc}</Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.quote}>{t.guestQuote}</Text>
-            <Text style={styles.desc}>{t.guestDesc}</Text>
-          </>
-        )}
+            <Text style={styles.system} maxFontSizeMultiplier={MAX_FONT_MULT}>
+              {t.system}
+            </Text>
+          </View>
 
-        <Animated.View style={[styles.infoCard, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
-          <View style={styles.infoCardGlow} />
-          <Text style={styles.infoTitle}>
-            {isAuthenticated ? t.authedCardTitle : t.guestCardTitle}
+          <Text
+            style={[styles.title, { fontSize: dyn.title, lineHeight: dyn.titleLH }]}
+            maxFontSizeMultiplier={MAX_FONT_MULT}
+          >
+            {t.title}
           </Text>
-
-          <Text style={styles.infoText}>
-            {isAuthenticated ? t.authedCardText : t.guestCardText}
+          <Text
+            style={[styles.subtitle, { fontSize: dyn.subtitle }]}
+            maxFontSizeMultiplier={MAX_FONT_MULT}
+          >
+            {t.subtitle}
           </Text>
-
-          <Pressable onPress={onEnter} style={styles.enterBtn}>
-            <LinearGradient
-              colors={["rgba(145,110,255,0.25)", "rgba(124,247,216,0.12)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.enterGradient}
-            >
-              <Text style={styles.enterTxt}>
-                {isAuthenticated ? t.authedButton : t.guestButton}
-              </Text>
-            </LinearGradient>
-          </Pressable>
 
           {isAuthenticated ? (
-            <Pressable
-              onPress={async () => {
-                await logout();
-                router.replace("/rabbit" as any);
-              }}
-              style={styles.logoutBtn}
-            >
-              <Text style={styles.logoutTxt}>{t.logout}</Text>
+            <>
+              <Text
+                style={[styles.welcomeText, { fontSize: dyn.welcome, lineHeight: dyn.welcome + 8 }]}
+                maxFontSizeMultiplier={MAX_FONT_MULT}
+              >
+                {t.welcome} {displayName}
+              </Text>
+              <Text
+                style={[styles.desc, { fontSize: dyn.desc, lineHeight: dyn.descLH }]}
+                maxFontSizeMultiplier={MAX_FONT_MULT}
+              >
+                {t.authedDesc}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text
+                style={[styles.quote, { fontSize: dyn.quote, lineHeight: dyn.quote + 10 }]}
+                maxFontSizeMultiplier={MAX_FONT_MULT}
+              >
+                {t.guestQuote}
+              </Text>
+              <Text
+                style={[styles.desc, { fontSize: dyn.desc, lineHeight: dyn.descLH }]}
+                maxFontSizeMultiplier={MAX_FONT_MULT}
+              >
+                {t.guestDesc}
+              </Text>
+            </>
+          )}
+
+          <Animated.View style={[styles.infoCard, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
+            <View style={styles.infoCardGlow} />
+            <Text style={styles.infoTitle} maxFontSizeMultiplier={MAX_FONT_MULT}>
+              {isAuthenticated ? t.authedCardTitle : t.guestCardTitle}
+            </Text>
+
+            <Text style={styles.infoText} maxFontSizeMultiplier={MAX_FONT_MULT}>
+              {isAuthenticated ? t.authedCardText : t.guestCardText}
+            </Text>
+
+            <Pressable onPress={onEnter} style={styles.enterBtn}>
+              <LinearGradient
+                colors={["rgba(145,110,255,0.25)", "rgba(124,247,216,0.12)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.enterGradient}
+              >
+                <Text style={styles.enterTxt} maxFontSizeMultiplier={MAX_FONT_MULT}>
+                  {isAuthenticated ? t.authedButton : t.guestButton}
+                </Text>
+              </LinearGradient>
             </Pressable>
-          ) : null}
+
+            {isAuthenticated ? (
+              <Pressable
+                onPress={async () => {
+                  await logout();
+                  router.replace("/rabbit" as any);
+                }}
+                style={styles.logoutBtn}
+              >
+                <Text style={styles.logoutTxt} maxFontSizeMultiplier={MAX_FONT_MULT}>
+                  {t.logout}
+                </Text>
+              </Pressable>
+            ) : null}
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      </ScrollView>
     </View>
   );
 }
@@ -284,6 +378,24 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: "#0a0b10",
+  },
+
+  scroll: {
+    flex: 1,
+    zIndex: 1,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+
+  scrollInner: {
+    width: "100%",
+    maxWidth: 440,
+    alignItems: "center",
+    alignSelf: "center",
   },
 
   topRight: {
@@ -321,13 +433,6 @@ const styles = StyleSheet.create({
     color: "#7cf7d8",
   },
 
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-
   rabbitCard: {
     width: "100%",
     alignItems: "center",
@@ -351,8 +456,6 @@ const styles = StyleSheet.create({
   },
 
   rabbit: {
-    width: 100,
-    height: 100,
     borderRadius: 24,
     marginBottom: 14,
   },
@@ -361,7 +464,6 @@ const styles = StyleSheet.create({
     color: "#7cf7d8",
     fontWeight: "900",
     letterSpacing: 3,
-    fontSize: 16,
   },
 
   system: {
@@ -373,48 +475,39 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 42,
     color: "white",
     fontWeight: "900",
-    letterSpacing: 6,
+    letterSpacing: 5,
     textAlign: "center",
-    lineHeight: 54,
   },
 
   subtitle: {
     color: "rgba(255,255,255,0.38)",
-    letterSpacing: 5,
-    marginTop: 10,
-    marginBottom: 28,
+    letterSpacing: 4,
+    marginTop: 8,
+    marginBottom: 24,
     textAlign: "center",
-    fontSize: 14,
   },
 
   welcomeText: {
     color: "#7cf7d8",
-    fontSize: 22,
     textAlign: "center",
     fontWeight: "900",
-    lineHeight: 32,
     marginBottom: 4,
   },
 
   quote: {
     color: "white",
-    fontSize: 22,
     textAlign: "center",
     fontWeight: "900",
-    lineHeight: 34,
   },
 
   desc: {
     color: "rgba(255,255,255,0.68)",
     textAlign: "center",
-    marginTop: 16,
-    lineHeight: 26,
-    fontSize: 16,
-    marginBottom: 30,
-    paddingHorizontal: 8,
+    marginTop: 12,
+    marginBottom: 22,
+    paddingHorizontal: 4,
   },
 
   infoCard: {

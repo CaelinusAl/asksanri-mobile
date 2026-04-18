@@ -7,7 +7,46 @@ export type BookPage = {
   epigraph?: string;
   number?: number | string;
   items?: string[];
+  /** Okuyucuda `chapter` + hemen sonraki `content` tek sayfada birleştirildiğinde doldurulur. */
+  chapterLead?: {
+    number?: number | string;
+    title: string;
+    epigraph?: string;
+  };
 };
+
+/**
+ * JSON’da sıkça: sadece `chapter` başlığı + sonraki sayfada `content` gövdesi.
+ * Başlık-only sayfa “konu sıçramış / boş sayfa” gibi göründüğü için birleştiririz.
+ */
+export function mergeChapterWithFollowingContent(pages: BookPage[]): BookPage[] {
+  const out: BookPage[] = [];
+  let i = 0;
+  while (i < pages.length) {
+    const p = pages[i];
+    const next = pages[i + 1];
+    if (
+      p.type === "chapter" &&
+      next?.type === "content" &&
+      typeof next.body === "string"
+    ) {
+      out.push({
+        ...next,
+        type: "content",
+        chapterLead: {
+          number: p.number,
+          title: p.title ?? "",
+          epigraph: p.epigraph,
+        },
+      });
+      i += 2;
+    } else {
+      out.push(p);
+      i += 1;
+    }
+  }
+  return out;
+}
 
 export type BookMeta = {
   id: string;
@@ -19,6 +58,12 @@ export type BookMeta = {
   price: number;
   freePreviewPages: number;
   chapters: string[];
+  /** Varsayılan: JSON sayfaları. "pdf" ise tam metin bundled PDF ile açılır. */
+  reader?: "json" | "pdf";
+  /** PDF kitaplar için kütüphane kartında gösterilecek sayfa sayısı (opsiyonel). */
+  pageCount?: number;
+  /** "pager": yatay sayfa çevirmeli okuyucu (web + mobil). */
+  readingLayout?: "scroll" | "pager";
 };
 
 export const BOOKS: BookMeta[] = [
@@ -50,7 +95,7 @@ export const BOOKS: BookMeta[] = [
     description: "Seçilmişlerin yolculuğu. Kodların öğretisi, evrensel semboller ve bilinç yükselişi.",
     color: "#48BB78",
     isPremium: true,
-    price: 470,
+    price: 369,
     freePreviewPages: 6,
     chapters: [
       "Ruhsal Uyanış: Benim Hikâyem",
@@ -68,6 +113,32 @@ export const BOOKS: BookMeta[] = [
       "Semboller, Anlamlar ve Gerçeklik Üzerine",
       "Cehennem, Kuyu ve Bilgelik Yolculuğu",
       "Gözyaşı, Dişil Enerji ve Ruhun Arınması",
+    ],
+  },
+  {
+    id: "beyin_orgazm",
+    title: "Beyin Orgazmı",
+    author: "Celine River",
+    description:
+      "Bilgelik, hatırlayış ve bilinç titreşimi. Beyin, kalp, pineal, frekans ve yaratım üzerine tam metin.",
+    color: "#D946EF",
+    isPremium: true,
+    price: 369,
+    /** Uzun metin; önizleme sayısı düşük olunca okuma kesiliyordu (ör. 6 sonrası kilit). */
+    freePreviewPages: 80,
+    readingLayout: "pager",
+    pageCount: 213,
+    chapters: [
+      "Zihin-Gönül Portalı: Hisseden Beynin Kodları",
+      "His Kodları: Evrenin Gerçek Bilgi Taşıyıcıları",
+      "Sezgi Alanı: Beynin Kuantum Zıplama Merkezi",
+      "Beyin: Kozmik Bir Anten",
+      "Bilgi Orgazmı: Bilinç Genişlemesinin Tanrısal Hâli",
+      "Tantra ve Kozmik Sinir Sistemi",
+      "Tanrı’nın Bakışı",
+      "Erilin Sırrı: Birleşmedeki Mühür",
+      "Kozmik Seks: Kundalini’yi Uyandıran Birleşme",
+      "Zihin Orgazmı – Beynin Frekansa Boyun Eğmesi",
     ],
   },
   {

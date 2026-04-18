@@ -1,11 +1,7 @@
 // app/(tabs)/index.tsx
-import { useEffect } from "react";
-import { router } from "expo-router";
+import { Redirect } from "expo-router";
 
+/** Varsayılan sekme: Kapılar. `null` + useEffect yerine anında yönlendirme — geri tuşunda boş/beyaz ekran oluşmaz. */
 export default function TabsIndex() {
-  useEffect(() => {
-    router.replace("/(tabs)/gates");
-  }, []);
-
-  return null;
+  return <Redirect href="/(tabs)/gates" />;
 }

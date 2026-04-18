@@ -20,7 +20,7 @@ import { API, apiGetJson, apiPostJson, apiDeleteJson } from "../../lib/apiClient
 import { openManageSubscriptions, restoreSanriPurchases } from "../../lib/revenuecat";
 import { useEntitlementStore } from "../../lib/entitlementStore";
 import { getProgress, countCompleted, getPercentage, getActiveModuleId, getNextIncompleteLesson } from "../../lib/kodOkumaProgress";
-import { MODULES, ALL_LESSONS } from "../../lib/kodOkumaData";
+import { MODULES, ALL_LESSONS, getLessonDisplayTitle } from "../../lib/kodOkumaData";
 import { storageGet, storageSet } from "../../lib/storage";
 import type { ProgressMap } from "../../lib/kodOkumaProgress";
 
@@ -273,10 +273,10 @@ function deriveCodeMap(profile: ProfileData | null, progress: ProgressMap, lang:
 
   return {
     dominant: elements[idx],
-    todayGate: lastLesson ? lastLesson.title : (lang === "tr" ? "Henüz açılmadı" : "Not opened yet"),
+    todayGate: lastLesson ? getLessonDisplayTitle(lastLesson, lang) : (lang === "tr" ? "Henüz açılmadı" : "Not opened yet"),
     repeatTheme: themes[hash],
     avoidTheme: avoidThemes[(hash + 2) % avoidThemes.length],
-    lastGate: lastLesson ? lastLesson.title : (lang === "tr" ? "Henüz yok" : "None yet"),
+    lastGate: lastLesson ? getLessonDisplayTitle(lastLesson, lang) : (lang === "tr" ? "Henüz yok" : "None yet"),
     unsolved: knots[hash % knots.length],
   };
 }
@@ -575,7 +575,7 @@ export default function MyAreaScreen() {
             <View style={s.todayLessonCard}>
               <View style={{ flex: 1 }}>
                 <Text style={s.todayLessonLabel}>{t.todayLesson}</Text>
-                <Text style={s.todayLessonTitle}>{nextLesson.title}</Text>
+                <Text style={s.todayLessonTitle}>{getLessonDisplayTitle(nextLesson, lang)}</Text>
               </View>
               <Pressable onPress={() => router.push({ pathname: "/(tabs)/kod_ders", params: { lessonId: nextLesson.id, lang } } as any)} style={s.todayLessonBtn}>
                 <Text style={s.todayLessonBtnText}>{t.goLesson}</Text>

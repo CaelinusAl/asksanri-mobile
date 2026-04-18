@@ -8,7 +8,14 @@ import {
   StatusBar,
 } from "react-native";
 import { router } from "expo-router";
-import { MODULES, ALL_LESSONS, type Module, type Lesson } from "../../lib/kodOkumaData";
+import {
+  MODULES,
+  ALL_LESSONS,
+  getLessonDisplayTitle,
+  getLessonShortDescription,
+  type Module,
+  type Lesson,
+} from "../../lib/kodOkumaData";
 import {
   getProgress,
   countCompleted,
@@ -163,6 +170,18 @@ export default function KodOkumaScreen() {
           <Text style={styles.headerSub}>{t.headerSub}</Text>
         </View>
 
+        <View style={styles.programCard}>
+          <Text style={styles.programKicker}>{lang === "tr" ? "YOL HARİTASI" : "ROADMAP"}</Text>
+          <Text style={styles.programTitle}>
+            {lang === "tr" ? "21 ders · 3 modül · tek program" : "21 lessons · 3 modules · one arc"}
+          </Text>
+          <Text style={styles.programBody}>
+            {lang === "tr"
+              ? "Ders metinleri web Kod Eğitmeni ile aynı kaynaktan gelir. Her derste metni oku, alttaki «SANRI ile Çöz» kutusundan kendi örneğini yaz, canlı kod okuması al. İlerlemen cihazında saklanır — Kaldığın yerden devam et kartıyla tek dokunuşla sür."
+              : "Lesson copy is sourced with the web code trainer. Each lesson: read the text, then send your own example in «Solve with SANRI» for a live reading. Progress is stored on device — one tap to resume."}
+          </Text>
+        </View>
+
         {/* Progress Bar */}
         <View style={styles.progressSection}>
           <View style={styles.progressBar}>
@@ -188,9 +207,9 @@ export default function KodOkumaScreen() {
           <Pressable onPress={onResume} style={styles.resumeCard}>
             <Text style={styles.resumeKicker}>{t.resumeKicker}</Text>
             <Text style={styles.resumeTitle}>
-              {t.lesson} {ALL_LESSONS.indexOf(nextLesson) + 1}: {nextLesson.title}
+              {t.lesson} {ALL_LESSONS.indexOf(nextLesson) + 1}: {getLessonDisplayTitle(nextLesson, lang)}
             </Text>
-            <Text style={styles.resumeDesc}>{nextLesson.shortDescription}</Text>
+            <Text style={styles.resumeDesc}>{getLessonShortDescription(nextLesson, lang)}</Text>
             <View style={styles.resumeBtnWrap}>
               <Text style={styles.resumeBtnText}>{t.resumeBtn}</Text>
             </View>
@@ -264,10 +283,10 @@ export default function KodOkumaScreen() {
                         <Text style={styles.lessonDuration}>{lesson.duration}</Text>
                       </View>
                       <Text style={styles.lessonTitle} numberOfLines={2}>
-                        {lesson.title}
+                        {getLessonDisplayTitle(lesson, lang)}
                       </Text>
                       <Text style={styles.lessonDesc} numberOfLines={2}>
-                        {lesson.shortDescription}
+                        {getLessonShortDescription(lesson, lang)}
                       </Text>
                       <View style={styles.lessonFooter}>
                         <Text
@@ -352,6 +371,24 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: "#7cf7d8", fontSize: 22, fontWeight: "900", letterSpacing: 2 },
   headerSub: { color: "rgba(255,255,255,0.55)", fontSize: 14, fontWeight: "700" },
+
+  programCard: {
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.14)",
+  },
+  programKicker: {
+    color: "rgba(124,247,216,0.85)",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 2,
+    marginBottom: 6,
+  },
+  programTitle: { color: "#fff", fontSize: 15, fontWeight: "900", marginBottom: 8 },
+  programBody: { color: "rgba(255,255,255,0.62)", fontSize: 13, lineHeight: 20 },
 
   /* Progress */
   progressSection: { marginBottom: 16 },

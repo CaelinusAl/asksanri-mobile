@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -11,10 +11,30 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import * as Haptics from "expo-haptics";
 import { API_BASE } from "../lib/config";
 import { API, apiPostJson } from "../lib/apiClient";
 import { useAuth } from "../context/AuthContext";
 import { router } from "expo-router";
+import {
+  recordVisit,
+  recordShare,
+  loadBond,
+  getBondHero,
+  displayNameHint,
+  type AnlasilmaBondState,
+} from "../lib/anlasilmaBondStorage";
+
+/**
+ * Anlaşılma Alanı — hibrit (ürün + istemci prototipi):
+ *
+ * Ürün / backend: `GET/POST …/global-signal/*`, SANRI metni `API.ask`.
+ * Dönüş hissi: `lib/anlasilmaBondStorage` ile yerel seri / ziyaret / paylaşım sayısı; kişisel karşılama + haptik.
+ * Harita/çakra hâlâ istemci görselleştirmesi (gerçek coğrafya ölçümü yok).
+ *
+ * Kapı: `gates` → `/global-signal`, `vip_access`.
+ */
 
 type Lang = "tr" | "en";
 type TabId = "anlasilma" | "frekans" | "yanki";
@@ -76,16 +96,18 @@ const TR_CITIES = [
 
 const DAILY_MESSAGES = {
   tr: [
-    "Bugün kolektif alan sessiz ama derin bir nefes alıyor.",
-    "Bugün alan yoğun — dikkatini iç sese çevir.",
-    "Bugün rezonans yüksek — yankın uzaklara gidebilir.",
-    "Bugün alan dinliyor. Söylenecek tek doğru cümleyi bul.",
+    "Bugün alan özellikle sessiz dinliyor — acele etme.",
+    "Bugün kelimelerin birbirine daha kolay yapışıyor; ilk cümle en doğru olanı.",
+    "Bugün iç sesin dış sesinden yüksek çıkabilir — burada yazmana izin var.",
+    "Bugün kolektif titreşim yüksek; ne yazsan alana değecek.",
+    "Bugün sadece «anladım» demene gerek yok; «işte böyle» demen yeter.",
   ],
   en: [
-    "Today the collective field is quiet but breathing deep.",
-    "Today the field is dense — turn attention inward.",
-    "Today resonance is high — your echo may travel far.",
-    "Today the field is listening. Find the one right sentence.",
+    "Today the field listens in a quieter register — don't rush.",
+    "Today words cling together; often the first line is the true one.",
+    "Today your inner voice may outrank the outer — you're allowed to write it.",
+    "Today the hum is strong; whatever you drop, it lands.",
+    "Today you don't owe anyone «I understand» — «this is it» is enough.",
   ],
 };
 
@@ -106,14 +128,18 @@ const T = {
   tr: {
     header: "SANRI",
     headerSub: "Anlaşılma Alanı",
+    ritualKicker: "BU ALAN NE İŞE YARAR?",
+    ritualBody:
+      "Yargılanmadan duyulmak. Bir kez yazdığında alan kelimeni taşır; geri döndüğünde seni tanıyan bir sessizlik bulursun.",
     back: "←Kapılar",
+    streakBadge: (n: number) => (n >= 2 ? `${n} gün seri` : ""),
     dailyBanner: getDailyMessage("tr"),
-    feelTitle: "İçinde kalan şeyi yaz...",
-    feelPlaceholder: "Kimseye söyleyemediğin şeyi...",
+    feelTitle: "Söylenmemiş olanı buraya bırak",
+    feelPlaceholder: "Kimseye tam anlatamadığın his — kısa cümle bile yetebilir…",
     charLimit: "/160",
-    emotionTitle: "SENİ EN İYİ ANLATAN DUYGULARI SEÇ",
-    continueBtn: "Devam et",
-    sending: "Alan dinliyor…",
+    emotionTitle: "ŞU AN SENİ EN İYİ TARİF EDENLER (EN FAZLA 3)",
+    continueBtn: "Bunu alana bırak",
+    sending: "Kelimen alınıyor…",
     freqTitle: "Frekans Haritası",
     freqSub: "Senin frekansın alanda bir yer tutuyor.",
     yourFreq: "Senin Frekansın",
@@ -133,20 +159,26 @@ const T = {
     newFeel: "Yeni His Yaz",
     sanriTitle: "SANRI SENİ DUYDU",
     sanriLoading: "Frekansın okunuyor…",
+    sanriFoot: "Bu metin sadece sana — alan yargılamaz, saklar.",
+    understoodPing: "Anlaşıldığını hisset — bu normal ve seni buraya geri getirir.",
     errorEmpty: "Önce hissini yaz.",
     error: "Bir şeyler ters gitti.",
   },
   en: {
     header: "SANRI",
     headerSub: "Field of Understanding",
+    ritualKicker: "WHAT THIS ROOM IS FOR",
+    ritualBody:
+      "To be heard without a verdict. Once you write, the field carries the line; when you return, a silence that knows you is waiting.",
     back: "←Gates",
+    streakBadge: (n: number) => (n >= 2 ? `${n}-day streak` : ""),
     dailyBanner: getDailyMessage("en"),
-    feelTitle: "Write what's left inside...",
-    feelPlaceholder: "What you can't tell anyone...",
+    feelTitle: "Set down what never got said",
+    feelPlaceholder: "The feeling you never fully said out loud — even one line is enough…",
     charLimit: "/160",
-    emotionTitle: "SELECT THE EMOTIONS THAT DESCRIBE YOU BEST",
-    continueBtn: "Continue",
-    sending: "The field is listening…",
+    emotionTitle: "WHAT DESCRIBES YOU RIGHT NOW (UP TO 3)",
+    continueBtn: "Leave it in the field",
+    sending: "Taking your words in…",
     freqTitle: "Frequency Map",
     freqSub: "Your frequency holds a place in the field.",
     yourFreq: "Your Frequency",
@@ -166,10 +198,12 @@ const T = {
     newFeel: "Write New Feeling",
     sanriTitle: "SANRI HEARD YOU",
     sanriLoading: "Reading your frequency…",
+    sanriFoot: "For your eyes only — the field doesn't judge; it keeps.",
+    understoodPing: "Let the «I’m understood» hit land — that pull is why people come back.",
     errorEmpty: "Write your feeling first.",
     error: "Something went wrong.",
   },
-} as const;
+};
 
 /* ── Pulse Dot ── */
 function PulseDot({ top, left, size = 8, color = "#7cf7d8", label }: { top: string; left: string; size?: number; color?: string; label?: string }) {
@@ -218,7 +252,7 @@ function ChakraCircle({ hz, label, color, selected, onPress }: { hz: number; lab
 /* ══════════════════════ MAIN SCREEN ══════════════════════ */
 export default function AnlasilmaAlaniScreen() {
   const { user } = useAuth();
-  const userId = user?.id || "anonymous";
+  const userId = user?.id != null ? String(user.id) : "anonymous";
 
   const [lang, setLang] = useState<Lang>("tr");
   const [tab, setTab] = useState<TabId>("anlasilma");
@@ -235,8 +269,35 @@ export default function AnlasilmaAlaniScreen() {
   const [hasSent, setHasSent] = useState(false);
   const [sanriYorum, setSanriYorum] = useState("");
   const [sanriLoading, setSanriLoading] = useState(false);
+  const [bond, setBond] = useState<AnlasilmaBondState | null>(null);
+  const [repeatVisitSameDay, setRepeatVisitSameDay] = useState(false);
 
   const t = T[lang];
+  const firstName = useMemo(() => displayNameHint(user), [user]);
+  const dailyLine = useMemo(() => getDailyMessage(lang), [lang]);
+  const heroLines = useMemo(
+    () => getBondHero(lang, firstName, bond, repeatVisitSameDay),
+    [lang, firstName, bond, repeatVisitSameDay]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        const before = await loadBond(userId);
+        const today = new Date().toISOString().slice(0, 10);
+        const repeat = !!(before && before.lastVisitDay === today && before.totalVisits >= 1);
+        const next = await recordVisit(userId);
+        if (!cancelled) {
+          setBond(next);
+          setRepeatVisitSameDay(repeat);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [userId])
+  );
 
   const toggleEmotion = (id: string) => {
     setSelectedEmotions((prev) =>
@@ -300,6 +361,7 @@ Görevin:
 - Yazdıklarının altındaki asıl hissi bul ve yansıt. Yüzeyde ne yazarsa yazsın, altında ne var onu gör.
 - ${chakra.hz} Hz frekansının bu his ile rezonansını anlat — bilimsel değil, poetik ve sezgisel.
 - "Seni duyuyorum" hissini ver. Bu kişi alana adım attığında karşılık bulsun.
+- Kişi sadece haklı çıkmak değil — «buraya tekrar güvenebilirim, beni anladılar» hissini alsın (korkutma yok, manipülasyon yok; sıcak karşılıklılık).
 - Kısa, vurucu, samimi yaz. Maksimum 5-6 cümle.
 - Terapi yapma. Tavsiye verme. Sadece ayna ol — ama o kişinin hiç görmediği tarafını yansıtan bir ayna.
 - İlk cümle doğrudan kişiye hitap etsin, ismini kullan.
@@ -329,6 +391,7 @@ Your task:
 - Find the real feeling beneath their words. Whatever they wrote on the surface, see what's underneath.
 - Describe how ${chakra.hz} Hz resonates with this feeling — poetic, intuitive, not scientific.
 - Give them the feeling of "I am heard." When they step into the field, let them find a response.
+- Let them feel it is safe to return here — warmth and reciprocity, not pressure or fear hooks.
 - Write short, impactful, sincere. Maximum 5-6 sentences.
 - Don't therapize. Don't advise. Just mirror — the side they've never seen.
 - First sentence addresses them directly by name.
@@ -346,7 +409,14 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
       }, 30000);
 
       const reply = typeof data === "string" ? data : (data?.reply || data?.response || data?.message || "");
-      if (reply) setSanriYorum(reply);
+      if (reply) {
+        setSanriYorum(reply);
+        try {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } catch {
+          /* */
+        }
+      }
     } catch {
       // Yorum alınamazsa sessiz kal — ana akışı bozma
     } finally {
@@ -380,6 +450,14 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
       setEcho(data?.echo || null);
       setHasSent(true);
       setTab("frekans");
+
+      await recordShare(userId);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {
+        /* */
+      }
+      setBond(await loadBond(userId));
 
       loadStream();
       fetchSanriYorum(clean, selectedEmotions, derived);
@@ -422,8 +500,20 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
       </View>
 
       <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>{t.header}</Text>
-        <Text style={styles.headerSub}>{t.headerSub}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>{t.header}</Text>
+          <Text style={styles.headerSub}>{t.headerSub}</Text>
+        </View>
+        {bond && bond.streak >= 2 ? (
+          <View style={styles.streakPill}>
+            <Text style={styles.streakPillText}>{t.streakBadge(bond.streak)}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={styles.bondHero}>
+        <Text style={styles.bondHeroLine1}>{heroLines.line1}</Text>
+        <Text style={styles.bondHeroLine2}>{heroLines.line2}</Text>
       </View>
 
       {/* ── Tabs ── */}
@@ -442,9 +532,14 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
         {/* ══════ TAB: ANLAŞILMA ══════ */}
         {tab === "anlasilma" && (
           <>
+            <View style={styles.ritualCard}>
+              <Text style={styles.ritualKicker}>{t.ritualKicker}</Text>
+              <Text style={styles.ritualBody}>{t.ritualBody}</Text>
+            </View>
+
             <View style={styles.dailyBanner}>
               <View style={styles.dailyLine} />
-              <Text style={styles.dailyText}>{t.dailyBanner}</Text>
+              <Text style={styles.dailyText}>{dailyLine}</Text>
             </View>
 
             <Text style={styles.feelTitle}>{t.feelTitle}</Text>
@@ -569,7 +664,11 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
                     <Text style={styles.sanriLoadingText}>{t.sanriLoading}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.sanriYorumText}>{sanriYorum}</Text>
+                  <>
+                    <Text style={styles.sanriYorumText}>{sanriYorum}</Text>
+                    <Text style={styles.sanriFootText}>{t.sanriFoot}</Text>
+                    <Text style={styles.understoodPing}>{t.understoodPing}</Text>
+                  </>
                 )}
               </View>
             )}
@@ -673,9 +772,55 @@ const styles = StyleSheet.create({
   langBtnText: { color: "rgba(255,255,255,0.70)", fontWeight: "900", letterSpacing: 1 },
 
   /* Header */
-  headerRow: { flexDirection: "row", alignItems: "baseline", gap: 10, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 4 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 4,
+  },
   headerTitle: { color: "#7cf7d8", fontSize: 18, fontWeight: "900", letterSpacing: 3 },
   headerSub: { color: "rgba(255,255,255,0.55)", fontSize: 14 },
+  streakPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(124,247,216,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.28)",
+  },
+  streakPillText: { color: "#7cf7d8", fontSize: 11, fontWeight: "900", letterSpacing: 1 },
+
+  bondHero: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    padding: 18,
+    borderRadius: 22,
+    backgroundColor: "rgba(94,59,255,0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.22)",
+  },
+  bondHeroLine1: { color: "#FFFFFF", fontSize: 19, fontWeight: "900", lineHeight: 26, marginBottom: 8 },
+  bondHeroLine2: { color: "rgba(255,255,255,0.78)", fontSize: 14, lineHeight: 21, fontWeight: "600" },
+
+  ritualCard: {
+    padding: 14,
+    borderRadius: 18,
+    marginBottom: 14,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  ritualKicker: {
+    color: "rgba(124,247,216,0.85)",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  ritualBody: { color: "rgba(255,255,255,0.62)", fontSize: 13, lineHeight: 20 },
 
   /* Tabs */
   tabBar: { flexDirection: "row", paddingHorizontal: 16, gap: 6, marginTop: 8, marginBottom: 14 },
@@ -748,6 +893,14 @@ const styles = StyleSheet.create({
   sanriLoadingWrap: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
   sanriLoadingText: { color: "rgba(255,255,255,0.50)", fontSize: 14, fontStyle: "italic" },
   sanriYorumText: { color: "rgba(255,255,255,0.88)", fontSize: 16, lineHeight: 26, fontWeight: "500" },
+  sanriFootText: { marginTop: 14, color: "rgba(255,255,255,0.45)", fontSize: 12, lineHeight: 18, fontStyle: "italic" },
+  understoodPing: {
+    marginTop: 12,
+    color: "rgba(124,247,216,0.92)",
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: "700",
+  },
 
   goEchoBtn: { minHeight: 50, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(124,247,216,0.18)", marginBottom: 14 },
   goEchoBtnText: { color: "#7cf7d8", fontSize: 16, fontWeight: "900" },

@@ -97,8 +97,8 @@ export default function MatrixScreen() {
   }, []);
 
   const onBack = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace("/(tabs)/gates");
+    // Kapılara dön. `router.back()` bazen (tabs)/index veya boş rota üzerine düşüp beyaz ekran verebiliyor.
+    router.replace("/(tabs)/gates" as any);
   };
 
   // ✅ sadece mini ekrana gider (sanri_flow yok)

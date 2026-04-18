@@ -58,7 +58,7 @@ export default function KutuphaneScreen() {
         setKodProgress(getPercentage(progress));
         const modId = getActiveModuleId(progress);
         const mod = MODULES.find((m) => m.id === modId);
-        setActiveModule(mod?.title || MODULES[0].title);
+        setActiveModule(mod?.titleTR || MODULES[0].titleTR);
       } catch { /* */ }
     })();
     (async () => {
@@ -237,21 +237,33 @@ export default function KutuphaneScreen() {
         <Text style={s.bookSubtitle}>Her kitap bir kapı. Sayfalar döndükçe bilinç açılır.</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.bookScroll}>
           {BOOKS.map((book) => (
-            <Pressable
-              key={book.id}
-              style={s.bookCard}
-              onPress={() => router.push({ pathname: "/(tabs)/book_reader", params: { bookId: book.id } } as any)}
-            >
-              <View style={[s.bookAccent, { backgroundColor: book.color }]} />
-              <Text style={[s.bookTitle, { color: book.color }]}>{book.title}</Text>
-              <Text style={s.bookAuthor}>{book.author}</Text>
-              <Text style={s.bookChapters}>{book.chapters.length} bölüm</Text>
-              {book.isPremium ? (
-                <Text style={s.bookPrice}>₺{book.price}</Text>
-              ) : (
-                <Text style={[s.bookPrice, { color: "#48BB78" }]}>Ücretsiz</Text>
+            <View key={book.id} style={s.bookCard}>
+              <Pressable
+                onPress={() => router.push({ pathname: "/(tabs)/book_reader", params: { bookId: book.id } } as any)}
+              >
+                <View style={[s.bookAccent, { backgroundColor: book.color }]} />
+                <Text style={[s.bookTitle, { color: book.color }]}>{book.title}</Text>
+                <Text style={s.bookAuthor}>{book.author}</Text>
+                <Text style={s.bookChapters}>
+                  {book.pageCount != null ? `${book.pageCount} sayfa` : `${book.chapters.length} bölüm`}
+                </Text>
+                {book.isPremium ? (
+                  <Text style={s.bookPrice}>₺{book.price}</Text>
+                ) : (
+                  <Text style={[s.bookPrice, { color: "#48BB78" }]}>Ücretsiz</Text>
+                )}
+              </Pressable>
+              {book.isPremium && !entitlements.vip_access && (
+                <Pressable
+                  style={s.bookBuyBtn}
+                  onPress={() =>
+                    router.push({ pathname: "/(tabs)/vip", params: { entitlement: "vip_access" } } as any)
+                  }
+                >
+                  <Text style={[s.bookBuyText, { color: book.color }]}>VIP satın al</Text>
+                </Pressable>
               )}
-            </Pressable>
+            </View>
           ))}
         </ScrollView>
 
@@ -373,6 +385,14 @@ const s = StyleSheet.create({
   bookAuthor: { color: "rgba(255,255,255,0.4)", fontSize: 11, marginBottom: 8 },
   bookChapters: { color: "rgba(255,255,255,0.3)", fontSize: 11, marginBottom: 4 },
   bookPrice: { color: "#c8a0ff", fontSize: 12, fontWeight: "800" },
+  bookBuyBtn: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+  },
+  bookBuyText: { fontSize: 11, fontWeight: "900", letterSpacing: 0.3 },
 
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 10 },
   statBox: {
