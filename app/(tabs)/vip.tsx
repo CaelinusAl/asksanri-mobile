@@ -21,6 +21,7 @@ import {
   openManageSubscriptions,
   restoreSanriPurchases,
   getPackageForEntitlement,
+  diagnoseRevenueCat,
 } from "../../lib/revenuecat";
 import {
   ENTITLEMENT_META,
@@ -646,6 +647,44 @@ export default function VipScreen() {
           <Text style={st.legalDot}>·</Text>
           <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
             <Text style={st.legalLink}>{tr ? "Gizlilik" : "Privacy"}</Text>
+          </Pressable>
+          <Text style={st.legalDot}>·</Text>
+          <Pressable
+            onLongPress={async () => {
+              try {
+                const report = await diagnoseRevenueCat();
+                const summary = [
+                  `Platform: ${report.platform}`,
+                  `API Key: ${report.apiKeyMasked}`,
+                  `Configured: ${report.configured}`,
+                  `Init Error: ${report.initError || "-"}`,
+                  `Offerings OK: ${report.offerings.ok}`,
+                  `Current Offering: ${report.offerings.currentId || "-"}`,
+                  `All Offerings: ${report.offerings.allIds.join(", ") || "-"}`,
+                  `Packages (${report.offerings.packages.length}):`,
+                  ...report.offerings.packages.map(
+                    (p) => `  • ${p.offeringId}/${p.packageId} → ${p.productId} (${p.price})`
+                  ),
+                  ``,
+                  `Active Entitlements: ${report.customerInfo.activeEntitlements?.join(", ") || "-"}`,
+                  ``,
+                  report.offerings.error
+                    ? `Offerings Error:\n${JSON.stringify(report.offerings.error, null, 2)}`
+                    : "",
+                  report.initErrorDetail
+                    ? `Init Error Detail:\n${JSON.stringify(report.initErrorDetail, null, 2)}`
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join("\n");
+                Alert.alert("RC Diagnostics", summary, [{ text: "OK" }]);
+              } catch (e: any) {
+                Alert.alert("RC Diagnostic Error", String(e?.message || e));
+              }
+            }}
+            delayLongPress={800}
+          >
+            <Text style={st.legalLink}>{tr ? "Tanılama" : "Diagnostics"}</Text>
           </Pressable>
         </View>
 

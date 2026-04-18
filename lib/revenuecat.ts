@@ -11,6 +11,7 @@ import type { EntitlementId } from "./premium";
 let configured = false;
 let configuring = false;
 let lastInitError: string | null = null;
+let lastInitErrorDetail: any = null;
 
 const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_RC_ANDROID_API_KEY ?? "";
 const RC_IOS_KEY = process.env.EXPO_PUBLIC_RC_IOS_API_KEY ?? "";
@@ -19,8 +20,31 @@ function getApiKey() {
   return Platform.OS === "android" ? RC_ANDROID_KEY : RC_IOS_KEY;
 }
 
+function maskKey(k: string): string {
+  if (!k) return "(empty)";
+  if (k.length <= 10) return k;
+  return `${k.substring(0, 8)}...${k.substring(k.length - 4)} (len=${k.length})`;
+}
+
+function logRC(msg: string, payload?: any) {
+  // Always log (not just __DEV__) so we can diagnose production builds via adb logcat
+  if (payload !== undefined) {
+    try {
+      console.log(`[RC] ${msg}`, JSON.stringify(payload, null, 2));
+    } catch {
+      console.log(`[RC] ${msg}`, payload);
+    }
+  } else {
+    console.log(`[RC] ${msg}`);
+  }
+}
+
 export function getRevenueCatInitError() {
   return lastInitError;
+}
+
+export function getRevenueCatInitErrorDetail() {
+  return lastInitErrorDetail;
 }
 
 export async function initRevenueCat(): Promise<boolean> {
@@ -29,24 +53,39 @@ export async function initRevenueCat(): Promise<boolean> {
 
   const apiKey = getApiKey();
 
+  logRC(`init — platform=${Platform.OS} key=${maskKey(apiKey)}`);
+
   if (!apiKey || apiKey.includes(" ")) {
     lastInitError = "RevenueCat public SDK key missing";
+    lastInitErrorDetail = { reason: "missing_key", platform: Platform.OS };
+    logRC("init FAILED — missing key");
     return false;
   }
 
   try {
     configuring = true;
     lastInitError = null;
+    lastInitErrorDetail = null;
 
-    Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
+    // Keep verbose logs on in production too while diagnosing paywall config.
+    Purchases.setLogLevel(LOG_LEVEL.DEBUG);
     await Purchases.configure({ apiKey });
 
     configured = true;
+    logRC("init OK");
     return true;
   } catch (error: any) {
     configured = false;
     lastInitError = error?.message || "RevenueCat init failed";
-    if (__DEV__) console.log("RC INIT ERROR =", error);
+    lastInitErrorDetail = {
+      message: error?.message,
+      code: error?.code,
+      userInfo: error?.userInfo,
+      readableErrorCode: error?.userInfo?.readableErrorCode,
+      underlyingErrorMessage: error?.userInfo?.underlyingErrorMessage,
+      raw: String(error),
+    };
+    logRC("init ERROR", lastInitErrorDetail);
     return false;
   } finally {
     configuring = false;
@@ -152,20 +191,45 @@ export async function getPackageForEntitlement(
       ? offerings?.current
       : offerings?.all?.[offeringId];
 
+    logRC(`getPackageForEntitlement ${entitlement} — offeringId=${offeringId} current=${offerings?.current?.identifier ?? "null"} all=${Object.keys(offerings?.all ?? {}).join(",") || "none"}`);
+
     if (!offering) {
-      if (__DEV__) console.log(`[RC] Offering "${offeringId}" not found for ${entitlement}`);
-      lastInitError = "Satın alma sistemi henüz bağlanmamış.";
+      logRC(`Offering "${offeringId}" not found for ${entitlement}`);
+      lastInitError = `Offering "${offeringId}" not found. Available: ${Object.keys(offerings?.all ?? {}).join(", ") || "none"}`;
+      lastInitErrorDetail = {
+        reason: "offering_not_found",
+        offeringId,
+        entitlement,
+        availableOfferings: Object.keys(offerings?.all ?? {}),
+        currentOfferingId: offerings?.current?.identifier ?? null,
+      };
       return null;
     }
 
     const pkg = pickPackageFromOffering(entitlement, offering);
-    if (__DEV__ && pkg) {
-      console.log(`[RC] Package for ${entitlement}: ${pkg.identifier} (${pkg.packageType})`);
+    if (pkg) {
+      logRC(`Package for ${entitlement}`, {
+        identifier: pkg.identifier,
+        packageType: pkg.packageType,
+        productIdentifier: pkg.product?.identifier,
+        price: pkg.product?.priceString,
+      });
+    } else {
+      logRC(`No package picked for ${entitlement} — offering has ${offering.availablePackages?.length ?? 0} packages`);
     }
     return pkg;
   } catch (error: any) {
     lastInitError = error?.message || "Offerings alınamadı";
-    if (__DEV__) console.log("RC OFFERINGS ERROR =", error);
+    lastInitErrorDetail = {
+      reason: "get_offerings_failed",
+      message: error?.message,
+      code: error?.code,
+      userInfo: error?.userInfo,
+      readableErrorCode: error?.userInfo?.readableErrorCode,
+      underlyingErrorMessage: error?.userInfo?.underlyingErrorMessage,
+      raw: String(error),
+    };
+    logRC("getOfferings ERROR", lastInitErrorDetail);
     return null;
   }
 }
@@ -211,10 +275,21 @@ export async function purchaseEntitlement(
   }
 
   try {
-    if (__DEV__) console.log(`[RC] Purchasing ${entitlement} — pkg: ${pkg.identifier}`);
+    logRC(`Purchasing ${entitlement} — pkg: ${pkg.identifier} product: ${pkg.product?.identifier}`);
     const result = await Purchases.purchasePackage(pkg);
     return { ok: true, customerInfo: result.customerInfo };
   } catch (error: any) {
+    logRC("purchasePackage ERROR", {
+      entitlement,
+      package: pkg.identifier,
+      product: pkg.product?.identifier,
+      message: error?.message,
+      code: error?.code,
+      userInfo: error?.userInfo,
+      readableErrorCode: error?.userInfo?.readableErrorCode,
+      underlyingErrorMessage: error?.userInfo?.underlyingErrorMessage,
+      userCancelled: error?.userCancelled,
+    });
     return classifyPurchaseError(error);
   }
 }
@@ -256,6 +331,131 @@ export async function openManageSubscriptions() {
     return;
   }
   await Linking.openURL("https://apps.apple.com/account/subscriptions");
+}
+
+// ─── Full diagnostic dump — call this from Debug screen / long-press on VIP ───
+
+export type RevenueCatDiagnostics = {
+  timestamp: string;
+  platform: string;
+  apiKeyLoaded: boolean;
+  apiKeyMasked: string;
+  apiKeyLength: number;
+  configured: boolean;
+  initError: string | null;
+  initErrorDetail: any;
+  customerInfo: {
+    ok: boolean;
+    originalAppUserId?: string;
+    activeEntitlements?: string[];
+    allEntitlements?: string[];
+    error?: any;
+  };
+  offerings: {
+    ok: boolean;
+    currentId: string | null;
+    allIds: string[];
+    packages: Array<{
+      offeringId: string;
+      packageId: string;
+      packageType: string;
+      productId: string;
+      price: string;
+      priceCurrency: string;
+    }>;
+    error?: any;
+  };
+  entitlementMap: Record<string, string>;
+};
+
+export async function diagnoseRevenueCat(): Promise<RevenueCatDiagnostics> {
+  const apiKey = getApiKey();
+  const report: RevenueCatDiagnostics = {
+    timestamp: new Date().toISOString(),
+    platform: Platform.OS,
+    apiKeyLoaded: Boolean(apiKey),
+    apiKeyMasked: maskKey(apiKey),
+    apiKeyLength: apiKey.length,
+    configured: false,
+    initError: null,
+    initErrorDetail: null,
+    customerInfo: { ok: false },
+    offerings: { ok: false, currentId: null, allIds: [], packages: [] },
+    entitlementMap: OFFERING_MAP as Record<string, string>,
+  };
+
+  try {
+    const ok = await initRevenueCat();
+    report.configured = ok;
+    report.initError = lastInitError;
+    report.initErrorDetail = lastInitErrorDetail;
+
+    if (!ok) {
+      logRC("DIAGNOSTIC — init failed, aborting", report);
+      return report;
+    }
+
+    try {
+      const info = await Purchases.getCustomerInfo();
+      report.customerInfo = {
+        ok: true,
+        originalAppUserId: info?.originalAppUserId,
+        activeEntitlements: Object.keys(info?.entitlements?.active || {}),
+        allEntitlements: Object.keys(info?.entitlements?.all || {}),
+      };
+    } catch (error: any) {
+      report.customerInfo = {
+        ok: false,
+        error: {
+          message: error?.message,
+          code: error?.code,
+          userInfo: error?.userInfo,
+          readableErrorCode: error?.userInfo?.readableErrorCode,
+          underlyingErrorMessage: error?.userInfo?.underlyingErrorMessage,
+        },
+      };
+    }
+
+    try {
+      const offerings = await Purchases.getOfferings();
+      report.offerings.ok = true;
+      report.offerings.currentId = offerings?.current?.identifier ?? null;
+      report.offerings.allIds = Object.keys(offerings?.all ?? {});
+
+      const packagesList: typeof report.offerings.packages = [];
+      for (const [offeringId, offering] of Object.entries(offerings?.all ?? {})) {
+        const pkgs = (offering as PurchasesOffering).availablePackages ?? [];
+        for (const pkg of pkgs) {
+          packagesList.push({
+            offeringId,
+            packageId: pkg.identifier,
+            packageType: String(pkg.packageType),
+            productId: pkg.product?.identifier ?? "(null)",
+            price: pkg.product?.priceString ?? "(null)",
+            priceCurrency: pkg.product?.currencyCode ?? "(null)",
+          });
+        }
+      }
+      report.offerings.packages = packagesList;
+    } catch (error: any) {
+      report.offerings.ok = false;
+      report.offerings.error = {
+        message: error?.message,
+        code: error?.code,
+        userInfo: error?.userInfo,
+        readableErrorCode: error?.userInfo?.readableErrorCode,
+        underlyingErrorMessage: error?.userInfo?.underlyingErrorMessage,
+      };
+    }
+
+    logRC("DIAGNOSTIC", report);
+    return report;
+  } catch (error: any) {
+    report.initError = error?.message || "diagnostic failed";
+    report.initErrorDetail = { message: error?.message, raw: String(error) };
+    logRC("DIAGNOSTIC FATAL", report.initErrorDetail);
+    return report;
+  }
 }
 
 // ─── Error classification ───
