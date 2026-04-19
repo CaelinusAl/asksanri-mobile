@@ -666,6 +666,11 @@ export default function VipScreen() {
                     (p) => `  • ${p.offeringId}/${p.packageId} → ${p.productId} (${p.price})`
                   ),
                   ``,
+                  `Package ID Map (code lookup):`,
+                  ...Object.entries(report.packageIdMap).map(
+                    ([ent, ids]) => `  ${ent}: [${ids.join(", ")}]`
+                  ),
+                  ``,
                   `Active Entitlements: ${report.customerInfo.activeEntitlements?.join(", ") || "-"}`,
                   ``,
                   report.offerings.error

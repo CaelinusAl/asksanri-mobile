@@ -126,57 +126,26 @@ export async function hasVipEntitlement(): Promise<boolean> {
   return canonical();
 }
 
-// ─── Offering → Package resolution per entitlement ───
-
-/** RevenueCat Dashboard offering identifiers — each must attach the matching Play product (e.g. 369 TRY one-time). */
-const OFFERING_MAP: Record<EntitlementId, string> = {
-  vip_access: "default",
-  role_access: "role",
-  code_training_access: "code_training",
-  general_reading_access: "general_reading",
-  relationship_deep_access: "relationship_deep",
-  career_deep_access: "career_deep",
-  weekly_flow_access: "weekly_flow",
-  person_deep_access: "person_deep",
-  money_deep_access: "money_deep",
-};
-
-const SUBSCRIPTION_ENTITLEMENTS: EntitlementId[] = ["vip_access"];
+// ─── Package resolution per entitlement (single `default` offering) ───
 
 /**
- * VIP = monthly subscription package. All other entitlements are one-time IAP in Play —
- * prefer lifetime/custom package, then any non-monthly package, then first available.
- * (Wrong package type = purchase fails or wrong product in open testing.)
+ * All packages live inside the RC `default` offering. Each entitlement maps to
+ * one or more candidate package identifiers. Order = lookup priority (first match wins).
+ * Keep $rc_* aliases so either dashboard naming convention works.
  */
-function pickPackageFromOffering(
-  entitlement: EntitlementId,
-  offering: PurchasesOffering
-): PurchasesPackage | null {
-  if (SUBSCRIPTION_ENTITLEMENTS.includes(entitlement)) {
-    return (
-      offering.monthly ||
-      offering.availablePackages?.find((pkg) => pkg.identifier === "$rc_monthly") ||
-      offering.availablePackages?.[0] ||
-      null
-    );
-  }
+const DEFAULT_OFFERING_ID = "default";
 
-  const o = offering as PurchasesOffering & {
-    lifetime?: PurchasesPackage;
-    custom?: PurchasesPackage;
-  };
-  if (o.lifetime) return o.lifetime;
-  if (o.custom) return o.custom;
-
-  const pkgs = offering.availablePackages;
-  if (!pkgs?.length) return null;
-
-  const MONTHLY = Purchases.PACKAGE_TYPE.MONTHLY;
-  const nonMonthly = pkgs.find((p) => p.packageType !== MONTHLY);
-  if (nonMonthly) return nonMonthly;
-
-  return pkgs[0];
-}
+const PACKAGE_ID_MAP: Record<EntitlementId, string[]> = {
+  vip_access: ["$rc_monthly", "monthly"],
+  role_access: ["role", "$rc_custom_role", "$rc_lifetime"],
+  code_training_access: ["code", "code_training", "$rc_custom_code"],
+  general_reading_access: ["general_reading"],
+  relationship_deep_access: ["relationship_deep"],
+  career_deep_access: ["career_deep"],
+  weekly_flow_access: ["weekly_flow"],
+  person_deep_access: ["person_deep"],
+  money_deep_access: ["money_deep"],
+};
 
 export async function getPackageForEntitlement(
   entitlement: EntitlementId
@@ -186,38 +155,58 @@ export async function getPackageForEntitlement(
 
   try {
     const offerings = await Purchases.getOfferings();
-    const offeringId = OFFERING_MAP[entitlement];
-    const offering = offeringId === "default"
-      ? offerings?.current
-      : offerings?.all?.[offeringId];
+    const offering = offerings?.current ?? offerings?.all?.[DEFAULT_OFFERING_ID];
 
-    logRC(`getPackageForEntitlement ${entitlement} — offeringId=${offeringId} current=${offerings?.current?.identifier ?? "null"} all=${Object.keys(offerings?.all ?? {}).join(",") || "none"}`);
+    logRC(
+      `getPackageForEntitlement ${entitlement} — currentId=${offerings?.current?.identifier ?? "null"} allIds=[${Object.keys(offerings?.all ?? {}).join(",") || "none"}]`
+    );
 
     if (!offering) {
-      logRC(`Offering "${offeringId}" not found for ${entitlement}`);
-      lastInitError = `Offering "${offeringId}" not found. Available: ${Object.keys(offerings?.all ?? {}).join(", ") || "none"}`;
+      lastInitError = `No "${DEFAULT_OFFERING_ID}" / current offering. Available: ${Object.keys(offerings?.all ?? {}).join(", ") || "none"}`;
       lastInitErrorDetail = {
-        reason: "offering_not_found",
-        offeringId,
+        reason: "no_current_offering",
         entitlement,
         availableOfferings: Object.keys(offerings?.all ?? {}),
         currentOfferingId: offerings?.current?.identifier ?? null,
       };
+      logRC("  ✗ no current/default offering");
       return null;
     }
 
-    const pkg = pickPackageFromOffering(entitlement, offering);
-    if (pkg) {
-      logRC(`Package for ${entitlement}`, {
-        identifier: pkg.identifier,
-        packageType: pkg.packageType,
-        productIdentifier: pkg.product?.identifier,
-        price: pkg.product?.priceString,
-      });
-    } else {
-      logRC(`No package picked for ${entitlement} — offering has ${offering.availablePackages?.length ?? 0} packages`);
+    const candidates = PACKAGE_ID_MAP[entitlement] ?? [];
+    const available = offering.availablePackages ?? [];
+    const availableIds = available.map((p) => p.identifier);
+    const availableProducts = available.map((p) => p.product?.identifier ?? "(null)");
+
+    logRC(
+      `  ${entitlement}: tried=[${candidates.join(", ")}] available=[${availableIds.join(", ")}] products=[${availableProducts.join(", ")}]`
+    );
+
+    for (const id of candidates) {
+      const pkg = available.find((p) => p.identifier === id);
+      if (pkg) {
+        logRC(`  ✓ matched ${entitlement} → pkg=${pkg.identifier} product=${pkg.product?.identifier} price=${pkg.product?.priceString}`);
+        return pkg;
+      }
     }
-    return pkg;
+
+    // Fallback only for VIP (monthly) — use offering.monthly if explicitly provided.
+    if (entitlement === "vip_access" && offering.monthly) {
+      logRC(`  ✓ fallback offering.monthly for vip_access → ${offering.monthly.identifier}`);
+      return offering.monthly;
+    }
+
+    lastInitError = `Package bulunamadı: ${entitlement}. Denendi: [${candidates.join(", ")}] Mevcut: [${availableIds.join(", ")}]`;
+    lastInitErrorDetail = {
+      reason: "package_not_found",
+      entitlement,
+      triedIdentifiers: candidates,
+      availableIdentifiers: availableIds,
+      availableProducts,
+      offeringId: offering.identifier,
+    };
+    logRC(`  ✗ no matching package for ${entitlement}`, lastInitErrorDetail);
+    return null;
   } catch (error: any) {
     lastInitError = error?.message || "Offerings alınamadı";
     lastInitErrorDetail = {
@@ -365,7 +354,7 @@ export type RevenueCatDiagnostics = {
     }>;
     error?: any;
   };
-  entitlementMap: Record<string, string>;
+  packageIdMap: Record<string, string[]>;
 };
 
 export async function diagnoseRevenueCat(): Promise<RevenueCatDiagnostics> {
@@ -381,7 +370,7 @@ export async function diagnoseRevenueCat(): Promise<RevenueCatDiagnostics> {
     initErrorDetail: null,
     customerInfo: { ok: false },
     offerings: { ok: false, currentId: null, allIds: [], packages: [] },
-    entitlementMap: OFFERING_MAP as Record<string, string>,
+    packageIdMap: PACKAGE_ID_MAP,
   };
 
   try {
