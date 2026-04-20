@@ -452,6 +452,7 @@ export async function diagnoseRevenueCat(): Promise<RevenueCatDiagnostics> {
 function classifyPurchaseError(error: any): PremiumPurchaseResult {
   const code = error?.code;
   const message = String(error?.message || "");
+  const storeName = Platform.OS === "ios" ? "App Store" : "Google Play";
 
   if (
     code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR ||
@@ -467,7 +468,7 @@ function classifyPurchaseError(error: any): PremiumPurchaseResult {
     return {
       ok: false,
       reason: "plan_change_not_allowed",
-      message: "Google Play tarafında bekleyen veya çakışan bir abonelik işlemi var.",
+      message: `${storeName} tarafında bekleyen veya çakışan bir abonelik işlemi var.`,
     };
   }
 
@@ -496,7 +497,7 @@ function classifyPurchaseError(error: any): PremiumPurchaseResult {
     return {
       ok: false,
       reason: "pending_google_play",
-      message: "Google Play tarafında bekleyen bir abonelik onayı var.",
+      message: `${storeName} tarafında bekleyen bir abonelik onayı var.`,
     };
   }
 

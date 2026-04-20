@@ -38,6 +38,11 @@ const PRIVACY_URL = "https://asksanri.com/privacy";
 const TERMS_URL = "https://asksanri.com/terms";
 const BG = "#0a0b10";
 
+// Store name is platform-specific. Apple Review rejects any mention of alternative
+// payment methods, so iOS must only reference "App Store".
+const STORE_NAME_TR = Platform.OS === "ios" ? "App Store" : "Google Play";
+const STORE_NAME_EN = Platform.OS === "ios" ? "App Store" : "Google Play";
+
 // ─── Product definitions ───
 
 type PaywallProduct = {
@@ -113,8 +118,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Rolünü Aç",
     ctaEn: "Unlock Your Role",
     isSubscription: false,
-    legalTr: "Tek seferlik. Fiyat Google Play ödeme ekranında gösterilir.",
-    legalEn: "One-time. Price shown at Google Play checkout.",
+    legalTr: `Tek seferlik. Fiyat ${STORE_NAME_TR} ödeme ekranında gösterilir.`,
+    legalEn: `One-time. Price shown at ${STORE_NAME_EN} checkout.`,
   },
   {
     id: "code_training_access",
@@ -141,8 +146,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Eğitimi Aç",
     ctaEn: "Start Training",
     isSubscription: false,
-    legalTr: "Tek seferlik. Fiyat Google Play ödeme ekranında gösterilir.",
-    legalEn: "One-time. Price shown at Google Play checkout.",
+    legalTr: `Tek seferlik. Fiyat ${STORE_NAME_TR} ödeme ekranında gösterilir.`,
+    legalEn: `One-time. Price shown at ${STORE_NAME_EN} checkout.`,
   },
   {
     id: "general_reading_access",
@@ -173,8 +178,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Tüm Okumaları Aç",
     ctaEn: "Unlock All Readings",
     isSubscription: false,
-    legalTr: "Tek seferlik (genel kısa okumalar). Fiyat Google Play ödeme ekranında gösterilir.",
-    legalEn: "One-time (general short readings). Price shown at Google Play checkout.",
+    legalTr: `Tek seferlik (genel kısa okumalar). Fiyat ${STORE_NAME_TR} ödeme ekranında gösterilir.`,
+    legalEn: `One-time (general short readings). Price shown at ${STORE_NAME_EN} checkout.`,
   },
   {
     id: "relationship_deep_access",
@@ -199,8 +204,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
-    legalTr: "Tek seferlik (derin ilişki). Fiyat Google Play ödeme ekranında gösterilir.",
-    legalEn: "One-time (deep relationship). Price shown at Google Play checkout.",
+    legalTr: `Tek seferlik (derin ilişki). Fiyat ${STORE_NAME_TR} ödeme ekranında gösterilir.`,
+    legalEn: `One-time (deep relationship). Price shown at ${STORE_NAME_EN} checkout.`,
   },
   {
     id: "career_deep_access",
@@ -225,8 +230,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
-    legalTr: "Tek seferlik (derin kariyer). Fiyat Google Play ödeme ekranında gösterilir.",
-    legalEn: "One-time (deep career). Price shown at Google Play checkout.",
+    legalTr: `Tek seferlik (derin kariyer). Fiyat ${STORE_NAME_TR} ödeme ekranında gösterilir.`,
+    legalEn: `One-time (deep career). Price shown at ${STORE_NAME_EN} checkout.`,
   },
   {
     id: "weekly_flow_access",
@@ -251,8 +256,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
-    legalTr: "Tek seferlik (derin haftalık akış). Fiyat Google Play ödeme ekranında gösterilir.",
-    legalEn: "One-time (deep weekly flow). Price shown at Google Play checkout.",
+    legalTr: `Tek seferlik (derin haftalık akış). Fiyat ${STORE_NAME_TR} ödeme ekranında gösterilir.`,
+    legalEn: `One-time (deep weekly flow). Price shown at ${STORE_NAME_EN} checkout.`,
   },
   {
     id: "person_deep_access",
@@ -277,8 +282,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
-    legalTr: "Tek seferlik (derin kişi analizi). Fiyat Google Play ödeme ekranında gösterilir.",
-    legalEn: "One-time (deep person analysis). Price shown at Google Play checkout.",
+    legalTr: `Tek seferlik (derin kişi analizi). Fiyat ${STORE_NAME_TR} ödeme ekranında gösterilir.`,
+    legalEn: `One-time (deep person analysis). Price shown at ${STORE_NAME_EN} checkout.`,
   },
   {
     id: "money_deep_access",
@@ -303,8 +308,8 @@ const PAYWALL_PRODUCTS: PaywallProduct[] = [
     ctaTr: "Derine İn",
     ctaEn: "Go Deeper",
     isSubscription: false,
-    legalTr: "Tek seferlik (derin para akışı). Fiyat Google Play ödeme ekranında gösterilir.",
-    legalEn: "One-time (deep money flow). Price shown at Google Play checkout.",
+    legalTr: `Tek seferlik (derin para akışı). Fiyat ${STORE_NAME_TR} ödeme ekranında gösterilir.`,
+    legalEn: `One-time (deep money flow). Price shown at ${STORE_NAME_EN} checkout.`,
   },
 ];
 

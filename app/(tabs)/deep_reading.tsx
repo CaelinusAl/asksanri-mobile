@@ -350,7 +350,9 @@ function GeneralPaywall({ onBuy, name }: { onBuy: () => void; name: string }) {
           <Text style={st.paywallCtaGlyph}>◈</Text>
           <View style={st.paywallCtaBody}>
             <Text style={st.paywallCtaTitle}>Tüm Okumaları Aç</Text>
-            <Text style={st.paywallCtaSub}>Tüm kısa okumalar açılır. Fiyat Google Play ödeme ekranında.</Text>
+            <Text style={st.paywallCtaSub}>
+              {`Tüm kısa okumalar açılır. Fiyat ${Platform.OS === "ios" ? "App Store" : "Google Play"} ödeme ekranında.`}
+            </Text>
           </View>
         </LinearGradient>
       </Pressable>
