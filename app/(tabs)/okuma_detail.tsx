@@ -30,8 +30,7 @@ type Lang = "tr" | "en";
  */
 const HERO_IMAGES: Record<string, any> = {
   turkiye_hologram: require("../../assets/turkiye_hologram.jpg"),
-  // nevada eklendikten sonra aşağıdaki satırın başındaki // 'yi kaldır:
-  // nevada: require("../../assets/nevada.jpg"),
+  nevada: require("../../assets/nevada.jpg"),
 };
 
 const PAYWALL_MARKER = "<<<SANRI_PAYWALL>>>";
