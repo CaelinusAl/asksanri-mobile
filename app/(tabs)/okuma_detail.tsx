@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   Image,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -49,7 +50,10 @@ const T = {
     notFound: "Okuma bulunamadı.",
     derinAcilimTitle: "DERİN AÇILIM KİLİTLİ",
     derinAcilimSub: "Görünmeyen katman, sistem okuması ve kapanış kodu — sadece açana açılır.",
-    derinAcilimUnlock: (price: number) => `₺ ${price.toFixed(2).replace(".", ",")} ile Derin Açılımı Aç`,
+    derinAcilimUnlock: (price: number) =>
+      Platform.OS === "ios"
+        ? "Derin Açılımı Aç"
+        : `₺ ${price.toFixed(2).replace(".", ",")} ile Derin Açılımı Aç`,
     derinAcilimNote: "Tek seferlik açılım — bu okumaya sınırsız erişim.",
     ustBilincTitle: "ÜST BİLİNÇ YORUMLARI",
     ustBilincSub: "Bu okuma çoklu katmandan görüldü. Aşağıda ses verenler.",
@@ -69,7 +73,10 @@ const T = {
     notFound: "Reading not found.",
     derinAcilimTitle: "DEEP UNFOLDING LOCKED",
     derinAcilimSub: "Invisible layer, system reading, closing code — opens only to those who unlock.",
-    derinAcilimUnlock: (price: number) => `Unlock Deep Unfolding for ₺ ${price.toFixed(2).replace(".", ",")}`,
+    derinAcilimUnlock: (price: number) =>
+      Platform.OS === "ios"
+        ? "Unlock Deep Unfolding"
+        : `Unlock Deep Unfolding for ₺ ${price.toFixed(2).replace(".", ",")}`,
     derinAcilimNote: "One-time unlock — unlimited access to this reading.",
     ustBilincTitle: "UPPER CONSCIOUSNESS COMMENTARY",
     ustBilincSub: "This reading was seen across many layers. Voices below.",

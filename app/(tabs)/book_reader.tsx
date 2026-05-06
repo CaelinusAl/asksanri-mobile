@@ -180,7 +180,9 @@ export default function BookReaderScreen() {
             <Text style={s.lockedTitle}>Premium İçerik</Text>
             <Text style={s.lockedText}>
               Bu sayfa ve sonrası VIP erişim gerektirir.{"\n"}
-              ₺{m.price} ile tüm kitabı açabilirsin.
+              {Platform.OS === "ios"
+                ? "VIP ile tüm kitabı açabilirsin."
+                : `₺${m.price} ile tüm kitabı açabilirsin.`}
             </Text>
             <Pressable style={[s.mainBtn, { backgroundColor: m.color }]} onPress={goVipPurchase}>
               <Text style={s.mainBtnText}>{"VIP\u2019e Geç"}</Text>
@@ -347,7 +349,11 @@ export default function BookReaderScreen() {
               {meta.isPremium ? (
                 <View style={s.priceBadge}>
                   <Text style={s.priceText}>
-                    {canAccess ? "Erişim Açık" : `₺${meta.price}`}
+                    {canAccess
+                      ? "Erişim Açık"
+                      : Platform.OS === "ios"
+                      ? "VIP"
+                      : `₺${meta.price}`}
                   </Text>
                 </View>
               ) : (
@@ -360,7 +366,11 @@ export default function BookReaderScreen() {
 
           {meta.isPremium && !canAccess && (
             <Pressable style={[s.mainBtn, { backgroundColor: meta.color }]} onPress={goVipPurchase}>
-              <Text style={s.mainBtnText}>{`VIP ile satın al · ₺${meta.price}`}</Text>
+              <Text style={s.mainBtnText}>
+                {Platform.OS === "ios"
+                  ? "VIP ile satın al"
+                  : `VIP ile satın al · ₺${meta.price}`}
+              </Text>
             </Pressable>
           )}
 
@@ -441,7 +451,11 @@ export default function BookReaderScreen() {
                 style={[s.tocBuyBtn, { borderColor: meta.color + "55", backgroundColor: meta.color + "18" }]}
                 onPress={goVipPurchase}
               >
-                <Text style={[s.tocBuyBtnText, { color: meta.color }]}>{`VIP ile satın al · ₺${meta.price}`}</Text>
+                <Text style={[s.tocBuyBtnText, { color: meta.color }]}>
+                  {Platform.OS === "ios"
+                    ? "VIP ile satın al"
+                    : `VIP ile satın al · ₺${meta.price}`}
+                </Text>
               </Pressable>
             </View>
           )}

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   StatusBar,
@@ -248,7 +249,9 @@ export default function KutuphaneScreen() {
                   {book.pageCount != null ? `${book.pageCount} sayfa` : `${book.chapters.length} bölüm`}
                 </Text>
                 {book.isPremium ? (
-                  <Text style={s.bookPrice}>₺{book.price}</Text>
+                  <Text style={s.bookPrice}>
+                    {Platform.OS === "ios" ? "VIP" : `₺${book.price}`}
+                  </Text>
                 ) : (
                   <Text style={[s.bookPrice, { color: "#48BB78" }]}>Ücretsiz</Text>
                 )}
