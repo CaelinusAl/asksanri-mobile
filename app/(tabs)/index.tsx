@@ -14,6 +14,7 @@ import { router } from "expo-router";
 import * as Notifications from "expo-notifications";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getOnboarding,
   saveOnboarding,
@@ -28,6 +29,7 @@ const BG = "#07080d";
 type Step = 0 | 1 | 2 | 3;
 
 export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>(0);
   const [tone, setTone] = useState<ReminderTone>("durulma");
   const [time, setTime] = useState<ReminderTime>("morning");
@@ -160,7 +162,7 @@ export default function OnboardingScreen() {
       <StatusBar barStyle="light-content" />
 
       {/* Top bar */}
-      <View style={st.topBar}>
+      <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         {step > 0 ? (
           <Pressable onPress={onBack} style={st.topBtn} hitSlop={12}>
             <Text style={st.topBtnTxt}>{T.backBtn}</Text>
@@ -181,7 +183,14 @@ export default function OnboardingScreen() {
       </View>
 
       <Animated.View
-        style={[st.body, { opacity: fade, transform: [{ translateY: slide }] }]}
+        style={[
+          st.body,
+          {
+            opacity: fade,
+            transform: [{ translateY: slide }],
+            paddingBottom: Math.max(insets.bottom + 16, 32),
+          },
+        ]}
       >
         {step === 0 && (
           <>
@@ -321,7 +330,7 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === "ios" ? 56 : 36,
+    // paddingTop dinamik olarak inline (safe area inset).
     paddingBottom: 8,
   },
   topBtn: { padding: 8, minWidth: 60 },
@@ -346,7 +355,7 @@ const st = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 28,
     paddingTop: 24,
-    paddingBottom: 32,
+    // paddingBottom dinamik olarak inline (safe area inset).
   },
   kicker: {
     color: "rgba(255,255,255,0.40)",

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getArchive,
   deleteArchiveEntry,
@@ -25,6 +26,7 @@ import { TONE_META } from "../../lib/dailyReminders";
 const BG = "#07080d";
 
 export default function ArchiveScreen() {
+  const insets = useSafeAreaInsets();
   const [ob, setOb] = useState<OnboardingState | null>(null);
   const [entries, setEntries] = useState<ArchiveEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +100,7 @@ export default function ArchiveScreen() {
     <View style={st.root}>
       <StatusBar barStyle="light-content" />
 
-      <View style={st.topBar}>
+      <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={st.topBtn}>
           <Text style={st.topBtnTxt}>{T.back}</Text>
         </Pressable>
@@ -120,7 +122,12 @@ export default function ArchiveScreen() {
           </Pressable>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={st.list}>
+        <ScrollView
+          contentContainerStyle={[
+            st.list,
+            { paddingBottom: Math.max(insets.bottom + 16, 28) },
+          ]}
+        >
           {entries.map((e) => {
             const meta = TONE_META[e.tone] || TONE_META.durulma;
             return (
@@ -165,7 +172,7 @@ const st = StyleSheet.create({
   topBar: {
     flexDirection: "row",
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === "ios" ? 56 : 36,
+    // paddingTop dinamik olarak inline (safe area inset).
     paddingBottom: 8,
   },
   topBtn: { padding: 6 },
@@ -205,7 +212,7 @@ const st = StyleSheet.create({
     letterSpacing: 0.4,
   },
 
-  list: { paddingHorizontal: 18, paddingBottom: 28, gap: 12 },
+  list: { paddingHorizontal: 18, gap: 12 },
   card: {
     padding: 16,
     borderRadius: 18,

@@ -12,6 +12,7 @@ import {
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getOnboarding,
   updateTone,
@@ -29,6 +30,7 @@ import { scheduleDaily, cancelDaily } from "../../lib/notificationScheduler";
 const BG = "#07080d";
 
 export default function SilenceScreen() {
+  const insets = useSafeAreaInsets();
   const [ob, setOb] = useState<OnboardingState | null>(null);
   const [notifStatus, setNotifStatus] =
     useState<Notifications.PermissionStatus | "unknown">("unknown");
@@ -169,13 +171,18 @@ export default function SilenceScreen() {
     <View style={st.root}>
       <StatusBar barStyle="light-content" />
 
-      <View style={st.topBar}>
+      <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={st.topBtn}>
           <Text style={st.topBtnTxt}>{T.back}</Text>
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={st.body}>
+      <ScrollView
+        contentContainerStyle={[
+          st.body,
+          { paddingBottom: Math.max(insets.bottom + 24, 36) },
+        ]}
+      >
         <Text style={st.title}>{T.title}</Text>
         <Text style={st.sub}>{T.sub}</Text>
 
@@ -304,7 +311,7 @@ const st = StyleSheet.create({
   topBar: {
     flexDirection: "row",
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === "ios" ? 56 : 36,
+    // paddingTop dinamik olarak inline (safe area inset).
     paddingBottom: 8,
   },
   topBtn: { padding: 6 },

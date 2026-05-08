@@ -14,6 +14,7 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiPostJson } from "../../lib/apiClient";
 import { API } from "../../lib/apiClient";
 import {
@@ -38,6 +39,7 @@ export default function ChatScreen() {
   const params = useLocalSearchParams<{ prompt?: string; tone?: string }>();
   const initialPrompt = String(params.prompt || "").trim();
   const incomingTone = (params.tone as ReminderTone) || "durulma";
+  const insets = useSafeAreaInsets();
 
   const [ob, setOb] = useState<OnboardingState | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -186,7 +188,7 @@ export default function ChatScreen() {
     >
       <StatusBar barStyle="light-content" />
 
-      <View style={st.topBar}>
+      <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={st.topBtn}>
           <Text style={st.topBtnTxt}>{T.backToDaily}</Text>
         </Pressable>
@@ -235,7 +237,12 @@ export default function ChatScreen() {
         )}
       </ScrollView>
 
-      <View style={st.inputRow}>
+      <View
+        style={[
+          st.inputRow,
+          { paddingBottom: Math.max(insets.bottom + 8, 14) },
+        ]}
+      >
         <TextInput
           value={draft}
           onChangeText={setDraft}
@@ -271,7 +278,7 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === "ios" ? 56 : 36,
+    // paddingTop dinamik olarak inline (safe area inset).
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.04)",
@@ -341,7 +348,7 @@ const st = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 24 : 12,
+    // paddingBottom dinamik olarak inline'da set edilir (safe area inset).
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.04)",
     backgroundColor: BG,

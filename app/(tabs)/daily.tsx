@@ -12,6 +12,7 @@ import {
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getOnboarding,
   type OnboardingState,
@@ -25,6 +26,7 @@ import {
 const BG = "#07080d";
 
 export default function DailyScreen() {
+  const insets = useSafeAreaInsets();
   const [ob, setOb] = useState<OnboardingState | null>(null);
   const [reminder, setReminder] = useState<Reminder | null>(null);
   const [text, setText] = useState<string>("");
@@ -91,7 +93,7 @@ export default function DailyScreen() {
       <StatusBar barStyle="light-content" />
 
       {/* Top bar */}
-      <View style={st.topBar}>
+      <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <View style={[st.toneChip, { borderColor: `${meta.color}55` }]}>
           <Text style={[st.toneChipGlyph, { color: meta.color }]}>{meta.glyph}</Text>
           <Text style={[st.toneChipLabel, { color: meta.color }]}>
@@ -114,7 +116,7 @@ export default function DailyScreen() {
       </View>
 
       {/* Actions */}
-      <View style={st.actions}>
+      <View style={[st.actions, { paddingBottom: Math.max(insets.bottom + 16, 28) }]}>
         <Pressable onPress={onWrite} style={st.primaryBtn}>
           <LinearGradient
             colors={[meta.color, "#5e3bff"]}
@@ -148,7 +150,7 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 18,
-    paddingTop: Platform.OS === "ios" ? 56 : 36,
+    // paddingTop dinamik olarak inline (safe area inset).
     paddingBottom: 8,
   },
   toneChip: {
@@ -195,7 +197,7 @@ const st = StyleSheet.create({
 
   actions: {
     paddingHorizontal: 28,
-    paddingBottom: Platform.OS === "ios" ? 42 : 28,
+    // paddingBottom dinamik olarak inline (safe area inset).
   },
   primaryBtn: { borderRadius: 22, overflow: "hidden" },
   primaryBtnGrad: {
