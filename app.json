@@ -81,7 +81,8 @@
       "navigationBar": {
         "backgroundColor": "#07080d",
         "barStyle": "light-content"
-      }
+      },
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-font",

@@ -183,8 +183,9 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={st.root}
+      keyboardVerticalOffset={0}
     >
       <StatusBar barStyle="light-content" />
 
@@ -240,12 +241,19 @@ export default function ChatScreen() {
       <View
         style={[
           st.inputRow,
-          { paddingBottom: Math.max(insets.bottom + 8, 14) },
+          { paddingBottom: Math.max(insets.bottom, 10) },
         ]}
       >
         <TextInput
           value={draft}
           onChangeText={setDraft}
+          onFocus={() => {
+            // Klavye açıldığında son mesaj görünür kalsın.
+            setTimeout(
+              () => scrollRef.current?.scrollToEnd({ animated: true }),
+              250
+            );
+          }}
           placeholder={T.placeholder}
           placeholderTextColor="rgba(255,255,255,0.34)"
           style={st.input}
