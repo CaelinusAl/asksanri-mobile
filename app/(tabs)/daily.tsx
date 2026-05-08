@@ -22,6 +22,7 @@ import {
   TONE_META,
   type Reminder,
 } from "../../lib/dailyReminders";
+import PyramidMenu from "../../components/PyramidMenu";
 
 const BG = "#07080d";
 
@@ -111,6 +112,8 @@ export default function DailyScreen() {
         translucent={false}
       />
 
+      <PyramidMenu lang={ob.lang} />
+
       {/* Top bar */}
       <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <View style={[st.toneChip, { borderColor: `${meta.color}55` }]}>
@@ -181,7 +184,8 @@ const st = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 18,
+    paddingLeft: 64, // PyramidMenu'ye yer
+    paddingRight: 18,
     // paddingTop dinamik olarak inline (safe area inset).
     paddingBottom: 8,
   },

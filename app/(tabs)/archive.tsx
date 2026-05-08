@@ -22,6 +22,7 @@ import {
   type OnboardingState,
 } from "../../lib/onboardingStore";
 import { TONE_META } from "../../lib/dailyReminders";
+import PyramidMenu from "../../components/PyramidMenu";
 
 const BG = "#07080d";
 
@@ -112,6 +113,8 @@ export default function ArchiveScreen() {
         translucent={false}
       />
 
+      <PyramidMenu lang={ob.lang} />
+
       <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={st.topBtn}>
           <Text style={st.topBtnTxt}>{T.back}</Text>
@@ -183,7 +186,8 @@ const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: BG },
   topBar: {
     flexDirection: "row",
-    paddingHorizontal: 18,
+    paddingLeft: 64, // PyramidMenu'ye yer
+    paddingRight: 18,
     // paddingTop dinamik olarak inline (safe area inset).
     paddingBottom: 8,
   },

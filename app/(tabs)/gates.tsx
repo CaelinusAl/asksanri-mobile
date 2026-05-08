@@ -22,6 +22,7 @@ import {
 import { useEntitlementStore } from "../../lib/entitlementStore";
 import { useAuth } from "../../context/AuthContext";
 import Constants from "expo-constants";
+import PyramidMenu from "../../components/PyramidMenu";
 
 const DOOR_BG = require("../../assets/door_holo.jpg");
 
@@ -130,6 +131,8 @@ export default function GatesScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <StatusBar barStyle="light-content" translucent={false} />
+
+      <PyramidMenu lang={lang} />
 
       <View style={styles.bg}>
         <View style={styles.topbar}>
@@ -300,7 +303,8 @@ const styles = StyleSheet.create({
   topbar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
+    paddingLeft: 64, // PyramidMenu'ye yer
+    paddingRight: 14,
     paddingTop: 6,
     paddingBottom: 6,
     gap: 8,

@@ -32,6 +32,7 @@ import {
   charDelay,
   gapBeforeBubble,
 } from "../../lib/humanizeReply";
+import PyramidMenu from "../../components/PyramidMenu";
 
 const BG = "#07080d";
 
@@ -324,6 +325,8 @@ export default function ChatScreen() {
         translucent={false}
       />
 
+      <PyramidMenu lang={ob.lang} />
+
       <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={st.topBtn}>
           <Text style={st.topBtnTxt}>{T.backToDaily}</Text>
@@ -425,7 +428,8 @@ const st = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 18,
+    paddingLeft: 64, // PyramidMenu'ye yer
+    paddingRight: 18,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.04)",
