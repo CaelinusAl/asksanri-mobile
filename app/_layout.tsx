@@ -11,8 +11,13 @@ import { initSessionTracking, cleanupSessionTracking } from "../lib/analytics";
 const APP_BG = "#07080d";
 
 // Hatırlatıcı MVP — uygulama her zaman `/` (index) ile açılır.
-// Buradaki `index.tsx` onboarding state'ine göre /(tabs) ya da
-// /(tabs)/daily'ye yönlendirir. Eski `/rabbit` artık entry değil.
+// Akış:
+//   /  →  /rabbit  (atmospheric giriş, matrix + tavşan)
+//          ↓ "Frekans Alanı Aç"
+//          ↓
+//          → /(tabs)         (onboarding henüz tamamlanmadıysa)
+//          → /(tabs)/daily   (tamamlandıysa, günün cümlesi)
+// Login zorlaması yok — Apple 5.1.1(v) korumalı.
 export const unstable_settings = {
   initialRouteName: "index",
 };

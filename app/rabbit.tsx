@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useAuth } from "../context/AuthContext";
+import { getOnboarding } from "../lib/onboardingStore";
 
 const RABBIT = require("../assets/rabbit.jpg");
 const MATRIX_BG = require("../assets/matrix_rain.jpg");
@@ -32,13 +33,13 @@ const COPY = {
     guestDesc:
       "Sanrı bilgi üretmez.\nAlan açar. Anlam sende şekillenir.",
     guestCardTitle: "SANRI AI",
-    guestCardText: "Alanı açmak için giriş yap. Frekansın seni bekliyor.",
+    guestCardText: "Bir cümle, doğru saatte.\nDokun, kapı aç.",
     guestButton: "🔑 Frekans Alanı Aç",
     welcome: "Hoş geldin,",
     authedDesc:
       "Sanrı alanı...\nKendinden kendine yapılan bir yolculuktur.\nHer kapı, sende zaten var olanı hatırlatır.",
     authedCardTitle: "FREKANS ALANI",
-    authedCardText: "Frekans alanı hazır.\nŞimdi kendi titreşimini duymaya geçebilirsin.",
+    authedCardText: "Alan hazır.\nGünün cümlesi seni bekliyor.",
     authedButton: "Frekans Alanına Geç",
     logout: "Çıkış Yap",
   },
@@ -51,13 +52,13 @@ const COPY = {
     guestDesc:
       "SANRI doesn't produce information.\nIt opens meaning — reflects you back to you.",
     guestCardTitle: "SANRI AI",
-    guestCardText: "Sign in to open the field. Your frequency awaits.",
-    guestButton: "🔑 Open Frequency Gate",
+    guestCardText: "One sentence. At the right hour.\nTouch — the gate opens.",
+    guestButton: "🔑 Open Frequency Field",
     welcome: "Welcome,",
     authedDesc:
       "The Sanrı field...\nA journey from yourself to yourself.\nEvery gate reminds you of what already exists within.",
     authedCardTitle: "FREQUENCY FIELD",
-    authedCardText: "The frequency field is ready.\nNow begin to hear your own vibration.",
+    authedCardText: "The field is ready.\nToday's sentence is waiting.",
     authedButton: "Enter Frequency Field",
     logout: "Sign Out",
   },
@@ -204,12 +205,19 @@ export default function RabbitScreen() {
     ).start();
   }, [fadeIn, slideUp, cardFade, cardSlide, bgPulse]);
 
-  const onEnter = () => {
-    if (isAuthenticated) {
-      router.replace("/(tabs)/gates" as any);
-      return;
+  // Frekans Alanı Aç → onboarding state'ine göre yönlendir.
+  // ESKİ: guest kullanıcı /(auth)/login'e zorlanıyordu (Apple 5.1.1(v) ihlali).
+  // YENİ: tüm kullanıcılar onboarding tamamlanmamışsa /(tabs)'e (onboarding),
+  // tamamlanmışsa /(tabs)/daily'ye gider. Login isteğe bağlıdır.
+  const onEnter = async () => {
+    try {
+      const ob = await getOnboarding();
+      router.replace(
+        (ob.completed ? "/(tabs)/daily" : "/(tabs)") as any
+      );
+    } catch {
+      router.replace("/(tabs)" as any);
     }
-    router.replace("/(auth)/login" as any);
   };
 
   if (isLoading) return null;

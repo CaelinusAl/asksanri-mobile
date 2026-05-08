@@ -1,36 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Redirect } from "expo-router";
-import { getOnboarding } from "../lib/onboardingStore";
 
 /**
- * Root entry — onboarding-bilen yönlendirici.
+ * Root entry — Rabbit'e yönlendirir.
  *
- * Kural:
- *  - Onboarding tamamlanmamışsa → /(tabs) (onboarding ekranı = (tabs)/index.tsx)
- *  - Tamamlanmışsa → /(tabs)/daily (günün cümlesi)
+ * Akış:
+ *  /  →  /rabbit  (ruh dolu giriş ekranı, matrix + tavşan)
+ *           ↓ kullanıcı "Frekans Alanı Aç" basınca
+ *           ↓
+ *           rabbit.tsx onboarding state'ini okur:
+ *             - tamamlanmamışsa  → /(tabs)         (onboarding)
+ *             - tamamlanmışsa    → /(tabs)/daily    (günün cümlesi)
  *
- * Eski `/rabbit` ve forced `/(auth)/login` redirect'i KALDIRILDI
- * (Apple 5.1.1(v) uyumu). Login sadece premium gate'inde açılır.
+ * Önemli: Eskiden rabbit guest'i /(auth)/login'e zorluyordu — bu Apple
+ * 5.1.1(v) ihlaliydi. Artık rabbit kapısı her zaman onboarding ya da
+ * daily'ye açılır; login sadece premium gate'inde gerekir.
  */
 export default function IndexScreen() {
-  const [target, setTarget] = useState<string | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const ob = await getOnboarding();
-        if (!alive) return;
-        setTarget(ob.completed ? "/(tabs)/daily" : "/(tabs)");
-      } catch {
-        if (alive) setTarget("/(tabs)");
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  if (!target) return null;
-  return <Redirect href={target as any} />;
+  return <Redirect href={"/rabbit" as any} />;
 }
