@@ -454,7 +454,16 @@ export default function VipScreen() {
     code?: string;
     city?: string;
     lang?: string;
+    source?: string;
+    name?: string;
+    dob?: string;
   }>();
+
+  // Bağlam-duyarlı hero — kullanıcı hangi ürün-yolundan geldi?
+  const source = String(params.source || "");
+  const inputName = String(params.name || "").trim();
+  const inputDob = String(params.dob || "").trim();
+  const fromMatrixDeep = source === "matrix_deep";
 
   const lang = params.lang === "en" ? "en" : "tr";
   const tr = lang === "tr";
@@ -611,6 +620,35 @@ export default function VipScreen() {
           </>
         )}
 
+        {/* Bağlam-duyarlı hero — Matrix Derin Analiz */}
+        {isSingleProduct && fromMatrixDeep && (
+          <View style={st.contextHero}>
+            <Text style={st.contextEyebrow}>
+              {tr ? "MATRIX · DERİN ANALİZ" : "MATRIX · DEEP ANALYSIS"}
+            </Text>
+            <Text style={st.contextTitle}>
+              {tr
+                ? "Yüzeyi gördün.\nŞimdi içerideki haritan."
+                : "You saw the surface.\nNow your inner map."}
+            </Text>
+            {(inputName || inputDob) && (
+              <View style={st.contextChip}>
+                <Text style={st.contextChipKey}>
+                  {inputName ? (tr ? "Ad" : "Name") : (tr ? "Tarih" : "Date")}
+                </Text>
+                <Text style={st.contextChipVal}>
+                  {inputName || inputDob}
+                </Text>
+              </View>
+            )}
+            <Text style={st.contextNote}>
+              {tr
+                ? "Aşağıdaki paket tek bir aboneliktir. App Store üzerinden istediğin zaman iptal edebilirsin."
+                : "The package below is a single subscription. Cancel anytime via the App Store."}
+            </Text>
+          </View>
+        )}
+
         {visibleProducts.map((product) => (
           <PaywallCard
             key={product.id}
@@ -742,6 +780,59 @@ const st = StyleSheet.create({
     lineHeight: 20,
     textAlign: "center",
     marginBottom: 4,
+  },
+
+  // Bağlam-duyarlı hero (Matrix Deep gibi tek-ürün yönlendirmeleri için)
+  contextHero: {
+    marginBottom: 18,
+    padding: 18,
+    borderRadius: 20,
+    backgroundColor: "rgba(167,139,250,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(167,139,250,0.32)",
+  },
+  contextEyebrow: {
+    color: "rgba(167,139,250,0.85)",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+  },
+  contextTitle: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: 0.3,
+    marginTop: 6,
+    lineHeight: 28,
+  },
+  contextChip: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    flexDirection: "row",
+    gap: 8,
+  },
+  contextChipKey: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  contextChipVal: {
+    color: "white",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  contextNote: {
+    marginTop: 12,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    lineHeight: 18,
   },
 
   // Card

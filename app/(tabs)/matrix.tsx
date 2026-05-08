@@ -1,5 +1,5 @@
 // app/(tabs)/matrix.tsx
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
   View,
@@ -12,12 +12,13 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import { getCurrentMonthlyPackage } from "../../lib/revenuecat";
 import { useEntitlementStore } from "../../lib/entitlementStore";
 import { trackEvent } from "../../lib/analytics";
 import { useScreenTime } from "../../lib/useScreenTime";
+import { getMatrixTrialState } from "../../lib/matrixTrialStore";
 import PyramidMenu from "../../components/PyramidMenu";
 
 const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
@@ -29,7 +30,7 @@ const T = {
   tr: {
     kicker: "CAELINUS AI · BİLİNÇ AYNASI",
     title: "MATRIX OKUMA",
-    sub: "İsim veya Doğum Tarihi gir. Sistem frekansını, arketipini ve rolünü okur.",
+    sub: "İsim veya doğum tarihi gir. Sistem frekansını, arketipini ve gizli rolünü okur.",
     modeName: "İsim Frekans Okuma",
     modeDob: "Doğum Tarihi Frekans Okuma",
     cycle: "Cycle: ",
@@ -37,20 +38,30 @@ const T = {
     namePh: "Ad Soyad",
     dobLabel: "Doğum Tarihi (GG.AA.YYYY)",
     dobPh: "GG.AA.YYYY",
-    freeBtn: "Ücretsiz Hızlı Okuma",
+    freeBtn: "Ücretsiz Sezgisel Okuma",
+    freeBtnUsed: "Kısa okumayı gördün — Derin Analiz'e geç",
+    trialBadgeFree: "1 ücretsiz sezgisel okuma hakkın var",
+    trialBadgeUsed: "Ücretsiz okumanı kullandın",
+    trialHelper: "Önce kısa, nokta atışı bir yansıma alırsın. Devamını isteyince Derin Analiz açılır.",
     needName: "Lütfen ad soyad gir.",
     needDob: "Lütfen doğum tarihini gir (GG.AA.YYYY).",
-    roleTitle: "Matrix Rol Okuma",
-    roleSub: "Sistem rolü · akıştaki görevin · karakter kodu",
-    roleBtn: "Rolü Aç",
-    premiumTitle: "Premium Aylık Okuma",
-    premiumSub: "Aşk · ilişki · iş · para · kader rotası · haftalık akış",
-    premiumBtn: "Premium",
+    deepTitle: "DERİN MATRIX ANALİZİ",
+    deepSub: "Karakter kodun, gizli rolün, ilişki frekansın, para hattın ve haftalık akışın — uzun, kişiye özel okuma.",
+    deepBullets: [
+      "Tam karakter kodu çözümlemesi",
+      "Gizli rol ve gölge frekansı",
+      "İlişki / iş / para hatları",
+      "Haftalık akış uyarıları",
+    ],
+    deepBtn: "Derin Analizi Aç",
+    deepActive: "Derin Analiz Aktif",
+    rolePill: "ROL OKUMA",
+    roleTagline: "Akıştaki gizli görevin — karakter kodun.",
   },
   en: {
     kicker: "CAELINUS AI · CONSCIOUSNESS MIRROR",
     title: "MATRIX READING",
-    sub: "Enter your Name or Birth Date. It reads frequency, archetype, and role.",
+    sub: "Enter your name or birth date. It reads your frequency, archetype, and hidden role.",
     modeName: "Name Frequency",
     modeDob: "Birth Date Frequency",
     cycle: "Cycle: ",
@@ -58,15 +69,25 @@ const T = {
     namePh: "Full Name",
     dobLabel: "Birth Date (DD.MM.YYYY)",
     dobPh: "DD.MM.YYYY",
-    freeBtn: "Free Quick Reading",
+    freeBtn: "Free Intuitive Reading",
+    freeBtnUsed: "You've seen the short one — go to Deep Analysis",
+    trialBadgeFree: "1 free intuitive reading available",
+    trialBadgeUsed: "Free reading already used",
+    trialHelper: "First a short, on-point reflection. Want more? Deep Analysis opens up.",
     needName: "Please enter your name.",
     needDob: "Please enter birth date (DD.MM.YYYY).",
-    roleTitle: "Matrix Role Reading",
-    roleSub: "System role · duty in the stream · character code",
-    roleBtn: "Unlock Role",
-    premiumTitle: "Premium Monthly",
-    premiumSub: "Love · relationships · work · money · destiny path · weekly flow",
-    premiumBtn: "Premium",
+    deepTitle: "DEEP MATRIX ANALYSIS",
+    deepSub: "Your character code, hidden role, relationship frequency, money line, and weekly flow — long, personal.",
+    deepBullets: [
+      "Full character code breakdown",
+      "Hidden role and shadow frequency",
+      "Relationship / work / money lines",
+      "Weekly flow alerts",
+    ],
+    deepBtn: "Unlock Deep Analysis",
+    deepActive: "Deep Analysis Active",
+    rolePill: "ROLE READING",
+    roleTagline: "Your hidden duty in the stream — character code.",
   },
 } as const;
 
@@ -88,6 +109,20 @@ export default function MatrixScreen() {
   const isPremium = entitlements.vip_access;
   const matrixRoleUnlocked = entitlements.role_access;
 
+  // Trial: cihazda ücretsiz okuma hakkı var mı? Ekran her odaklandığında tazele.
+  const [trialUsed, setTrialUsed] = useState<boolean>(false);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getMatrixTrialState().then((s) => {
+        if (active) setTrialUsed(s.used);
+      });
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
   useEffect(() => {
     trackEvent("page_view", { userId: user?.id, meta: { page: "matrix" } });
     if (__DEV__) {
@@ -102,8 +137,11 @@ export default function MatrixScreen() {
     router.replace("/(tabs)/gates" as any);
   };
 
-  // ✅ sadece mini ekrana gider (sanri_flow yok)
-  const onFree = () => {
+  // Ürün akışı:
+  //   - Trial kullanılmamışsa → matrix_mini (kısa Sanrı yansıması + numeroloji)
+  //   - Trial kullanılmışsa → doğrudan Derin Analiz paywall'ı (vip.tsx)
+  // Her iki durumda da kullanıcıdan ad/dob alınır (paywall'a anlamlı bir önizleme verebilmek için).
+  const onPrimaryAction = () => {
     const safeName = (name || "").trim();
     const safeDob = (dob || "").trim();
 
@@ -116,11 +154,16 @@ export default function MatrixScreen() {
       return;
     }
 
+    if (trialUsed) {
+      goDeep(safeName, safeDob);
+      return;
+    }
+
     router.push({
       pathname: "/(tabs)/matrix_mini",
       params: {
         lang,
-        mode, // "name" | "dob"
+        mode,
         name: safeName,
         dob: safeDob,
         cycle,
@@ -128,20 +171,46 @@ export default function MatrixScreen() {
     } as any);
   };
 
-  const goVip = (source: "role" | "premium_monthly") => {
-    if (source === "role") {
-      if (matrixRoleUnlocked) {
-        Alert.alert("Sanrı", lang === "tr" ? "Rol Okuma zaten aktif." : "Role Reading is already active.");
-        return;
-      }
-      router.push({ pathname: "/(tabs)/vip", params: { lang, entitlement: "role_access" } } as any);
-    } else {
-      if (isPremium) {
-        Alert.alert("Sanrı", lang === "tr" ? "VIP zaten aktif." : "VIP is already active.");
-        return;
-      }
-      router.push({ pathname: "/(tabs)/vip", params: { lang, entitlement: "vip_access" } } as any);
+  const goDeep = (presetName?: string, presetDob?: string) => {
+    if (isPremium) {
+      Alert.alert(
+        "Sanrı",
+        lang === "tr" ? "Derin Analiz zaten aktif." : "Deep Analysis is already active."
+      );
+      router.push({
+        pathname: "/(tabs)/deep_reading",
+        params: {
+          lang,
+          name: presetName ?? name ?? "",
+          dob: presetDob ?? dob ?? "",
+        },
+      } as any);
+      return;
     }
+    router.push({
+      pathname: "/(tabs)/vip",
+      params: {
+        lang,
+        entitlement: "vip_access",
+        source: "matrix_deep",
+        name: presetName ?? name ?? "",
+        dob: presetDob ?? dob ?? "",
+      },
+    } as any);
+  };
+
+  const goRole = () => {
+    if (matrixRoleUnlocked) {
+      Alert.alert(
+        "Sanrı",
+        lang === "tr" ? "Rol Okuma zaten aktif." : "Role Reading is already active."
+      );
+      return;
+    }
+    router.push({
+      pathname: "/(tabs)/vip",
+      params: { lang, entitlement: "role_access", source: "matrix_role" },
+    } as any);
   };
 
   const [dynamicPrice, setDynamicPrice] = useState<string | null>(null);
@@ -256,52 +325,70 @@ export default function MatrixScreen() {
             </>
           ) : null}
 
-          <Pressable onPress={onFree} style={styles.freeBtn} hitSlop={12}>
-            <Text style={styles.freeTxt}>{t.freeBtn}</Text>
+          <Pressable onPress={onPrimaryAction} style={styles.freeBtn} hitSlop={12}>
+            <Text style={styles.freeTxt}>
+              {trialUsed ? t.freeBtnUsed : t.freeBtn}
+            </Text>
           </Pressable>
-        </View>
 
-        {/* ROLE CARD */}
-        <View style={styles.payCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.payTitle}>{t.roleTitle}</Text>
-            <Text style={styles.paySub}>{t.roleSub}</Text>
+          <View
+            style={[
+              styles.trialBadge,
+              trialUsed ? styles.trialBadgeUsed : styles.trialBadgeFree,
+            ]}
+          >
+            <Text style={styles.trialBadgeIcon}>{trialUsed ? "◌" : "◉"}</Text>
+            <Text style={styles.trialBadgeText}>
+              {trialUsed ? t.trialBadgeUsed : t.trialBadgeFree}
+            </Text>
           </View>
 
-          <View style={styles.payRight}>
-            <Text style={styles.priceTag}>{priceDisplay}</Text>
+          <Text style={styles.trialHelper}>{t.trialHelper}</Text>
+        </View>
+
+        {/* DERİN MATRIX ANALİZİ — ürün vitrini */}
+        <View style={styles.productCard}>
+          <View style={styles.productHeader}>
+            <Text style={styles.productGlyph}>⬢</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.productKicker}>SANRI · DERİN ÜRÜN</Text>
+              <Text style={styles.productTitle}>{t.deepTitle}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.productSub}>{t.deepSub}</Text>
+
+          <View style={styles.productBullets}>
+            {t.deepBullets.map((b) => (
+              <View key={b} style={styles.bulletRow}>
+                <Text style={styles.bulletDot}>•</Text>
+                <Text style={styles.bulletText}>{b}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.productFooter}>
+            <Text style={styles.productPrice}>{priceDisplay}</Text>
             <Pressable
-  onPress={() => goVip("role")}
-  style={styles.ghostBtn}
-  hitSlop={10}
->
-  <Text style={styles.ghostBtnTxt}>
-    {matrixRoleUnlocked ? (lang === "tr" ? "Rol Açıldı" : "Unlocked") : t.roleBtn}
-  </Text>
-</Pressable>
+              onPress={() => goDeep()}
+              style={styles.productBtn}
+              hitSlop={10}
+            >
+              <Text style={styles.productBtnTxt}>
+                {isPremium ? t.deepActive : t.deepBtn}
+              </Text>
+            </Pressable>
           </View>
         </View>
 
-        {/* PREMIUM MONTHLY */}
-        <View style={styles.payCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.payTitle}>{t.premiumTitle}</Text>
-            <Text style={styles.paySub}>{t.premiumSub}</Text>
+        {/* ROLE — ikincil küçük ürün */}
+        <Pressable onPress={goRole} style={styles.roleCard} hitSlop={8}>
+          <View style={styles.rolePillBox}>
+            <Text style={styles.rolePillTxt}>{t.rolePill}</Text>
           </View>
-
-          <View style={styles.payRight}>
-            <Text style={styles.priceTag}>{priceDisplay}</Text>
-            <Pressable
-  onPress={() => goVip("premium_monthly")}
-  style={styles.ghostBtn}
-  hitSlop={10}
->
-  <Text style={styles.ghostBtnTxt}>
-    {isPremium ? (lang === "tr" ? "VIP Aktif" : "VIP Active") : t.premiumBtn}
-  </Text>
-</Pressable>
-          </View>
-        </View>
+          <Text style={styles.roleTagline}>{t.roleTagline}</Text>
+          <Text style={styles.roleArrow}>{matrixRoleUnlocked ? "✓" : "›"}</Text>
+        </Pressable>
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -400,37 +487,131 @@ const styles = StyleSheet.create({
     marginTop: 14,
     borderRadius: 20,
     paddingVertical: 16,
+    paddingHorizontal: 18,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(94,59,255,0.70)",
     borderWidth: 1,
     borderColor: "rgba(94,59,255,0.35)",
   },
-  freeTxt: { color: "white", fontWeight: "900", fontSize: 16 },
+  freeTxt: { color: "white", fontWeight: "900", fontSize: 16, textAlign: "center" },
 
-  payCard: {
+  trialBadge: {
     marginTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  trialBadgeFree: {
+    backgroundColor: "rgba(124,247,216,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.28)",
+  },
+  trialBadgeUsed: {
+    backgroundColor: "rgba(255,180,180,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,180,180,0.18)",
+  },
+  trialBadgeIcon: { color: "#7cf7d8", fontSize: 14, fontWeight: "900" },
+  trialBadgeText: { color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: "700", flex: 1 },
+  trialHelper: {
+    marginTop: 10,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  productCard: {
+    marginTop: 18,
     borderRadius: 26,
-    padding: 16,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    padding: 18,
+    backgroundColor: "rgba(94,59,255,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(94,59,255,0.32)",
+  },
+  productHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  productGlyph: { color: "#a78bfa", fontSize: 32 },
+  productKicker: {
+    color: "rgba(167,139,250,0.85)",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+  },
+  productTitle: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "900",
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+  productSub: {
+    color: "rgba(255,255,255,0.78)",
+    marginTop: 12,
+    lineHeight: 22,
+  },
+  productBullets: { marginTop: 14, gap: 8 },
+  bulletRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+  bulletDot: { color: "#a78bfa", fontWeight: "900", fontSize: 16, lineHeight: 20 },
+  bulletText: { color: "rgba(255,255,255,0.86)", flex: 1, lineHeight: 20 },
+
+  productFooter: {
+    marginTop: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  productPrice: { color: "#a78bfa", fontWeight: "900", fontSize: 16 },
+  productBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "rgba(167,139,250,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(167,139,250,0.45)",
+  },
+  productBtnTxt: { color: "#c4b5fd", fontWeight: "900", fontSize: 14 },
+
+  roleCard: {
+    marginTop: 14,
+    borderRadius: 18,
+    padding: 14,
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.10)",
     flexDirection: "row",
-    gap: 12,
     alignItems: "center",
+    gap: 12,
   },
-  payTitle: { color: "white", fontWeight: "900", fontSize: 20 },
-  paySub: { color: "rgba(255,255,255,0.70)", marginTop: 6, lineHeight: 20 },
-
-  payRight: { alignItems: "flex-end", gap: 10 },
-  priceTag: { color: "#7cf7d8", fontWeight: "900", fontSize: 16 },
-  ghostBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.06)",
+  rolePillBox: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "rgba(192,132,252,0.18)",
     borderWidth: 1,
-    borderColor: "rgba(124,247,216,0.18)",
+    borderColor: "rgba(192,132,252,0.35)",
   },
-  ghostBtnTxt: { color: "#7cf7d8", fontWeight: "900" },
+  rolePillTxt: {
+    color: "#c084fc",
+    fontWeight: "900",
+    fontSize: 10,
+    letterSpacing: 1.2,
+  },
+  roleTagline: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 13,
+    flex: 1,
+  },
+  roleArrow: {
+    color: "#c084fc",
+    fontSize: 20,
+    fontWeight: "900",
+  },
 });

@@ -1,6 +1,8 @@
-# App Store Submission — Sanrı 2.2.9 (build 11)
+# App Store Submission — Sanrı 2.2.9 (build 12)
 
 Bu dosya **App Store Connect** ve **Resolution Center**'a yapıştırılacak metinleri tutar. TR + EN ikiz versiyonları sıralı durur. Sınırlar her başlığın yanında belirtilmiştir.
+
+> **Build 12 değişikliği — Ürün akışı:** Matrix Reading bir **ücretsiz deneme + paywall** modeline dönüştürüldü. Kullanıcı ad/dob girer → 1 kez kısa Sanrı yansıması alır → "Derin Analiz Aç" CTA paywall'a yönlendirir. Apple reviewer için aşağıda detaylı talimat var (§9).
 
 ---
 
@@ -170,7 +172,7 @@ One sentence is enough. At the right hour.
 ```
 Hello,
 
-Thank you for the previous review. We have substantially redesigned the app in build 2.2.9 (build number 11) to address the concerns raised:
+Thank you for the previous review. We have substantially redesigned the app in build 2.2.9 (build number 12) to address the concerns raised:
 
 1) Guideline 4.3(b) — Saturated Category
 We have repositioned the app away from numerology / astrology framing entirely. The iOS surface is now a focused mindfulness daily reminder:
@@ -199,7 +201,7 @@ Thank you for your time.
 ```
 Merhaba,
 
-Önceki inceleme için teşekkürler. 2.2.9 (build 11) sürümünde uygulamayı önemli ölçüde yeniden tasarladık:
+Önceki inceleme için teşekkürler. 2.2.9 (build 12) sürümünde uygulamayı önemli ölçüde yeniden tasarladık:
 
 1) 4.3(b) — Doymuş kategori
 Uygulamayı numeroloji / astroloji çerçevesinden tamamen uzaklaştırdık. iOS yüzeyi artık odaklı bir mindfulness günlük hatırlatıcısı olarak konumlanıyor: tek bir günlük yansıma cümlesi, üç ton seçeneği, anonim kullanım. Burç, falcı, numeroloji içeriği iOS'ta artık yok. Kategori Health & Fitness (birincil) ve Lifestyle (ikincil) olarak değiştirildi.
@@ -348,3 +350,78 @@ npx eas-cli submit --platform ios --profile production --latest
 ```
 
 Build status: https://expo.dev/accounts/caelinus/projects/asksanri/builds
+
+---
+
+## 9. App Review Information — Reviewer Notes (build 12, ürün akışı)
+
+App Store Connect → **App Review Information → Notes** alanına yapıştır. **EN** versiyonu yeterli.
+
+```
+APP REVIEW NOTES — AskSanri 2.2.9 (build 12)
+
+LOGIN
+Sign-in is OPTIONAL. The full app (Daily reminder, Chat, Archive, Silence)
+runs anonymously. No account required to evaluate the experience.
+
+PRODUCT FLOW (NEW IN BUILD 12)
+The MATRIX READING screen now follows a clean free-trial → paywall pattern:
+
+  1. Open the app → "Frekans Alanı Aç" → tap pyramid menu (top-left) → Kapılar (Gates)
+  2. Tap "MATRIX" tile.
+  3. Enter any name (e.g. "John Smith") OR a birth date (DD.MM.YYYY).
+  4. Tap "Ücretsiz Sezgisel Okuma" / "Free Intuitive Reading"
+     → device receives a SHORT, on-point AI reflection (3-4 sentences).
+     This is the FREE sample — the entire trial is granted on first use.
+  5. Below the reflection you'll see "DERİN MATRIX ANALİZİ / DEEP MATRIX
+     ANALYSIS" with a clear bullet list of what the paid product contains.
+  6. Tap "Derin Analizi Aç / Unlock Deep Analysis"
+     → standard Apple StoreKit IAP sheet appears (RevenueCat-managed).
+
+The free trial is stored on-device (AsyncStorage). Reinstalling the app
+resets it — feel free to test multiple times.
+
+OTHER PREMIUM CONTENT
+For this review we have left other paid surfaces (deep readings, code training,
+city archetypes, ritual guidance) UNLOCKED so the review team can verify the
+content end-to-end without IAP friction. The Matrix paywall above is the
+single canonical purchase flow we want surfaced — IAP behavior on every other
+product follows the same pattern in production.
+
+PRIVACY / DATA
+Anonymous usage stores only:
+  • onboarding state (tone, time, language)
+  • locally-cached chat echoes
+  • notification schedule
+
+If the user signs in, an email and userID are sent ONLY to associate
+purchases across devices (App Functionality, not tracking). No third-party
+analytics are bundled.
+
+TEST ACCOUNT (optional, only if needed)
+Email:    reviewer@asksanri.com
+Password: AppleReview2026!
+
+CONTACT
+support@asksanri.com — average reply < 12h.
+
+Thank you for taking another look — the free-trial framing should make the
+product offering self-evident from inside the app, with no hidden gates.
+```
+
+### Türkçe yansıma (kendi notların için)
+
+```
+İNCELEME NOTLARI — AskSanri 2.2.9 (build 12)
+
+LOGIN: İsteğe bağlı. Tüm core ekranlar (Daily, Chat, Archive, Silence) anonim
+kullanılabilir.
+
+ÜRÜN AKIŞI (BUILD 12 YENİLİĞİ): Matrix Okuma artık net bir free-trial → paywall
+örüntüsü. Kullanıcı ad/dob girer → tek seferlik kısa Sanrı yansıması alır →
+"Derin Analizi Aç" butonu Apple IAP sheet'ini açar. Trial cihazda saklanır;
+uygulama yeniden yüklenince sıfırlanır.
+
+DİĞER PREMIUM: Bu review için diğer derin içerikler kilit dışında — reviewer
+inceleyebilsin. Matrix paywall'ı kanonik satın alma akışı.
+```
