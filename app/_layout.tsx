@@ -7,6 +7,13 @@ import { initRevenueCat } from "../lib/revenuecat";
 import { useEntitlementStore } from "../lib/entitlementStore";
 import { initSessionTracking, cleanupSessionTracking } from "../lib/analytics";
 
+// Hatırlatıcı MVP — uygulama her zaman `/` (index) ile açılır.
+// Buradaki `index.tsx` onboarding state'ine göre /(tabs) ya da
+// /(tabs)/daily'ye yönlendirir. Eski `/rabbit` artık entry değil.
+export const unstable_settings = {
+  initialRouteName: "index",
+};
+
 // Bildirim foreground davranışı — uygulama açıkken de banner görünsün.
 // (Lokal scheduled reminder'lar için. expo-notifications SDK 54+ shape.)
 if (Platform.OS !== "web") {
@@ -63,9 +70,10 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="rabbit" />
-        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="rabbit" />
       </Stack>
     </AuthProvider>
   );

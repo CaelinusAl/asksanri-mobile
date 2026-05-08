@@ -2,6 +2,13 @@ import React, { useEffect, useRef } from "react";
 import { Tabs, usePathname } from "expo-router";
 import { trackScreenView } from "../../lib/analytics";
 
+// Tabs initial route: onboarding ekranı (= index.tsx).
+// Eski gates/matrix vs. hâlâ klasörde ama auto-discovery sırasında
+// ilk olmasın diye burada explicit set ediliyor.
+export const unstable_settings = {
+  initialRouteName: "index",
+};
+
 /**
  * Tabs layout — yeni hatırlatıcı MVP yapısı.
  *
