@@ -57,7 +57,15 @@ export default function DailyScreen() {
   }, [fade, slide]);
 
   if (!ob || !reminder) {
-    return <View style={st.root}><StatusBar barStyle="light-content" /></View>;
+    return (
+      <View style={st.root}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={BG}
+          translucent={false}
+        />
+      </View>
+    );
   }
 
   const tr = ob.lang === "tr";
@@ -90,7 +98,11 @@ export default function DailyScreen() {
 
   return (
     <View style={st.root}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={BG}
+        translucent={false}
+      />
 
       {/* Top bar */}
       <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>

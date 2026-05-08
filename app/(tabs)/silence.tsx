@@ -54,7 +54,15 @@ export default function SilenceScreen() {
   }, []);
 
   if (!ob) {
-    return <View style={st.root}><StatusBar barStyle="light-content" /></View>;
+    return (
+      <View style={st.root}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={BG}
+          translucent={false}
+        />
+      </View>
+    );
   }
 
   const tr = ob.lang === "tr";
@@ -169,7 +177,11 @@ export default function SilenceScreen() {
 
   return (
     <View style={st.root}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={BG}
+        translucent={false}
+      />
 
       <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={st.topBtn}>

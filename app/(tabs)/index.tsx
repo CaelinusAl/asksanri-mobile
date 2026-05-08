@@ -154,12 +154,24 @@ export default function OnboardingScreen() {
   };
 
   if (!ready) {
-    return <View style={st.root}><StatusBar barStyle="light-content" /></View>;
+    return (
+      <View style={st.root}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={BG}
+          translucent={false}
+        />
+      </View>
+    );
   }
 
   return (
     <View style={st.root}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={BG}
+        translucent={false}
+      />
 
       {/* Top bar */}
       <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>

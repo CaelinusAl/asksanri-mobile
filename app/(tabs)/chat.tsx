@@ -142,11 +142,13 @@ export default function ChatScreen() {
       const data: any = await apiPostJson(
         API.ask,
         {
+          // sanri_flow ve tone gönderilmez. Backend default konuşma
+          // akışına düşer — tek paragraf, yargısız, doğal yansıma.
+          // (Eski "okuma_derinles" 3-katman şablonu yalnızca okuma
+          // alanı içindir, hatırlatıcı sohbete uygun değil.)
           message: text,
           session_id: `anon_${ob.deviceUuid}`,
           lang: ob.lang,
-          sanri_flow: "hatirlatici",
-          tone,
         },
         45000
       );
@@ -187,7 +189,11 @@ export default function ChatScreen() {
       style={st.root}
       keyboardVerticalOffset={0}
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={BG}
+        translucent={false}
+      />
 
       <View style={[st.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={st.topBtn}>

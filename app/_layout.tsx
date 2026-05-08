@@ -2,10 +2,13 @@ import React, { useEffect } from "react";
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import * as Notifications from "expo-notifications";
+import * as SystemUI from "expo-system-ui";
 import { AuthProvider } from "../context/AuthContext";
 import { initRevenueCat } from "../lib/revenuecat";
 import { useEntitlementStore } from "../lib/entitlementStore";
 import { initSessionTracking, cleanupSessionTracking } from "../lib/analytics";
+
+const APP_BG = "#07080d";
 
 // Hatırlatıcı MVP — uygulama her zaman `/` (index) ile açılır.
 // Buradaki `index.tsx` onboarding state'ine göre /(tabs) ya da
@@ -65,6 +68,12 @@ export default function RootLayout() {
   useEffect(() => {
     initSessionTracking();
     return () => cleanupSessionTracking();
+  }, []);
+
+  // Sistem UI arka planı koyu — Expo Go ve native build'de Android nav bar
+  // ve iOS bottom area uygulamanın rengiyle aynı. Beyaz kenar görünmesin.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(APP_BG).catch(() => {});
   }, []);
 
   return (
