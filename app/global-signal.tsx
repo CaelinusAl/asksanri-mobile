@@ -429,44 +429,65 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
     }
   };
 
+  // Backend /global-signal/send çökerse alan-yankısı çalışmasa bile,
+  // kullanıcı en azından kişisel Sanrı yansımasını alsın (offline-resilient).
+  // Yorum gönderiminin başarısız olması, kullanıcı deneyimini öldürmemeli.
   const sendFeeling = async () => {
     const clean = text.trim();
     if (!clean) { setError(t.errorEmpty); return; }
 
+    setSending(true);
+    setError("");
+    setEcho(null);
+    setSanriYorum("");
+
+    const derived = deriveChakra(clean);
+    setUserChakra(derived);
+    setSelectedHz(derived.hz);
+
+    let signalOk = false;
+    let serverEcho: EchoData | null = null;
+
     try {
-      setSending(true);
-      setError("");
-      setEcho(null);
-      setSanriYorum("");
-
-      const derived = deriveChakra(clean);
-      setUserChakra(derived);
-      setSelectedHz(derived.hz);
-
       const res = await fetch(`${API_BASE}/global-signal/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: clean, user_id: userId, emotions: selectedEmotions }),
         signal: AbortSignal.timeout(20000),
       });
+      if (__DEV__) console.log("[global-signal/send] status:", res.status);
       const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.ok) { setError(t.errorOffline); setSending(false); return; }
-
-      setEcho(data?.echo || null);
-      setHasSent(true);
-      setTab("frekans");
-
-      await recordShare(userId);
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {
-        /* */
+      if (res.ok && data?.ok) {
+        signalOk = true;
+        serverEcho = data?.echo || null;
+      } else if (__DEV__) {
+        console.warn("[global-signal/send] non-ok response", { status: res.status, data });
       }
-      setBond(await loadBond(userId));
+    } catch (err) {
+      if (__DEV__) console.warn("[global-signal/send] failed:", err);
+    }
 
+    // Sunucudan yankı geldiyse onu, gelmediyse boş eşleşme listesi göster.
+    // Anlaşılma yansıması (Sanrı) zaten ayrı endpoint — bu olmasa bile çalışmalı.
+    setEcho(
+      serverEcho || ({ matched: false, items: [] } as EchoData)
+    );
+    setHasSent(true);
+    setTab("frekans");
+
+    if (signalOk) {
+      try { await recordShare(userId); } catch { /* */ }
+      try { await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { /* */ }
+      try { setBond(await loadBond(userId)); } catch { /* */ }
       loadStream();
-      fetchSanriYorum(clean, selectedEmotions, derived);
-    } catch { setError(t.errorOffline); } finally { setSending(false); }
+    } else {
+      // Sessiz uyarı: alan kaydı tutulamadı ama yansıma hazır.
+      try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch { /* */ }
+    }
+
+    // Sanrı kişisel yansıması — ana endpoint, ayrıca sağlam olmalı.
+    fetchSanriYorum(clean, selectedEmotions, derived);
+    setSending(false);
   };
 
   const resetAll = () => {

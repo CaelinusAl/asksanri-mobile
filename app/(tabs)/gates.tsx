@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   StatusBar,
-  Image,
   ImageBackground,
   Animated,
   Easing,
@@ -25,7 +24,6 @@ import Constants from "expo-constants";
 import PyramidMenu from "../../components/PyramidMenu";
 import MatrixRainOverlay from "../../components/MatrixRainOverlay";
 
-const DOOR_BG = require("../../assets/door_holo.jpg");
 const HOLOGRAM_BG = require("../../assets/hologram_gate_bg.jpg");
 
 type Lang = "tr" | "en";
@@ -170,15 +168,6 @@ export default function GatesScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Hero door image */}
-          <View style={styles.heroWrap}>
-            <Image source={DOOR_BG} style={styles.heroImage} resizeMode="cover" />
-            <LinearGradient
-              colors={["transparent", "#0a0b10"]}
-              style={styles.heroFade}
-            />
-          </View>
-
           <Animated.View style={{ opacity: fadeIn }}>
             <Text style={styles.title}>{t.title}</Text>
             <Text style={styles.sub}>{t.sub}</Text>
@@ -356,28 +345,6 @@ const styles = StyleSheet.create({
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 18, paddingTop: 0, paddingBottom: 140 },
-
-  heroWrap: {
-    width: "100%",
-    height: 180,
-    borderRadius: 24,
-    overflow: "hidden",
-    marginBottom: 8,
-  },
-
-  heroImage: {
-    width: "100%",
-    height: "100%",
-    opacity: 0.45,
-  },
-
-  heroFade: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-  },
 
   title: {
     color: "white",

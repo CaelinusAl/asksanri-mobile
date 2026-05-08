@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { generateRitual } from "../../lib/ritualGenerator";
+import PyramidMenu from "../../components/PyramidMenu";
 
 
 type SeedRitual = {
@@ -116,6 +117,23 @@ export default function RitualsTabScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" />
+
+      <PyramidMenu lang="tr" />
+
+      <View style={styles.topbar}>
+        <Pressable
+          onPress={() =>
+            router.canGoBack()
+              ? router.back()
+              : router.replace("/(tabs)/gates" as any)
+          }
+          hitSlop={12}
+          style={styles.backBtn}
+        >
+          <Text style={styles.backTxt}>← Kapılar</Text>
+        </Pressable>
+      </View>
+
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -241,6 +259,24 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 90,
+  },
+
+  topbar: {
+    paddingTop: 50,
+    paddingLeft: 64,
+    paddingRight: 16,
+    paddingBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  backTxt: {
+    color: "#7cf7d8",
+    fontSize: 15,
+    fontWeight: "700",
   },
 
   heroWrap: {
