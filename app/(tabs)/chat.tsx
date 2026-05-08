@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
+  Animated,
+  Easing,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -26,6 +27,11 @@ import {
   appendArchive,
   updateArchiveReply,
 } from "../../lib/archiveStore";
+import {
+  splitIntoBubbles,
+  charDelay,
+  gapBeforeBubble,
+} from "../../lib/humanizeReply";
 
 const BG = "#07080d";
 
@@ -34,6 +40,59 @@ type Msg = {
   who: "sanri" | "user";
   text: string;
 };
+
+/** "Yazıyor…" üç-nokta animasyonu — gerçek mesajlaşma uygulamalarındaki gibi */
+function TypingDots({ color }: { color: string }) {
+  const a1 = useRef(new Animated.Value(0.25)).current;
+  const a2 = useRef(new Animated.Value(0.25)).current;
+  const a3 = useRef(new Animated.Value(0.25)).current;
+
+  useEffect(() => {
+    const make = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, {
+            toValue: 1,
+            duration: 380,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(val, {
+            toValue: 0.25,
+            duration: 380,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+
+    const loops = [make(a1, 0), make(a2, 140), make(a3, 280)];
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [a1, a2, a3]);
+
+  const dotStyle = (op: Animated.Value) => ({
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: color,
+    opacity: op,
+    transform: [
+      {
+        scale: op.interpolate({ inputRange: [0.25, 1], outputRange: [0.85, 1.05] }),
+      },
+    ],
+  });
+
+  return (
+    <View style={st.typingDotsRow}>
+      <Animated.View style={dotStyle(a1)} />
+      <Animated.View style={dotStyle(a2)} />
+      <Animated.View style={dotStyle(a3)} />
+    </View>
+  );
+}
 
 export default function ChatScreen() {
   const params = useLocalSearchParams<{ prompt?: string; tone?: string }>();
@@ -45,8 +104,17 @@ export default function ChatScreen() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  // Sanrı şu an yazıyor mu (üç-nokta animasyonu görünür mü)
+  const [typing, setTyping] = useState(false);
+
   const archiveIdRef = useRef<string | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -55,7 +123,6 @@ export default function ChatScreen() {
       if (!alive) return;
       setOb(data);
 
-      // İlk Sanrı bubble'ı (daily'den gelen prompt veya genel açılış)
       if (initialPrompt) {
         setMsgs([
           {
@@ -77,8 +144,54 @@ export default function ChatScreen() {
     return () => { alive = false; };
   }, [initialPrompt]);
 
+  const scrollToEnd = useCallback(() => {
+    requestAnimationFrame(() =>
+      scrollRef.current?.scrollToEnd({ animated: true })
+    );
+  }, []);
+
+  /** Tek baloncuğu typewriter'la dolduran asenkron yardımcı */
+  const typeBubble = useCallback(
+    (full: string) =>
+      new Promise<void>((resolve) => {
+        if (!full) { resolve(); return; }
+        const id = `m_s_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`;
+
+        // Önce boş bubble'ı listeye ekle
+        setMsgs((m) => [...m, { id, who: "sanri", text: "" }]);
+        scrollToEnd();
+
+        let i = 0;
+        const step = () => {
+          if (!mountedRef.current) { resolve(); return; }
+          i = Math.min(i + 1, full.length);
+          const part = full.slice(0, i);
+          setMsgs((m) => m.map((x) => (x.id === id ? { ...x, text: part } : x)));
+          // Her yeni satırda ya da uzun cümlede scroll
+          if (i % 24 === 0 || full[i - 1] === "\n") scrollToEnd();
+          if (i < full.length) {
+            const ch = full[i - 1] || "";
+            setTimeout(step, charDelay(ch));
+          } else {
+            resolve();
+          }
+        };
+        // Yazmaya başlamadan minik bir an
+        setTimeout(step, 80);
+      }),
+    [scrollToEnd]
+  );
+
   if (!ob) {
-    return <View style={st.root}><StatusBar barStyle="light-content" /></View>;
+    return (
+      <View style={st.root}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={BG}
+          translucent={false}
+        />
+      </View>
+    );
   }
 
   const tr = ob.lang === "tr";
@@ -89,7 +202,6 @@ export default function ChatScreen() {
     placeholder: tr ? "Yankını yaz…" : "Write your echo…",
     send: tr ? "Gönder" : "Send",
     backToDaily: tr ? "← Bugün" : "← Today",
-    sanriThinking: tr ? "Sanrı dinliyor…" : "Sanrı is listening…",
     error: tr
       ? "Sanrı şu an sessiz. Biraz sonra tekrar dener misin?"
       : "Sanrı is silent now. Try again in a moment?",
@@ -109,43 +221,32 @@ export default function ChatScreen() {
     };
     setMsgs((m) => [...m, userMsg]);
 
-    // Yerel arşive yaz (kullanıcı yazısı kaybolmasın). Sanrı cevabı gelince
-    // aynı kayıt güncellenir.
+    // Yerel arşiv
     try {
-      if (!archiveIdRef.current) {
-        const promptText = msgs[0]?.text || "";
-        const entry = await appendArchive({
-          prompt: promptText,
-          userText: text,
-          tone,
-          lang: ob.lang,
-        });
-        archiveIdRef.current = entry.id;
-      } else {
-        // İkinci+ mesajda mevcut kayda eklemek yerine yeni kayıt aç
-        const promptText = msgs[msgs.length - 1]?.text || "";
-        const entry = await appendArchive({
-          prompt: promptText,
-          userText: text,
-          tone,
-          lang: ob.lang,
-        });
-        archiveIdRef.current = entry.id;
-      }
+      const promptText = msgs[0]?.text || "";
+      const entry = await appendArchive({
+        prompt: promptText,
+        userText: text,
+        tone,
+        lang: ob.lang,
+      });
+      archiveIdRef.current = entry.id;
     } catch {
       /* ignore archive failures */
     }
 
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+    // Sanrı "yazıyor…" göstergesi açık
+    setTyping(true);
+    scrollToEnd();
+
+    // Cevap geldikten sonra dahi göstereceğimiz minimum "düşünme" süresi
+    // (insan hissi). Çok hızlı API cevaplarında bile robotik durmasın.
+    const startedAt = Date.now();
 
     try {
       const data: any = await apiPostJson(
         API.ask,
         {
-          // sanri_flow ve tone gönderilmez. Backend default konuşma
-          // akışına düşer — tek paragraf, yargısız, doğal yansıma.
-          // (Eski "okuma_derinles" 3-katman şablonu yalnızca okuma
-          // alanı içindir, hatırlatıcı sohbete uygun değil.)
           message: text,
           session_id: `anon_${ob.deviceUuid}`,
           lang: ob.lang,
@@ -153,33 +254,61 @@ export default function ChatScreen() {
         45000
       );
 
-      const reply =
+      const replyRaw =
         (typeof data === "string"
           ? data
           : data?.answer || data?.response || data?.reply || data?.message ||
             (tr ? "Seni duyuyorum." : "I hear you.")
-        ).toString().trim();
+        ).toString();
 
-      const sanriMsg: Msg = {
-        id: `m_s_${Date.now()}`,
-        who: "sanri",
-        text: reply,
-      };
-      setMsgs((m) => [...m, sanriMsg]);
+      // Cevabı 1-3 kısa baloncuğa böl ve markdown/etiket kalıntısı temizle
+      const bubbles = splitIntoBubbles(replyRaw);
+      if (bubbles.length === 0) bubbles.push(tr ? "Seni duyuyorum." : "I hear you.");
 
-      if (archiveIdRef.current) {
-        await updateArchiveReply(archiveIdRef.current, reply);
+      // İlk baloncuk için minimum yazıyor… süresi
+      const firstGap = gapBeforeBubble(0);
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, firstGap - elapsed);
+      if (remaining > 0) {
+        await new Promise((r) => setTimeout(r, remaining));
       }
 
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+      // Bağlamı arşive kaydet (tüm baloncukları birleştirip yaz)
+      const fullReply = bubbles.join("\n\n");
+      if (archiveIdRef.current) {
+        updateArchiveReply(archiveIdRef.current, fullReply).catch(() => {});
+      }
+
+      for (let i = 0; i < bubbles.length; i++) {
+        if (!mountedRef.current) break;
+        if (i > 0) {
+          // Sonraki baloncuk için kısa "yazıyor…" duraklaması
+          await new Promise((r) => setTimeout(r, gapBeforeBubble(i)));
+          if (!mountedRef.current) break;
+        }
+        // Yazmaya başlarken üç-nokta görünür kalsın, ilk char ile birlikte
+        // hemen kapatıyoruz ki "üç nokta + yazı" üst üste binmesin.
+        setTyping(false);
+        await typeBubble(bubbles[i]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        scrollToEnd();
+        // Eğer daha sıradaki baloncuk varsa, üç-nokta tekrar yansın
+        if (i < bubbles.length - 1) {
+          setTyping(true);
+        }
+      }
     } catch {
+      setTyping(false);
       setMsgs((m) => [
         ...m,
         { id: `m_err_${Date.now()}`, who: "sanri", text: T.error },
       ]);
     } finally {
-      setBusy(false);
+      if (mountedRef.current) {
+        setTyping(false);
+        setBusy(false);
+      }
+      scrollToEnd();
     }
   };
 
@@ -234,12 +363,18 @@ export default function ChatScreen() {
           </View>
         ))}
 
-        {busy && (
-          <View style={st.thinking}>
-            <ActivityIndicator size="small" color={meta.color} />
-            <Text style={[st.thinkingTxt, { color: meta.color }]}>
-              {T.sanriThinking}
-            </Text>
+        {typing && (
+          <View style={[st.bubbleRow, st.bubbleRowL]}>
+            <Text style={[st.glyph, { color: meta.color }]}>{meta.glyph}</Text>
+            <View
+              style={[
+                st.bubble,
+                st.bubbleSanri,
+                { borderColor: `${meta.color}33`, paddingVertical: 14 },
+              ]}
+            >
+              <TypingDots color={meta.color} />
+            </View>
           </View>
         )}
       </ScrollView>
@@ -254,7 +389,6 @@ export default function ChatScreen() {
           value={draft}
           onChangeText={setDraft}
           onFocus={() => {
-            // Klavye açıldığında son mesaj görünür kalsın.
             setTimeout(
               () => scrollRef.current?.scrollToEnd({ animated: true }),
               250
@@ -292,7 +426,6 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 18,
-    // paddingTop dinamik olarak inline (safe area inset).
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.04)",
@@ -347,14 +480,13 @@ const st = StyleSheet.create({
     lineHeight: 22,
   },
 
-  thinking: {
+  typingDotsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginTop: 8,
-    paddingLeft: 8,
+    gap: 6,
+    paddingHorizontal: 4,
+    minWidth: 30,
   },
-  thinkingTxt: { fontSize: 12, fontWeight: "700", letterSpacing: 1 },
 
   inputRow: {
     flexDirection: "row",
@@ -362,7 +494,6 @@ const st = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingTop: 8,
-    // paddingBottom dinamik olarak inline'da set edilir (safe area inset).
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.04)",
     backgroundColor: BG,
