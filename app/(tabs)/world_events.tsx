@@ -13,6 +13,7 @@ import {
 import { router } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { API, apiPostJson } from "../../lib/apiClient";
+import PyramidMenu from "../../components/PyramidMenu";
 import {
   CATEGORIES,
   READINGS,
@@ -186,9 +187,18 @@ export default function OkumaAlaniScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
+      <PyramidMenu lang={lang} />
+
       {/* Top Bar */}
       <View style={styles.topRow}>
-        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/gates")} style={styles.backBtn}>
+        <Pressable
+          onPress={() =>
+            router.canGoBack()
+              ? router.back()
+              : router.replace("/(tabs)/gates" as any)
+          }
+          style={styles.backBtn}
+        >
           <Text style={styles.backTxt}>{t.back}</Text>
         </Pressable>
         <View style={styles.langRow}>
@@ -292,7 +302,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: BG },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 },
 
-  topRow: { paddingTop: 10, paddingHorizontal: 14, paddingBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  topRow: { paddingTop: 10, paddingLeft: 64, paddingRight: 14, paddingBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   backBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.06)" },
   backTxt: { color: ACCENT, fontSize: 14, fontWeight: "800" },
   langRow: { flexDirection: "row", gap: 6 },

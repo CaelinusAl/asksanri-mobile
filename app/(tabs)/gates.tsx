@@ -23,8 +23,10 @@ import { useEntitlementStore } from "../../lib/entitlementStore";
 import { useAuth } from "../../context/AuthContext";
 import Constants from "expo-constants";
 import PyramidMenu from "../../components/PyramidMenu";
+import MatrixRainOverlay from "../../components/MatrixRainOverlay";
 
 const DOOR_BG = require("../../assets/door_holo.jpg");
+const HOLOGRAM_BG = require("../../assets/hologram_gate_bg.jpg");
 
 type Lang = "tr" | "en";
 
@@ -131,6 +133,22 @@ export default function GatesScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <StatusBar barStyle="light-content" translucent={false} />
+
+      {/* Hologram arka plan + Matrix yağmuru — soul katmanı */}
+      <ImageBackground
+        source={HOLOGRAM_BG}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      >
+        <View style={[StyleSheet.absoluteFill, styles.bgTint]} pointerEvents="none" />
+      </ImageBackground>
+      <MatrixRainOverlay intensity={0.18} />
+      <LinearGradient
+        colors={["rgba(10,11,16,0.55)", "transparent", "transparent", "rgba(10,11,16,0.85)"]}
+        locations={[0, 0.18, 0.6, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
 
       <PyramidMenu lang={lang} />
 
@@ -298,7 +316,8 @@ function GateItem({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#0a0b10" },
-  bg: { flex: 1 },
+  bg: { flex: 1, backgroundColor: "transparent" },
+  bgTint: { backgroundColor: "rgba(10,11,16,0.45)" },
 
   topbar: {
     flexDirection: "row",

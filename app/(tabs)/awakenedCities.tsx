@@ -7,11 +7,17 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
+  ImageBackground,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import PyramidMenu from "../../components/PyramidMenu";
+import MatrixRainOverlay from "../../components/MatrixRainOverlay";
 type Lang = "tr" | "en";
+
+const KEY_HOLO_BG = require("../../assets/key_holo.jpg");
 
 const goBackToGates = () => router.replace("/(tabs)/gates");
 
@@ -166,7 +172,25 @@ export default function AwakenedCitiesScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+      {/* Hologram arka plan + Matrix yağmuru */}
+      <ImageBackground
+        source={KEY_HOLO_BG}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      >
+        <View style={[StyleSheet.absoluteFill, styles.bgTint]} pointerEvents="none" />
+      </ImageBackground>
+      <MatrixRainOverlay intensity={0.16} />
+      <LinearGradient
+        colors={["rgba(10,11,16,0.55)", "transparent", "transparent", "rgba(10,11,16,0.88)"]}
+        locations={[0, 0.18, 0.55, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+
+      <PyramidMenu lang={lang} />
+
       {/* Top bar */}
       <View style={styles.topbar}>
         <Pressable
@@ -242,14 +266,22 @@ export default function AwakenedCitiesScreen() {
         ))}
         <View style={{ height: 24 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#0a0b10" },
+  bgTint: { backgroundColor: "rgba(10,11,16,0.40)" },
 
-  topbar: { paddingTop: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 },
+  topbar: {
+    paddingTop: 12,
+    paddingLeft: 64, // PyramidMenu'ye yer
+    paddingRight: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.10)" },
   backTxt: { color: "#7cf7d8", fontWeight: "800" },
 
