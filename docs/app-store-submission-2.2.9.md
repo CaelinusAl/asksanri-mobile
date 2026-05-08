@@ -227,14 +227,124 @@ Bu sayede review'i geçer geçmez otomatik release tetiklemez, kontrolün sende 
 
 ---
 
-## 8. Build & Submit komutları
+## 8. Privacy
+
+### Privacy Policy URL (App Store Connect → App Privacy bölümü)
+
+```
+https://asksanri.com/gizlilik
+```
+
+Sayfa `c:\sanri\src\pages\GizlilikPage.jsx`'te bilingual (TR + EN) ve KVKK + GDPR uyumlu olarak hazır.
+
+Apple'ın 5.1.1 için kontrol ettiği maddeleri kapsıyor:
+- ✓ Hangi veri toplandığı (e-posta, isim, profil — tümü opsiyonel)
+- ✓ Verilerin nasıl kullanıldığı
+- ✓ Üçüncü taraflarla paylaşım yok
+- ✓ Veri silme hakkı (KVKK/GDPR)
+- ✓ Erişim hakkı, taşınabilirlik, itiraz hakkı
+
+### App Privacy Nutrition Labels (App Store Connect → App Privacy → Edit)
+
+Yeni anonim-first mimari için aşağıdaki şekilde güncelle:
+
+**Data Linked to You** (sadece premium login yapanlar için):
+- Contact Info → Email Address — for App Functionality
+- Identifiers → User ID — for App Functionality
+
+**Data Not Linked to You** (anonim çekirdek deneyim):
+- Diagnostics → Crash Data — for Analytics
+- Usage Data → Product Interaction — for Analytics
+
+**Data Used to Track You:** None
+
+> Önemli: önceki sürümün nutrition label'ları "Linked + Required" olarak gözüküyordu. Yeni sürümde "Linked but Optional — only for premium account holders" şeklinde güncellenmesi 5.1.1 için kritik.
+
+---
+
+## 9. Screenshot Capture Rehberi
+
+### Gerekli boyutlar
+
+App Store Connect iOS için minimum **6.7" iPhone** screenshot setine ihtiyacımız var (1290 × 2796 px). 6.5" varsa o da kabul edilir, küçük cihazlara otomatik scale edilir.
+
+### Minimum 5 — önerilen 7 ekran
+
+| # | Ekran | Yakalama yeri | İdeal başlık (üst overlay) |
+|---|---|---|---|
+| 1 | **Onboarding welcome** | İlk açılışta | "Bir cümle. Doğru saatte." |
+| 2 | **Ton seçimi** | Onboarding adım 1 | "Üç ton. Sana uygun olan." |
+| 3 | **Daily — günün cümlesi** | Onboarding sonrası | "Günde tek bir hatırlatma." |
+| 4 | **Chat — Sanrı yansıması** | Daily → Yaz → konuşma sonrası | "Yargısız bir yansıma." |
+| 5 | **Yankı arşivi** | Birkaç giriş yazıldıktan sonra | "Cihazına yazılır. Kimse görmez." |
+| 6 | **Sustur (ayarlar)** | Daily → Sustur | "Senin saatin. Senin tonun." |
+| 7 | **Bildirim** (opsiyonel) | iPhone notification merkezinden | "Doğru saatte gelir." |
+
+### Yakalama adımları (TestFlight + iPhone)
+
+1. EAS build hazır olunca → `npx eas-cli submit --platform ios --profile production --latest` ile App Store Connect'e yükle
+2. App Store Connect → TestFlight → Build görünür → "Add to TestFlight" işle
+3. iPhone'da TestFlight uygulamasını aç → AskSanri 2.2.9 build'ini install et
+4. Uygulamayı aç → onboarding'i tamamla → her ekranda **iPhone power+volume up** ile screenshot al
+5. Screenshot'lar Photos uygulamasında birikir → Mac yoksa iCloud Photos'tan ya da AirDrop ile bilgisayara aktar
+
+### Marketing overlay (opsiyonel ama tavsiye edilir)
+
+Screenshot'ların üstüne kısa başlık eklemek dönüşümü artırır. Apple bunu zorunlu kılmıyor ama beklediği kalite çıtasının parçası.
+
+Araçlar:
+- [previewed.app](https://previewed.app) — sürükle-bırak, ücretsiz, profesyonel
+- [shotbot.io](https://shotbot.io)
+- [launchmatic.app](https://launchmatic.app)
+
+Tavsiye: **gradient arka plan (cyan → mor)**, üstte beyaz başlık, altta iPhone bezel'i. Sanrı'nın renk paleti (`#7cf7d8` + `#5e3bff`) ile uyumlu olsun.
+
+### Yüklediğin yer
+
+App Store Connect → AskSanri → 2.2.9 → "iOS App" sekmesi → "Previews and Screenshots" → 6.7" Display → "+ Add" → 5–7 dosya yükle.
+
+> Hâlihazırdaki eski screenshot'ları (Caelinus AI, Awakened Cities, Matrix Reading…) **silmeden eklersen Apple eski + yeni karışımını görür** ve kafası karışır. Önce hepsini kaldır, sonra yenileri yükle.
+
+---
+
+## 10. App Store Connect — yeni 2.2.9 versiyon yaratma
+
+Sıralı:
+
+1. App Store Connect'e gir → **My Apps → AskSanri**
+2. Sol menüde **"+ Version or Platform"** → **iOS** seç → versiyon `2.2.9` yaz → Create
+3. Oluşan boş 2.2.9 versiyonunda:
+   - **App Information**:
+     - Category → Primary `Health & Fitness`, Secondary `Lifestyle`
+   - **Pricing and Availability**: değişiklik yok (mevcut ayar korunur)
+   - **App Privacy** → Edit → bu dokümandaki §8 nutrition label'larını uygula
+   - **iOS App** sekmesi:
+     - App Name (TR + EN)
+     - Subtitle
+     - Promotional Text
+     - Description
+     - Keywords
+     - Screenshots (6.7" → §9'daki 5–7 dosya)
+     - What's New in This Version
+     - Build → "+ Select a build" → EAS'tan gelen 2.2.9 build #11 göründüğünde seç
+   - **Version Release** → "Manually release this version"
+4. **Save** + sayfanın en üstünde **"Submit for Review"** → Resolution Center'da §6'daki cevabı yapıştır → Submit
+
+---
+
+## 11. Build & Submit komutları
 
 ```bash
 cd c:\sanri\asksanri-mobile
 
-# iOS production build
+# iOS production build (zaten başlatıldı — build id: c4f58fa4)
 npx eas-cli build --platform ios --profile production
 
-# Build hazır olunca submit
+# Build durumunu izle
+npx eas-cli build:list --platform ios --limit 3
+
+# Build hazır olunca App Store Connect'e yükle (TestFlight için)
 npx eas-cli submit --platform ios --profile production --latest
 ```
+
+Build status: https://expo.dev/accounts/caelinus/projects/asksanri/builds
