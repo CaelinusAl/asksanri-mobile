@@ -21,6 +21,7 @@ import {
   type Lang,
 } from "../../lib/onboardingStore";
 import { TONE_META, type ReminderTone } from "../../lib/dailyReminders";
+import { scheduleDaily } from "../../lib/notificationScheduler";
 
 const BG = "#07080d";
 
@@ -127,14 +128,20 @@ export default function OnboardingScreen() {
     if (busy) return;
     setBusy(true);
     try {
+      let permGranted = false;
       if (allowNotif && Platform.OS !== "web") {
         try {
-          await Notifications.requestPermissionsAsync();
+          const res = await Notifications.requestPermissionsAsync();
+          permGranted = res.status === "granted";
         } catch {
           /* sessiz geç */
         }
       }
       await saveOnboarding({ tone, time, lang });
+      if (permGranted) {
+        // İzin alındıysa günlük lokal bildirimi kur. Hata sessizce yutulur.
+        scheduleDaily(time, lang).catch(() => {});
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.replace("/(tabs)/daily" as any);
     } catch (e: any) {

@@ -24,6 +24,7 @@ import {
 } from "../../lib/onboardingStore";
 import { TONE_META, type ReminderTone } from "../../lib/dailyReminders";
 import { clearArchive } from "../../lib/archiveStore";
+import { scheduleDaily, cancelDaily } from "../../lib/notificationScheduler";
 
 const BG = "#07080d";
 
@@ -90,26 +91,45 @@ export default function SilenceScreen() {
 
   const tap = () => Haptics.selectionAsync().catch(() => {});
 
+  const reschedule = (next: { tone?: ReminderTone; time?: ReminderTime; lang?: Lang }) => {
+    if (!ob) return;
+    const time = next.time ?? ob.time;
+    const lang = next.lang ?? ob.lang;
+    if (notifStatus === "granted") {
+      scheduleDaily(time, lang).catch(() => {});
+    }
+  };
+
   const onSetTone = async (t: ReminderTone) => {
     tap();
     await updateTone(t);
     setOb({ ...ob, tone: t });
+    // Ton bildirimin saatini etkilemez ama dil/copy ileride tona bağlanırsa
+    // tek noktadan yeniden planlamak güvenli kalır.
+    reschedule({ tone: t });
   };
   const onSetTime = async (t: ReminderTime) => {
     tap();
     await updateTime(t);
     setOb({ ...ob, time: t });
+    reschedule({ time: t });
   };
   const onSetLang = async (l: Lang) => {
     tap();
     await updateLang(l);
     setOb({ ...ob, lang: l });
+    reschedule({ lang: l });
   };
   const onAskNotif = async () => {
     tap();
     try {
       const res = await Notifications.requestPermissionsAsync();
       setNotifStatus(res.status);
+      if (res.status === "granted" && ob) {
+        scheduleDaily(ob.time, ob.lang).catch(() => {});
+      } else if (res.status !== "granted") {
+        cancelDaily().catch(() => {});
+      }
     } catch {
       /* noop */
     }
