@@ -40,7 +40,7 @@ export default function TabsLayout() {
         tabBarStyle: { display: "none" },
       }}
     >
-      {/* ─── Yeni hatırlatıcı yüzeyi (5 ekran) ─── */}
+      {/* ─── Yeni hatırlatıcı yüzeyi (MVP çekirdeği) ─── */}
       <Tabs.Screen name="index" />
       <Tabs.Screen name="daily" />
       <Tabs.Screen name="chat" />
@@ -52,9 +52,10 @@ export default function TabsLayout() {
       <Tabs.Screen name="my_area" />
       <Tabs.Screen name="admin" />
 
-      {/* ─── Eski ekranlar (kod kalır, tab listesinden çıkar) ─── */}
-      {/* Web'e taşındı; Apple gözünden saklı. Geri açmak için yorumdan çıkar. */}
-      {/*
+      {/* ─── Derinlik / keşif yüzeyleri (kilitler açıldı) ───
+          Tab bar gizli, ama router.push ile ulaşılır. Discover ekranı
+          bunlara giriş kapısı. Apple reviewer da bu kapıdan tüm içeriği
+          test edebilir — VIP kilidi yok artık. */}
       <Tabs.Screen name="gates" />
       <Tabs.Screen name="sanri_flow" />
       <Tabs.Screen name="awakenedCities" />
@@ -77,7 +78,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="pattern" />
       <Tabs.Screen name="observer" />
       <Tabs.Screen name="explore" />
-      */}
     </Tabs>
   );
 }

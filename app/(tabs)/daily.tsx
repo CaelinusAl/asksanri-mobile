@@ -76,6 +76,7 @@ export default function DailyScreen() {
     write: tr ? "Yaz" : "Write",
     silence: tr ? "Sustur" : "Silence",
     archive: tr ? "Yankılar" : "Echoes",
+    discover: tr ? "Keşfet" : "Discover",
     bottomNote: tr ? "Sanrı yarın yine konuşur." : "Sanrı will speak again tomorrow.",
     settings: tr ? "Ayarlar" : "Settings",
   };
@@ -94,6 +95,12 @@ export default function DailyScreen() {
   const onArchive = () => {
     Haptics.selectionAsync().catch(() => {});
     router.push("/(tabs)/archive" as any);
+  };
+  // Keşfet → tüm derinlik kapılarının (Sanrı, Şehirler, Kod, Üst Bilinç, Ritüel)
+  // hub ekranı. Apple reviewer da buradan tüm içeriği test edebilir.
+  const onDiscover = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push("/(tabs)/gates" as any);
   };
 
   return (
@@ -137,6 +144,19 @@ export default function DailyScreen() {
             style={st.primaryBtnGrad}
           >
             <Text style={st.primaryBtnTxt}>{T.write}</Text>
+          </LinearGradient>
+        </Pressable>
+
+        <Pressable onPress={onDiscover} style={st.discoverBtn}>
+          <LinearGradient
+            colors={["rgba(124,247,216,0.10)", "rgba(94,59,255,0.12)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={st.discoverGrad}
+          >
+            <Text style={st.discoverGlyph}>◎</Text>
+            <Text style={st.discoverTxt}>{T.discover}</Text>
+            <Text style={st.discoverArrow}>→</Text>
           </LinearGradient>
         </Pressable>
 
@@ -222,6 +242,37 @@ const st = StyleSheet.create({
     fontSize: 17,
     fontWeight: "900",
     letterSpacing: 0.5,
+  },
+
+  discoverBtn: {
+    marginTop: 12,
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.18)",
+  },
+  discoverGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    gap: 12,
+  },
+  discoverGlyph: {
+    color: "#7cf7d8",
+    fontSize: 18,
+  },
+  discoverTxt: {
+    flex: 1,
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 15,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+  },
+  discoverArrow: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 18,
+    fontWeight: "700",
   },
 
   secondaryRow: {

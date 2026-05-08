@@ -12,6 +12,38 @@ export type EntitlementId =
   | "person_deep_access"
   | "money_deep_access";
 
+/**
+ * REVIEW_MODE_ALL_UNLOCKED
+ * ----------------------------------------------------------------
+ * Apple Review için açıldı. true iken tüm entitlement kontrolleri
+ * GUEST kullanıcı için bile `true` döner — VIP duvarları açılır,
+ * reviewer her ekranı test edebilir.
+ *
+ * Önceki rejection sebebi: VIP-locked alanlar reviewer tarafından
+ * test edilemediği için "App Completeness / 2.1" şüphesi ve gizli
+ * paywall izlenimi.
+ *
+ * IAP butonları yine görünür ve çalışır (kullanıcı isterse satın
+ * alarak destek olabilir) — ama hiçbir içeriği zorunlu olarak
+ * gate'lemez. App Store rejecte gerekçesi kalmaz.
+ *
+ * v2.3.x'te ihtiyaç olursa false yapıp eski paywall mantığına
+ * dönülebilir; tek satır değişikliği.
+ */
+const REVIEW_MODE_ALL_UNLOCKED = true;
+
+const ALL_TRUE_STATUS: EntitlementStatus = {
+  vip_access: true,
+  role_access: true,
+  code_training_access: true,
+  general_reading_access: true,
+  relationship_deep_access: true,
+  career_deep_access: true,
+  weekly_flow_access: true,
+  person_deep_access: true,
+  money_deep_access: true,
+};
+
 const ADMIN_EMAILS = [
   "caelinusai.asksanri@gmail.com",
   "selin.irmak89@gmail.com",
@@ -30,6 +62,10 @@ async function isAdminUser(): Promise<boolean> {
 }
 
 async function checkEntitlement(id: EntitlementId): Promise<boolean> {
+  if (REVIEW_MODE_ALL_UNLOCKED) {
+    if (__DEV__) console.log(`[ENTITLEMENT] ${id} = true (review-mode)`);
+    return true;
+  }
   try {
     if (await isAdminUser()) return true;
     const info = await getCustomerInfo();
@@ -56,20 +92,15 @@ export async function hasCodeTrainingAccess(): Promise<boolean> {
 export type EntitlementStatus = Record<EntitlementId, boolean>;
 
 export async function getActiveEntitlements(): Promise<EntitlementStatus> {
+  if (REVIEW_MODE_ALL_UNLOCKED) {
+    if (__DEV__) console.log("[ENTITLEMENT] All unlocked (review-mode)");
+    return { ...ALL_TRUE_STATUS };
+  }
+
   const admin = await isAdminUser();
   if (admin) {
     if (__DEV__) console.log("[ENTITLEMENT] Admin user — all entitlements active");
-    return {
-      vip_access: true,
-      role_access: true,
-      code_training_access: true,
-      general_reading_access: true,
-      relationship_deep_access: true,
-      career_deep_access: true,
-      weekly_flow_access: true,
-      person_deep_access: true,
-      money_deep_access: true,
-    };
+    return { ...ALL_TRUE_STATUS };
   }
 
   const info = await getCustomerInfo();

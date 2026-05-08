@@ -11,17 +11,21 @@ type EntitlementState = {
   setStatus: (next: EntitlementStatus) => void;
 };
 
+// REVIEW_MODE_ALL_UNLOCKED ile uyumlu — store başlangıç hâli de tüm
+// entitlement'lar açık. Refresh önce tamamlanmasa bile VipWall flash
+// olmasın. premium.ts bayrağı false yapıldığında refresh sonucu false
+// dönecektir (kayıt güncellenir).
 export const useEntitlementStore = create<EntitlementState>((set, get) => ({
   status: {
-    vip_access: false,
-    role_access: false,
-    code_training_access: false,
-    general_reading_access: false,
-    relationship_deep_access: false,
-    career_deep_access: false,
-    weekly_flow_access: false,
-    person_deep_access: false,
-    money_deep_access: false,
+    vip_access: true,
+    role_access: true,
+    code_training_access: true,
+    general_reading_access: true,
+    relationship_deep_access: true,
+    career_deep_access: true,
+    weekly_flow_access: true,
+    person_deep_access: true,
+    money_deep_access: true,
   },
   loading: true,
   lastRefreshedAt: 0,
