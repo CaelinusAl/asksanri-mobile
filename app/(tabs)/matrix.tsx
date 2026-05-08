@@ -18,6 +18,7 @@ import { getCurrentMonthlyPackage } from "../../lib/revenuecat";
 import { useEntitlementStore } from "../../lib/entitlementStore";
 import { trackEvent } from "../../lib/analytics";
 import { useScreenTime } from "../../lib/useScreenTime";
+import PyramidMenu from "../../components/PyramidMenu";
 
 const SAFE_TOP = Platform.OS === "ios" ? 56 : (StatusBar.currentHeight ?? 44);
 
@@ -158,6 +159,8 @@ export default function MatrixScreen() {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" translucent={false} />
+
+      <PyramidMenu lang={lang} />
 
       {/* TOP BAR */}
       <View style={styles.topbar}>
@@ -311,7 +314,8 @@ const styles = StyleSheet.create({
 
   topbar: {
     paddingTop: SAFE_TOP,
-    paddingHorizontal: 14,
+    paddingLeft: 64,
+    paddingRight: 14,
     paddingBottom: 8,
     flexDirection: "row",
     alignItems: "center",

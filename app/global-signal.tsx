@@ -17,6 +17,7 @@ import { API_BASE } from "../lib/config";
 import { API, apiPostJson } from "../lib/apiClient";
 import { useAuth } from "../context/AuthContext";
 import { router } from "expo-router";
+import PyramidMenu from "../components/PyramidMenu";
 import {
   recordVisit,
   recordShare,
@@ -163,6 +164,8 @@ const T = {
     understoodPing: "Anlaşıldığını hisset — bu normal ve seni buraya geri getirir.",
     errorEmpty: "Önce hissini yaz.",
     error: "Bir şeyler ters gitti.",
+    errorOffline: "Alan şu an cevap vermiyor. Yazdıkların kayıp değil — bağlantı dönünce tekrar dene.",
+    retry: "Tekrar dene",
   },
   en: {
     header: "SANRI",
@@ -202,6 +205,8 @@ const T = {
     understoodPing: "Let the «I’m understood» hit land — that pull is why people come back.",
     errorEmpty: "Write your feeling first.",
     error: "Something went wrong.",
+    errorOffline: "The field is quiet right now. Your words aren't lost — try again when the signal returns.",
+    retry: "Try again",
   },
 };
 
@@ -444,8 +449,8 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
         body: JSON.stringify({ text: clean, user_id: userId, emotions: selectedEmotions }),
         signal: AbortSignal.timeout(20000),
       });
-      const data = await res.json();
-      if (!data?.ok) { setError(t.error); setSending(false); return; }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) { setError(t.errorOffline); setSending(false); return; }
 
       setEcho(data?.echo || null);
       setHasSent(true);
@@ -461,7 +466,7 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
 
       loadStream();
       fetchSanriYorum(clean, selectedEmotions, derived);
-    } catch { setError(t.error); } finally { setSending(false); }
+    } catch { setError(t.errorOffline); } finally { setSending(false); }
   };
 
   const resetAll = () => {
@@ -488,9 +493,18 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" />
 
+      <PyramidMenu lang={lang} />
+
       {/* ── Header ── */}
       <View style={styles.topbar}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
+        <Pressable
+          onPress={() =>
+            router.canGoBack()
+              ? router.back()
+              : router.replace("/(tabs)/gates" as any)
+          }
+          hitSlop={10}
+        >
           <Text style={styles.backText}>{t.back}</Text>
         </Pressable>
         <View style={{ flex: 1 }} />
@@ -581,7 +595,21 @@ Plain text, no paragraphs, no markdown. Just raw, bare, personal words.`;
               </Text>
             </Pressable>
 
-            {!!error && <Text style={styles.errorText}>{error}</Text>}
+            {!!error && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+                {error === t.errorOffline && (
+                  <Pressable
+                    onPress={sendFeeling}
+                    style={styles.retryBtn}
+                    disabled={sending}
+                    hitSlop={10}
+                  >
+                    <Text style={styles.retryBtnText}>{t.retry}</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
           </>
         )}
 
@@ -766,7 +794,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0a0b10" },
 
   /* Top bar */
-  topbar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
+  topbar: { flexDirection: "row", alignItems: "center", paddingLeft: 64, paddingRight: 16, paddingTop: 10, paddingBottom: 4 },
   backText: { color: "#7cf7d8", fontWeight: "800", fontSize: 14 },
   langBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)" },
   langBtnText: { color: "rgba(255,255,255,0.70)", fontWeight: "900", letterSpacing: 1 },
@@ -852,7 +880,26 @@ const styles = StyleSheet.create({
   continueBtn: { minHeight: 54, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(94,59,255,0.60)", borderWidth: 1, borderColor: "rgba(124,247,216,0.15)" },
   continueBtnText: { color: "#FFFFFF", fontSize: 17, fontWeight: "900" },
   btnDisabled: { opacity: 0.35 },
-  errorText: { marginTop: 12, color: "#FFB4B4", fontSize: 14 },
+  errorText: { color: "#FFB4B4", fontSize: 14, lineHeight: 20 },
+  errorBox: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,180,180,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,180,180,0.18)",
+    gap: 10,
+  },
+  retryBtn: {
+    alignSelf: "flex-start",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(124,247,216,0.5)",
+    backgroundColor: "rgba(124,247,216,0.08)",
+  },
+  retryBtnText: { color: "#7cf7d8", fontSize: 13, fontWeight: "700" },
 
   /* ── Frekans Tab ── */
   freqMainTitle: { color: "#FFFFFF", fontSize: 24, fontWeight: "900", marginBottom: 6, textAlign: "center" },

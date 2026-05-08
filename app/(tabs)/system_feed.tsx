@@ -26,6 +26,7 @@ import {
   type EntitlementId,
 } from "../../lib/premium";
 import { useEntitlementStore } from "../../lib/entitlementStore";
+import PyramidMenu from "../../components/PyramidMenu";
 
 const ACCENT = "#7cf7d8";
 const BG = "#0a0b10";
@@ -135,10 +136,18 @@ export default function KutuphaneScreen() {
   return (
     <View style={s.screen}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <PyramidMenu lang="tr" />
       <ScrollView style={s.scroll} contentContainerStyle={s.pad} showsVerticalScrollIndicator={false}>
         {/* ─── TOP BAR ─── */}
         <View style={s.topRow}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
+          <Pressable
+            onPress={() =>
+              router.canGoBack()
+                ? router.back()
+                : router.replace("/(tabs)/gates" as any)
+            }
+            hitSlop={12}
+          >
             <Text style={s.backText}>← Kapılar</Text>
           </Pressable>
           {entitlements.vip_access && (
@@ -308,7 +317,7 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   pad: { padding: 18, paddingTop: 28, paddingBottom: 80 },
 
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
+  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20, paddingLeft: 56 },
   backText: { color: ACCENT, fontSize: 15, fontWeight: "700" },
   vipBadge: { backgroundColor: "rgba(124,247,216,0.15)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: "rgba(124,247,216,0.3)" },
   vipText: { color: ACCENT, fontSize: 11, fontWeight: "900", letterSpacing: 1.5 },
