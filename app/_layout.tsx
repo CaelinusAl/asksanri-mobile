@@ -1,14 +1,23 @@
 import React, { useEffect } from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { Stack } from "expo-router";
 import * as Notifications from "expo-notifications";
 import * as SystemUI from "expo-system-ui";
+import {
+  useFonts,
+  CormorantGaramond_500Medium,
+  CormorantGaramond_500Medium_Italic,
+  CormorantGaramond_600SemiBold,
+  CormorantGaramond_700Bold,
+} from "@expo-google-fonts/cormorant-garamond";
+import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
 import { AuthProvider } from "../context/AuthContext";
 import { initRevenueCat } from "../lib/revenuecat";
 import { useEntitlementStore } from "../lib/entitlementStore";
+import { useVoiceStore } from "../lib/voice";
 import { initSessionTracking, cleanupSessionTracking } from "../lib/analytics";
 
-const APP_BG = "#07080d";
+const APP_BG = "#070B16";
 
 // Hatırlatıcı MVP — uygulama her zaman `/` (index) ile açılır.
 // Akış:
@@ -37,6 +46,15 @@ if (Platform.OS !== "web") {
 
 export default function RootLayout() {
   const refreshEntitlements = useEntitlementStore((s) => s.refresh);
+
+  const [fontsLoaded] = useFonts({
+    CormorantGaramond_500Medium,
+    CormorantGaramond_500Medium_Italic,
+    CormorantGaramond_600SemiBold,
+    CormorantGaramond_700Bold,
+    Inter_400Regular,
+    Inter_600SemiBold,
+  });
 
   // Web-only: tarayıcı otomatik çevirisini kapat. Native'de no-op.
   // Test sırasında Chrome Translate'in metinleri kurcalamasını engeller.
@@ -75,16 +93,26 @@ export default function RootLayout() {
     return () => cleanupSessionTracking();
   }, []);
 
+  // Ses tercihlerini (kalıcı) yükle — UI bağlantıları buna göre görünür.
+  useEffect(() => {
+    useVoiceStore.getState().load();
+  }, []);
+
   // Sistem UI arka planı koyu — Expo Go ve native build'de Android nav bar
   // ve iOS bottom area uygulamanın rengiyle aynı. Beyaz kenar görünmesin.
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(APP_BG).catch(() => {});
   }, []);
 
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: APP_BG }} />;
+  }
+
   return (
     <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="rabbit" />

@@ -1,21 +1,43 @@
-import React from "react";
-import { Redirect } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { View } from "react-native";
+import { router } from "expo-router";
+import { getOnboarding } from "../lib/onboardingStore";
 
 /**
- * Root entry — Rabbit'e yönlendirir.
+ * Root entry — sadeleştirilmiş açılış.
+ *
+ * Eski ezoterik "matrix + tavşan" (rabbit) giriş ekranı akıştan çıkarıldı
+ * (rabbit.tsx dosyası duruyor ama artık launch'ta değil). Apple 4.3(b) +
+ * "3 saniyede anla" hedefi.
  *
  * Akış:
- *  /  →  /rabbit  (ruh dolu giriş ekranı, matrix + tavşan)
- *           ↓ kullanıcı "Frekans Alanı Aç" basınca
- *           ↓
- *           rabbit.tsx onboarding state'ini okur:
- *             - tamamlanmamışsa  → /(tabs)         (onboarding)
- *             - tamamlanmışsa    → /(tabs)/daily    (günün cümlesi)
+ *   onboarding tamamlanmamış → /onboarding (tek seferlik)
+ *   tamamlanmış              → /(tabs)      (Ana Sayfa: "Bugün aklından ne geçiyor?")
  *
- * Önemli: Eskiden rabbit guest'i /(auth)/login'e zorluyordu — bu Apple
- * 5.1.1(v) ihlaliydi. Artık rabbit kapısı her zaman onboarding ya da
- * daily'ye açılır; login sadece premium gate'inde gerekir.
+ * Login zorlaması yok (5.1.1(v)).
  */
 export default function IndexScreen() {
-  return <Redirect href={"/rabbit" as any} />;
+  const [target, setTarget] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const ob = await getOnboarding();
+        if (!alive) return;
+        setTarget(ob.completed ? "/(tabs)" : "/onboarding");
+      } catch {
+        if (alive) setTarget("/onboarding");
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (target) router.replace(target as any);
+  }, [target]);
+
+  return <View style={{ flex: 1, backgroundColor: "#07080d" }} />;
 }
