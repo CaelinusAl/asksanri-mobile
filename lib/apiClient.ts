@@ -7,6 +7,7 @@ const USER_KEY = "user_data";
 export const API = {
   base: API_BASE,
   ask: `${API_BASE}/bilinc-alani/ask`,
+  deepenAccept: `${API_BASE}/bilinc-alani/deepen/accept`,
   transcribe: `${API_BASE}/api/voice/transcribe`,
   ritualPack: `${API_BASE}/content/ritual-pack`,
   deviceRegister: `${API_BASE}/device/register`,

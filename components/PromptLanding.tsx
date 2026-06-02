@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,12 +11,13 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SanriHeader } from "./SanriHeader";
 import { SanctumBackground } from "./SanctumBackground";
 import { MicButton } from "./MicButton";
+import { trackEvent } from "../lib/analytics";
 import { COLORS, FONTS } from "../lib/theme";
 
 /**
@@ -42,6 +43,14 @@ export function PromptLanding({
 }) {
   const insets = useSafeAreaInsets();
   const [text, setText] = useState("");
+
+  // V1 Insight — sekme/özellik açılış ölçümü (dream_open / relationship_open /
+  // journal_open / home_open). Her odaklanmada tetiklenir (sekme kullanımı).
+  useFocusEffect(
+    useCallback(() => {
+      trackEvent(`${ctx}_open`, { meta: { domain: "navigation", ctx } });
+    }, [ctx])
+  );
 
   const goChat = (value: string) => {
     const v = value.trim();

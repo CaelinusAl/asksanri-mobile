@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Tabs, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trackScreenView } from "../../lib/analytics";
 import { COLORS, FONTS } from "../../lib/theme";
 
@@ -31,6 +32,9 @@ function tabIcon(name: IconName) {
 export default function TabsLayout() {
   const pathname = usePathname();
   const prevPath = useRef<string>("");
+  const insets = useSafeAreaInsets();
+  // Android sistem navigasyon barı / iOS home indicator ile çakışmasın.
+  const bottomInset = Math.max(insets.bottom, 8);
 
   useEffect(() => {
     if (pathname && pathname !== prevPath.current) {
@@ -51,10 +55,11 @@ export default function TabsLayout() {
           backgroundColor: COLORS.bgDeep,
           borderTopColor: COLORS.surfaceBorder,
           borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: 60 + bottomInset,
+          paddingBottom: bottomInset,
+          paddingTop: 8,
         },
+        tabBarItemStyle: { paddingVertical: 2 },
         tabBarLabelStyle: { fontSize: 11, fontFamily: FONTS.bodyMed, letterSpacing: 0.3 },
       }}
     >

@@ -23,6 +23,7 @@ import { type ReminderTone } from "../../lib/dailyReminders";
 import { appendArchive, updateArchiveReply } from "../../lib/archiveStore";
 import { charDelay, gapBeforeBubble } from "../../lib/humanizeReply";
 import { COLORS, FONTS } from "../../lib/theme";
+import { trackUserMessage, endConversation } from "../../lib/analytics";
 import { MicButton } from "../../components/MicButton";
 import { SpeakButton } from "../../components/SpeakButton";
 import { SanctumBackground } from "../../components/SanctumBackground";
@@ -40,6 +41,15 @@ type Msg = {
 };
 
 type Ctx = "home" | "dream" | "relationship" | "journal";
+
+type DeepenOffer = {
+  theme: string;
+  label: string;
+  title: string;
+  message: string;
+  cta: string;
+  gate: string;
+} | null;
 
 /** Bağlama göre Sanrı'nın açılış cümlesi. */
 function openingFor(ctx: Ctx, tr: boolean): string {
@@ -136,6 +146,7 @@ export default function ChatScreen() {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [typing, setTyping] = useState(false);
+  const [deepen, setDeepen] = useState<DeepenOffer>(null);
 
   const archiveIdRef = useRef<string | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
@@ -147,6 +158,8 @@ export default function ChatScreen() {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      // Ekrandan çıkış: açık konuşmayı kapat (süre + mesaj sayısı kaydı).
+      endConversation();
     };
   }, []);
 
@@ -222,10 +235,14 @@ export default function ChatScreen() {
       if (!text || busy || !ob) return;
       setBusy(true);
       setDraft("");
+      setDeepen(null);
       Haptics.selectionAsync().catch(() => {});
 
       const userMsg: Msg = { id: `m_u_${Date.now()}`, who: "user", text };
       setMsgs((m) => [...m, userMsg]);
+
+      // FAZ 1 metrik: ilk soru / mesaj / konuşma takibi (ctx bazlı).
+      trackUserMessage(ctx, `anon_${ob.deviceUuid}`).catch(() => {});
 
       try {
         const entry = await appendArchive({
@@ -288,6 +305,12 @@ export default function ChatScreen() {
           scrollToEnd();
           if (i < movements.length - 1) setTyping(true);
         }
+
+        // Gate 33: tekrarlayan temada gelen derinleşme daveti (varsa).
+        if (mountedRef.current && data?.deepen?.theme) {
+          setDeepen(data.deepen as DeepenOffer);
+          scrollToEnd();
+        }
       } catch {
         setTyping(false);
         setMsgs((m) => [...m, { id: `m_err_${Date.now()}`, who: "sanri", text: T.error }]);
@@ -304,6 +327,23 @@ export default function ChatScreen() {
 
   // sendRef'i güncel tut — auto-send effect'i bunu çağırır
   sendRef.current = sendText;
+
+  // Gate 33: derinleşme davetini kabul → ölçüm + temaya dair derin sohbet.
+  const acceptDeepen = useCallback(() => {
+    if (!deepen || !ob) return;
+    const d = deepen;
+    setDeepen(null);
+    Haptics.selectionAsync().catch(() => {});
+    apiPostJson(
+      API.deepenAccept,
+      { theme: d.theme, session_id: `anon_${ob.deviceUuid}` },
+      10000
+    ).catch(() => {});
+    const seed = tr
+      ? `${d.label} teması son zamanlarda içimde çok yer kaplıyor. Bununla biraz daha derinden yüzleşmek istiyorum.`
+      : `The theme of ${d.label} has weighed on me lately. I'd like to look at it a little more deeply.`;
+    router.push({ pathname: "/(tabs)/chat", params: { ctx, seed } });
+  }, [deepen, ob, tr, ctx]);
 
   // Ekrana seed ile gelindiyse (Ana Sayfa/Rüyalar/İlişkiler/Günlük), otomatik gönder
   useEffect(() => {
@@ -373,6 +413,17 @@ export default function ChatScreen() {
             <TypingDots color={ACCENT} />
           </View>
         )}
+
+        {!typing && deepen ? (
+          <View style={st.deepenCard}>
+            <Text style={st.deepenKicker}>DERİNLEŞME ALANI</Text>
+            <Text style={st.deepenTitle}>{deepen.title}</Text>
+            <Text style={st.deepenMsg}>{deepen.message}</Text>
+            <Pressable onPress={acceptDeepen} style={st.deepenBtn} hitSlop={8}>
+              <Text style={st.deepenBtnTxt}>{deepen.cta}</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View style={[st.inputRow, { paddingBottom: Math.max(insets.bottom, 10) }]}>
@@ -459,6 +510,51 @@ const st = StyleSheet.create({
     letterSpacing: 0.2,
   },
   openingText: { color: COLORS.goldSoft, fontSize: 23, lineHeight: 34, fontFamily: FONTS.serif },
+
+  // Gate 33 — derinleşme daveti (satış değil; sakin, davetkâr).
+  deepenCard: {
+    marginTop: 34,
+    padding: 20,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.goldDim,
+    backgroundColor: "rgba(212,178,106,0.06)",
+  },
+  deepenKicker: {
+    color: COLORS.goldDim,
+    fontFamily: FONTS.bodyMed,
+    fontSize: 10,
+    letterSpacing: 4,
+    marginBottom: 10,
+  },
+  deepenTitle: {
+    color: COLORS.goldSoft,
+    fontFamily: FONTS.serif,
+    fontSize: 21,
+    lineHeight: 28,
+    marginBottom: 8,
+  },
+  deepenMsg: {
+    color: COLORS.textMuted,
+    fontFamily: FONTS.body,
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 16,
+  },
+  deepenBtn: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+  },
+  deepenBtnTxt: {
+    color: COLORS.gold,
+    fontFamily: FONTS.bodyMed,
+    fontSize: 13,
+    letterSpacing: 0.5,
+  },
 
   typingRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 24 },
   typingLabel: { color: COLORS.goldDim, fontFamily: FONTS.bodyMed, fontSize: 11, letterSpacing: 4 },

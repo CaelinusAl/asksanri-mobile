@@ -1,7 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { AppState, AppStateStatus } from "react-native";
 import { API_BASE } from "./config";
-import { storageGet } from "./storage";
+import { storageGet, storageSet } from "./storage";
 
 const ANALYTICS_FILE = (FileSystem.documentDirectory || "") + "sanri_analytics.json";
 const TOKEN_KEY = "user_token";
@@ -72,6 +72,31 @@ async function _getUserId(): Promise<string | undefined> {
   return (globalThis as any).__user_id || undefined;
 }
 
+// Kalıcı anonim cihaz kimliği — onboardingStore ile AYNI anahtar/biçim.
+// Anonim kullanıcıları tekil sayabilmek için session_id olarak kullanılır.
+// (Aksi halde backend tüm anonimleri "anon" altında birleştiriyordu.)
+const ANON_ID_KEY = "sanri_device_uuid";
+let _anonId: string | null = null;
+
+async function _getAnonId(): Promise<string> {
+  if (_anonId) return _anonId;
+  try {
+    let v = await storageGet(ANON_ID_KEY);
+    if (!v) {
+      v =
+        "anon_" +
+        Math.random().toString(36).slice(2) +
+        Date.now().toString(36) +
+        Math.random().toString(36).slice(2);
+      await storageSet(ANON_ID_KEY, v);
+    }
+    _anonId = v;
+    return v;
+  } catch {
+    return "anon";
+  }
+}
+
 export async function trackEvent(
   event: string,
   params: {
@@ -103,6 +128,7 @@ export async function trackEvent(
     const ctrl = new AbortController();
     const tmr = setTimeout(() => ctrl.abort(), 8000);
     const headers = await _getAuthHeaders();
+    const sessionId = uid ? String(uid) : await _getAnonId();
     await fetch(API_BASE + "/events/log", {
       method: "POST",
       headers,
@@ -115,7 +141,7 @@ export async function trackEvent(
           mode: params.mode,
           city: params.city,
         },
-        session_id: uid ? String(uid) : "anon",
+        session_id: sessionId,
       }),
       signal: ctrl.signal,
     });
@@ -159,6 +185,8 @@ export function endSession() {
   if (_currentScreen && _screenEnterTime) {
     _trackScreenLeave();
   }
+  // Uygulama arka plana giderse açık konuşmayı da kapat (süre kaybolmasın).
+  endConversation();
   _sessionStart = null;
 }
 
@@ -188,7 +216,11 @@ export function initSessionTracking() {
 
   _appStateListener = AppState.addEventListener("change", (state: AppStateStatus) => {
     if (state === "active") {
-      if (!_sessionStart) startSession();
+      if (!_sessionStart) {
+        startSession();
+        // Arka plandan dönüş — tekrar gelme / install yaşı tekrar ölçülsün.
+        trackAppOpen();
+      }
     } else if (state === "background" || state === "inactive") {
       endSession();
     }
@@ -201,6 +233,130 @@ export function cleanupSessionTracking() {
     _appStateListener.remove();
     _appStateListener = null;
   }
+}
+
+// ═══════════════════════════════════════════════
+// FAZ 1 — ÜRÜN METRİKLERİ
+// Strateji: "Önce kullanıcı davranışını anla."
+// İzlenen: ilk soru soruldu mu · sekme kullanımı · tekrar gelme ·
+//          ortalama konuşma süresi · en çok kullanılan sekme.
+// ═══════════════════════════════════════════════
+
+const FIRST_Q_KEY = "sanri_first_question_done";
+const FIRST_OPEN_KEY = "sanri_first_open_at";
+const LAST_OPEN_KEY = "sanri_last_open_at";
+
+const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
+
+/**
+ * Uygulama açılışı + "tekrar gelen kullanıcı" tespiti.
+ * Cold start ve foreground'a dönüşte çağrılır.
+ * `is_returning`: son açılıştan 6+ saat sonra tekrar gelmiş mi.
+ * `days_since_install`: ilk açılıştan bu yana geçen gün (D1/D7 retention için).
+ */
+export async function trackAppOpen() {
+  try {
+    const now = Date.now();
+    const firstRaw = await storageGet(FIRST_OPEN_KEY);
+    const lastRaw = await storageGet(LAST_OPEN_KEY);
+
+    const firstAt = firstRaw ? Number(firstRaw) : now;
+    if (!firstRaw) await storageSet(FIRST_OPEN_KEY, String(now));
+
+    const lastAt = lastRaw ? Number(lastRaw) : now;
+    await storageSet(LAST_OPEN_KEY, String(now));
+
+    const daysSinceInstall = Math.floor((now - firstAt) / DAY_MS);
+    const hoursSinceLast = Math.round((now - lastAt) / HOUR_MS);
+    const isReturning = !!firstRaw && now - lastAt > 6 * HOUR_MS;
+    const isFirstEver = !firstRaw;
+
+    trackEvent("app_open", {
+      meta: {
+        domain: "retention",
+        is_first_ever: isFirstEver,
+        is_returning: isReturning,
+        days_since_install: daysSinceInstall,
+        hours_since_last: hoursSinceLast,
+      },
+    });
+
+    // V1 Insight — geri dönüş ayrı bir event olarak da ölçülsün.
+    if (isReturning) {
+      trackEvent("returning_user", {
+        meta: {
+          domain: "retention",
+          days_since_install: daysSinceInstall,
+          hours_since_last: hoursSinceLast,
+        },
+      });
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+// Aktif konuşma durumu (chat ekranı başına).
+let _convoStart: number | null = null;
+let _convoMsgCount = 0;
+let _convoCtx: string | null = null;
+
+/**
+ * Kullanıcı chat'te bir mesaj gönderdiğinde çağrılır.
+ * - İlk kez ise `first_question_asked` (kullanıcı başına bir kez).
+ * - Konuşma başlamamışsa `conversation_started`.
+ * - Her mesaj için `message_sent` (ctx = home/journal/dream/relationship).
+ */
+export async function trackUserMessage(ctx: string, sessionId?: string) {
+  try {
+    const done = await storageGet(FIRST_Q_KEY);
+    if (!done) {
+      await storageSet(FIRST_Q_KEY, "1");
+      trackEvent("first_question_asked", { meta: { domain: "engagement", ctx } });
+    }
+  } catch {
+    /* noop */
+  }
+
+  if (_convoStart === null) {
+    _convoStart = Date.now();
+    _convoMsgCount = 0;
+    _convoCtx = ctx;
+    trackEvent("conversation_started", {
+      meta: { domain: "engagement", ctx, session_id: sessionId },
+    });
+  }
+
+  _convoMsgCount += 1;
+  trackEvent("message_sent", {
+    meta: {
+      domain: "engagement",
+      ctx,
+      message_index: _convoMsgCount,
+      session_id: sessionId,
+    },
+  });
+}
+
+/**
+ * Konuşma biter (chat ekranından çıkış / arka plana alma).
+ * `conversation_ended`: toplam mesaj sayısı + süre → ortalama konuşma süresi.
+ */
+export function endConversation() {
+  if (_convoStart === null) return;
+  const durSec = Math.round((Date.now() - _convoStart) / 1000);
+  trackEvent("conversation_ended", {
+    meta: {
+      domain: "engagement",
+      ctx: _convoCtx,
+      message_count: _convoMsgCount,
+      duration_sec: durSec,
+    },
+  });
+  _convoStart = null;
+  _convoMsgCount = 0;
+  _convoCtx = null;
 }
 
 // ═══════════════════════════════════════════════

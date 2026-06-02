@@ -15,7 +15,7 @@ import { AuthProvider } from "../context/AuthContext";
 import { initRevenueCat } from "../lib/revenuecat";
 import { useEntitlementStore } from "../lib/entitlementStore";
 import { useVoiceStore } from "../lib/voice";
-import { initSessionTracking, cleanupSessionTracking } from "../lib/analytics";
+import { initSessionTracking, cleanupSessionTracking, trackAppOpen } from "../lib/analytics";
 
 const APP_BG = "#070B16";
 
@@ -90,6 +90,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     initSessionTracking();
+    // FAZ 1: açılış + "tekrar gelen kullanıcı" / install yaşı (retention).
+    trackAppOpen();
     return () => cleanupSessionTracking();
   }, []);
 
