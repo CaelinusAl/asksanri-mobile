@@ -7,7 +7,7 @@ import { COLORS, FONTS } from "../lib/theme";
 
 /**
  * SanriHeader — tüm yüzeylerde ortak üst bar.
- * Sol: iki satırlı altın serif logo (SANRI / BY AURA).
+ * Sol: iki satırlı SANRI OS wordmark ve AURA katmanı.
  * Sağ: hamburger → Sessizlik + Hesabım (ikincil yüzeyler).
  */
 export function SanriHeader() {
@@ -22,8 +22,8 @@ export function SanriHeader() {
   return (
     <View style={[styles.bar, { paddingTop: Math.max(insets.top, 10) + 8 }]}>
       <View>
-        <Text style={styles.wordmark}>SANRI</Text>
-        <Text style={styles.byline}>BY AURA</Text>
+        <Text style={styles.wordmark}>SANRI OS</Text>
+        <Text style={styles.byline}>AURA</Text>
       </View>
 
       <Pressable onPress={() => setOpen(true)} hitSlop={12} style={styles.burger}>

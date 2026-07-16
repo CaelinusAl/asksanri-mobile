@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   Pressable,
   StatusBar,
@@ -28,7 +29,7 @@ import { COLORS, FONTS } from "../lib/theme";
 
 const BG = COLORS.bg;
 
-type Step = 0 | 1 | 2 | 3;
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 /** Nefes alan altın halka — onboarding kahramanı (gri/teal daire yerine). */
 function HeroRing({ glyph }: { glyph?: string }) {
@@ -62,9 +63,49 @@ function HeroRing({ glyph }: { glyph?: string }) {
   );
 }
 
+function QuestionStep({
+  title,
+  placeholder,
+  value,
+  onChangeText,
+  onNext,
+  nextLabel,
+}: {
+  title: string;
+  placeholder: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  onNext: () => void;
+  nextLabel: string;
+}) {
+  return (
+    <>
+      <Text style={st.kicker}>AURA</Text>
+      <Text style={st.title}>{title}</Text>
+      <TextInput
+        autoFocus
+        multiline
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.textFaint}
+        style={st.questionInput}
+      />
+      <Pressable onPress={onNext} disabled={!value.trim()} style={[st.primaryBtn, !value.trim() && st.disabledBtn]}>
+        <LinearGradient colors={[COLORS.goldSoft, COLORS.gold]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.primaryBtnGrad}>
+          <Text style={st.primaryBtnTxt}>{nextLabel}</Text>
+        </LinearGradient>
+      </Pressable>
+    </>
+  );
+}
+
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>(0);
+  const [need, setNeed] = useState("");
+  const [focus, setFocus] = useState("");
+  const [support, setSupport] = useState("");
   const [tone, setTone] = useState<ReminderTone>("durulma");
   const [time, setTime] = useState<ReminderTime>("morning");
   const [lang, setLang] = useState<Lang>("tr");
@@ -109,11 +150,17 @@ export default function OnboardingScreen() {
   const tr = lang === "tr";
 
   const T = {
-    welcomeTitle: tr ? "Kendini anlat." : "Speak yourself.",
+    welcomeTitle: tr ? "Hoş geldin." : "Welcome.",
     welcomeSub: tr
-      ? "Sanrı seni dinler — düşüncelerini, duygularını ve kendini daha iyi anlamana eşlik eder."
-      : "Sanrı listens — and helps you understand your thoughts, feelings and self.",
+      ? "Ben AURA. Sana cevap vermek için değil, birlikte düşünmek için buradayım."
+      : "I’m AURA. I’m here to think with you, not just answer you.",
     welcomeCta: tr ? "Başla" : "Begin",
+    needTitle: tr ? "Bugün neye ihtiyacın var?" : "What do you need today?",
+    needPlaceholder: tr ? "Bir cümleyle anlat…" : "Tell me in one sentence…",
+    focusTitle: tr ? "Şu anda hayatının odağı ne?" : "What is your life focused on right now?",
+    focusPlaceholder: tr ? "Aklındaki ana alan…" : "The main thing on your mind…",
+    supportTitle: tr ? "Sana nasıl eşlik etmemi istersin?" : "How would you like me to accompany you?",
+    supportPlaceholder: tr ? "Örneğin: net sorularla, sakinçe, plan yaparak…" : "For example: with clear questions, calmly, by making plans…",
 
     toneTitle: tr ? "Hangi ton sana iyi gelir?" : "Which tone feels right?",
     toneSub: tr ? "İstediğin zaman değiştirebilirsin." : "You can change this anytime.",
@@ -128,7 +175,7 @@ export default function OnboardingScreen() {
     timeEveningSub: "20:00 — 22:00",
 
     finalKicker: tr ? "HAZIR" : "READY",
-    finalTitle: tr ? "Sanrı seni bekliyor." : "Sanrı is waiting for you.",
+    finalTitle: tr ? "AURA seni bekliyor." : "AURA is waiting for you.",
     finalSub: tr
       ? "Hatırlatmaları açarsan ilk söz doğru saatte gelir.\nDilersen sonra da değiştirebilirsin."
       : "Turn on reminders and the first note arrives at the right hour.\nYou can change it later.",
@@ -146,12 +193,12 @@ export default function OnboardingScreen() {
   const onPickTone = (t: ReminderTone) => {
     Haptics.selectionAsync().catch(() => {});
     setTone(t);
-    setStep(2);
+    setStep(5);
   };
   const onPickTime = (t: ReminderTime) => {
     Haptics.selectionAsync().catch(() => {});
     setTime(t);
-    setStep(3);
+    setStep(6);
   };
   const onBack = () => {
     Haptics.selectionAsync().catch(() => {});
@@ -174,12 +221,12 @@ export default function OnboardingScreen() {
           /* sessiz geç */
         }
       }
-      await saveOnboarding({ tone, time, lang });
+      await saveOnboarding({ tone, time, lang, need, focus, support });
       if (permGranted) {
         scheduleDaily(time, lang).catch(() => {});
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      router.replace("/(tabs)" as any);
+      router.replace({ pathname: "/(tabs)/chat", params: { ctx: "home" } } as any);
     } catch (e: any) {
       Alert.alert("", e?.message || (tr ? "Bir şey oldu, tekrar dener misin?" : "Something happened. Try again?"));
     } finally {
@@ -215,13 +262,13 @@ export default function OnboardingScreen() {
 
         {/* İki satırlı logo */}
         <View style={st.logoWrap}>
-          <Text style={st.wordmark}>SANRI</Text>
-          <Text style={st.byline}>BY AURA</Text>
+          <Text style={st.wordmark}>SANRI OS</Text>
+          <Text style={st.byline}>AURA SENİ KARŞILIYOR</Text>
         </View>
 
         {/* Step indicator */}
         <View style={st.dotsRow}>
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
             <View key={i} style={[st.dot, step === i && st.dotActive]} />
           ))}
         </View>
@@ -256,6 +303,39 @@ export default function OnboardingScreen() {
           )}
 
           {step === 1 && (
+            <QuestionStep
+              title={T.needTitle}
+              placeholder={T.needPlaceholder}
+              value={need}
+              onChangeText={setNeed}
+              onNext={() => setStep(2)}
+              nextLabel={tr ? "Devam" : "Continue"}
+            />
+          )}
+
+          {step === 2 && (
+            <QuestionStep
+              title={T.focusTitle}
+              placeholder={T.focusPlaceholder}
+              value={focus}
+              onChangeText={setFocus}
+              onNext={() => setStep(3)}
+              nextLabel={tr ? "Devam" : "Continue"}
+            />
+          )}
+
+          {step === 3 && (
+            <QuestionStep
+              title={T.supportTitle}
+              placeholder={T.supportPlaceholder}
+              value={support}
+              onChangeText={setSupport}
+              onNext={() => setStep(4)}
+              nextLabel={tr ? "Devam" : "Continue"}
+            />
+          )}
+
+          {step === 4 && (
             <>
               <Text style={st.kicker}>{tr ? "TON" : "TONE"}</Text>
               <Text style={st.title}>{T.toneTitle}</Text>
@@ -282,7 +362,7 @@ export default function OnboardingScreen() {
             </>
           )}
 
-          {step === 2 && (
+          {step === 5 && (
             <>
               <Text style={st.kicker}>{tr ? "ZAMAN" : "TIME"}</Text>
               <Text style={st.title}>{T.timeTitle}</Text>
@@ -318,7 +398,7 @@ export default function OnboardingScreen() {
             </>
           )}
 
-          {step === 3 && (
+          {step === 6 && (
             <>
               <Text style={st.kicker}>{T.finalKicker}</Text>
               <HeroRing glyph={TONE_META[tone].glyph} />
@@ -392,6 +472,22 @@ const st = StyleSheet.create({
     textAlign: "center",
   },
   sub: { color: COLORS.textMuted, fontFamily: FONTS.body, fontSize: 15, lineHeight: 23, marginBottom: 28, textAlign: "center" },
+  questionInput: {
+    width: "100%",
+    minHeight: 110,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    color: COLORS.text,
+    fontFamily: FONTS.body,
+    fontSize: 16,
+    lineHeight: 24,
+    padding: 18,
+    textAlignVertical: "top",
+    marginBottom: 14,
+  },
+  disabledBtn: { opacity: 0.45 },
 
   // Hero halka
   heroWrap: { width: 168, height: 168, alignItems: "center", justifyContent: "center", marginBottom: 30 },

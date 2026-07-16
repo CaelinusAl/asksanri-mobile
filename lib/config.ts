@@ -13,7 +13,8 @@ function getApiBase() {
   const fromExtra = extra?.EXPO_PUBLIC_API_BASE || "";
   const fromEnv = (process as any)?.env?.EXPO_PUBLIC_API_BASE || "";
 
-  const base = fromExtra || fromEnv || "https://api.asksanri.com";
+  // Local/dev env must override the production Expo extra value.
+  const base = fromEnv || fromExtra || "https://api.asksanri.com";
 
   return trimSlash(base);
 }

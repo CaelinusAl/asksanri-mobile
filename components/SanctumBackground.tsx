@@ -56,9 +56,9 @@ function Star({ spec }: { spec: StarSpec }) {
         width: spec.size,
         height: spec.size,
         borderRadius: spec.size / 2,
-        backgroundColor: COLORS.gold,
+        backgroundColor: COLORS.indigo,
         opacity: op,
-        shadowColor: COLORS.gold,
+        shadowColor: COLORS.indigo,
         shadowOpacity: 0.8,
         shadowRadius: spec.size,
         shadowOffset: { width: 0, height: 0 },
@@ -154,7 +154,7 @@ export function SanctumBackground({
       />
       {/* Üstten inen yumuşak altın hâle */}
       <LinearGradient
-        colors={[COLORS.goldGlow, "transparent"]}
+        colors={["rgba(154,168,255,0.10)", "transparent"]}
         style={styles.topGlow}
         pointerEvents="none"
       />
@@ -200,17 +200,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     borderRadius: RING,
     borderWidth: 1,
-    borderColor: COLORS.goldDim,
+    borderColor: "rgba(169,244,242,0.28)",
   },
-  ringOuter: { width: RING, height: RING, borderColor: "rgba(212,178,106,0.18)" },
-  ringMid: { width: RING * 0.72, height: RING * 0.72, borderColor: "rgba(212,178,106,0.3)" },
-  ringInner: { width: RING * 0.46, height: RING * 0.46, borderColor: "rgba(212,178,106,0.45)" },
+  ringOuter: { width: RING, height: RING, borderColor: "rgba(169,244,242,0.12)" },
+  ringMid: { width: RING * 0.72, height: RING * 0.72, borderColor: "rgba(154,168,255,0.22)" },
+  ringInner: { width: RING * 0.46, height: RING * 0.46, borderColor: "rgba(244,247,255,0.3)" },
   ringCore: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: COLORS.gold,
-    shadowColor: COLORS.gold,
+    backgroundColor: COLORS.cyan,
+    shadowColor: COLORS.cyan,
     shadowOpacity: 0.9,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 0 },

@@ -1,15 +1,15 @@
 import React from "react";
 import { PromptLanding } from "../../components/PromptLanding";
 
-/** Rüyalar — "Rüyanı anlat". */
+/** Rüyalar — sakin bir hatırlama alanı. */
 export default function DreamsScreen() {
   return (
     <PromptLanding
       ctx="dream"
-      title={"Rüyanı anlat"}
-      subtitle="Sembollerine birlikte bakalım."
-      placeholder="Rüyanda ne gördün?"
-      examples={["Düşüyordum", "Eski bir evdeydim", "Su gördüm", "Birini kaybettim"]}
+      title={"Bu gece ne gördün?"}
+      subtitle="Hatırladığın ilk görüntü ne?"
+      placeholder={["Anlat…", "Hatırladığın ilk görüntü ne?", "Bu gece aklında kalan neydi?"]}
+      examples={["🫧 Su", "🏠 Ev", "🕊️ Uçmak", "👤 Tanıdık biri", "🌑 Karanlık", "🌳 Orman"]}
     />
   );
 }

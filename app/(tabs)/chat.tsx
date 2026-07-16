@@ -40,7 +40,7 @@ type Msg = {
   opening?: boolean;
 };
 
-type Ctx = "home" | "dream" | "relationship" | "journal";
+type Ctx = "home" | "think" | "create" | "projects" | "explore" | "dream" | "relationship" | "journal";
 
 type DeepenOffer = {
   theme: string;
@@ -55,6 +55,14 @@ type DeepenOffer = {
 function openingFor(ctx: Ctx, tr: boolean): string {
   if (tr) {
     switch (ctx) {
+      case "think":
+        return "Birlikte düşünelim. Şu an hangi sorunun içinde duruyorsun?";
+      case "create":
+        return "Bir şey inşa edelim. Fikrin şu an hangi hâlde?";
+      case "projects":
+        return "Projenin yanındayım. En son hangi noktada kalmıştık?";
+      case "explore":
+        return "Yavaşça bakalım. İçeride ne hareket ediyor?";
       case "dream":
         return "Rüyanı dinliyorum. Anlat — neyi hatırlıyorsun?";
       case "relationship":
@@ -62,10 +70,18 @@ function openingFor(ctx: Ctx, tr: boolean): string {
       case "journal":
         return "Bugünü birlikte yazalım. Aklında ne kaldı?";
       default:
-        return "Buradayım. Aklından geçeni paylaş.";
+        return "Bugün birlikte ne inşa ediyoruz?";
     }
   }
   switch (ctx) {
+    case "think":
+      return "Let's think together. What question are you inside right now?";
+    case "create":
+      return "Let's build something. What shape is your idea in right now?";
+    case "projects":
+      return "I'm with your project. Where did we leave off?";
+    case "explore":
+      return "Let's look slowly. What is moving inside?";
     case "dream":
       return "I'm listening to your dream. What do you remember?";
     case "relationship":
@@ -73,7 +89,22 @@ function openingFor(ctx: Ctx, tr: boolean): string {
     case "journal":
       return "Let's write today together. What stayed with you?";
     default:
-      return "I'm here. Share what's on your mind.";
+      return "What are we building together today?";
+  }
+}
+
+function areaInstruction(ctx: Ctx): string {
+  switch (ctx) {
+    case "think":
+      return "Active room: THINK. Ask clarifying questions, reveal perspectives, summarize the issue, and help the user reach their own conclusion. Do not act like a generic answer engine. Success criterion: the user should be able to say, 'I see this more clearly now.'";
+    case "create":
+      return "Active room: CREATE. AURA does not delay the requested result: first create, then deepen together. If the user asks for ideas, reel topics, content, captions, book titles, scripts, project names, campaigns, or creative concepts, immediately acknowledge the request and deliver 5-10 high-quality usable options. Never begin with a poetic or philosophical reflection. Highlight the strongest option, then ask which direction to expand into a full script or production package. Success criterion: the user should be able to say, 'I can use this immediately.'";
+    case "projects":
+      return "Active room: PROJECTS. AURA is now connected to the project as a practical partner, not a distant commentator. Evaluate the project concretely; organize its current state, value, risks, decisions, priorities and next smallest step. When the user asks whether an idea has potential, explain why and give a clear validation path. Do not begin with poetic reflection or end with a forced self-reflection question. Success criterion: the user should know what to do next.";
+    case "explore":
+      return "Active room: EXPLORE. Be slow, reflective and symbolic. Never present dream or symbol interpretations as absolute; guide the user toward personal meaning. Success criterion: the user should notice something new about themselves.";
+    default:
+      return "Active room: HOME. Understand what the user needs today and guide them into the right room.";
   }
 }
 
@@ -263,7 +294,17 @@ export default function ChatScreen() {
       try {
         const data: any = await apiPostJson(
           API.ask,
-          { message: text, session_id: `anon_${ob.deviceUuid}`, lang: ob.lang },
+          {
+            message: text,
+            session_id: `anon_${ob.deviceUuid}`,
+            lang: ob.lang,
+            domain: ctx,
+            system_context: areaInstruction(ctx),
+            conversation_context: msgs.slice(-8).map((item) => ({
+              role: item.who === "sanri" ? "assistant" : "user",
+              content: item.text,
+            })),
+          },
           45000
         );
 
@@ -322,7 +363,7 @@ export default function ChatScreen() {
         scrollToEnd();
       }
     },
-    [busy, ob, ctx, tone, tr, T.error, scrollToEnd, typeBubble]
+    [busy, ob, ctx, tone, tr, T.error, msgs, scrollToEnd, typeBubble]
   );
 
   // sendRef'i güncel tut — auto-send effect'i bunu çağırır
@@ -377,8 +418,8 @@ export default function ChatScreen() {
           <Text style={st.topBtnTxt}>‹</Text>
         </Pressable>
         <View style={st.topCenter}>
-          <Text style={st.topWordmark}>SANRI</Text>
-          <Text style={st.topByline}>BY AURA</Text>
+          <Text style={st.topWordmark}>SANRI OS</Text>
+          <Text style={st.topByline}>{tr ? "AURA seni hatırlıyor" : "AURA remembers you"}</Text>
         </View>
         <View style={st.topBtn} />
       </View>

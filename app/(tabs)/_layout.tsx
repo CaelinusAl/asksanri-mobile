@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { StyleSheet, View } from "react-native";
 import { Tabs, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,20 +10,27 @@ export const unstable_settings = {
   initialRouteName: "index",
 };
 
-const ACTIVE = COLORS.gold;
-const INACTIVE = "rgba(243,236,221,0.4)";
+const ACTIVE = COLORS.cyan;
+const INACTIVE = "rgba(244,247,255,0.4)";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
 function tabIcon(name: IconName) {
-  return ({ color, size }: { color: string; size: number }) => (
-    <Ionicons name={name} size={size ?? 22} color={color} />
-  );
+  const TabIcon = ({ color, size }: { color: string; size: number }) => {
+    const active = color === ACTIVE;
+    return (
+      <View style={[styles.iconWrap, active && styles.iconActive]}>
+        <Ionicons name={name} size={size ?? 24} color={color} />
+      </View>
+    );
+  };
+  TabIcon.displayName = `TabIcon(${name})`;
+  return TabIcon;
 }
 
 /**
- * Tabs layout — 5 görünür sekme (Option E):
- *   Ana Sayfa · Günlük · Rüyalar · İlişkiler · Keşfet
+ * Tabs layout — 5 görünür sekme:
+ *   Ana · Düşün · Üret · Projeler · Keşfet
  *
  * Sessizlik ve Hesabım hamburger menüye alındı (SanriHeader).
  * Diğer tüm eski/ezoterik ekranlar dosya olarak duruyor ama tab bar'dan
@@ -53,32 +61,36 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: INACTIVE,
         tabBarStyle: {
           backgroundColor: COLORS.bgDeep,
-          borderTopColor: COLORS.surfaceBorder,
-          borderTopWidth: 1,
-          height: 60 + bottomInset,
+          borderTopWidth: 0,
+          height: 66 + bottomInset,
           paddingBottom: bottomInset,
-          paddingTop: 8,
+          paddingTop: 6,
+          shadowColor: COLORS.cyan,
+          shadowOpacity: 0.12,
+          shadowRadius: 18,
+          shadowOffset: { width: 0, height: -8 },
+          elevation: 0,
         },
         tabBarItemStyle: { paddingVertical: 2 },
-        tabBarLabelStyle: { fontSize: 11, fontFamily: FONTS.bodyMed, letterSpacing: 0.3 },
+        tabBarLabelStyle: { fontSize: 12, fontFamily: FONTS.bodyMed, letterSpacing: 0.4 },
       }}
     >
       {/* ─── 5 görünür sekme ─── */}
       <Tabs.Screen
         name="index"
-        options={{ title: "Ana Sayfa", tabBarIcon: tabIcon("home-outline") }}
+        options={{ title: "Ana", tabBarIcon: tabIcon("home-outline") }}
       />
       <Tabs.Screen
-        name="journal"
-        options={{ title: "Günlük", tabBarIcon: tabIcon("book-outline") }}
+        name="think"
+        options={{ title: "Düşün", tabBarIcon: tabIcon("bulb-outline") }}
       />
       <Tabs.Screen
-        name="dreams"
-        options={{ title: "Rüyalar", tabBarIcon: tabIcon("moon-outline") }}
+        name="create"
+        options={{ title: "Üret", tabBarIcon: tabIcon("create-outline") }}
       />
       <Tabs.Screen
-        name="relationships"
-        options={{ title: "İlişkiler", tabBarIcon: tabIcon("heart-outline") }}
+        name="projects"
+        options={{ title: "Projeler", tabBarIcon: tabIcon("briefcase-outline") }}
       />
       <Tabs.Screen
         name="explore"
@@ -94,6 +106,9 @@ export default function TabsLayout() {
       <Tabs.Screen name="my_area" options={{ href: null }} />
       <Tabs.Screen name="vip" options={{ href: null }} />
       <Tabs.Screen name="admin" options={{ href: null }} />
+      <Tabs.Screen name="journal" options={{ href: null }} />
+      <Tabs.Screen name="dreams" options={{ href: null }} />
+      <Tabs.Screen name="relationships" options={{ href: null }} />
 
       {/* ─── Eski / ezoterik ekranlar — gizli ─── */}
       <Tabs.Screen name="gates" options={{ href: null }} />
@@ -120,3 +135,20 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconWrap: {
+    width: 42,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconActive: {
+    backgroundColor: "rgba(169,244,242,0.08)",
+    shadowColor: COLORS.cyan,
+    shadowOpacity: 0.6,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 0 },
+  },
+});

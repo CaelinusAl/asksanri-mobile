@@ -9,14 +9,18 @@ export default function HomeScreen() {
   return (
     <PromptLanding
       ctx="home"
-      title={"Kendini anlat…"}
-      subtitle="Sanrı dinliyor."
-      placeholder="Aklından geçeni yaz…"
+      title={"Bugün birlikte ne inşa ediyoruz?"}
+      placeholder={[
+        "Bir fikri netleştirmek istiyorum…",
+        "Bir proje üzerinde çalışıyorum…",
+        "Bir karar vermem gerekiyor…",
+        "Bugün sadece konuşmak istiyorum…",
+        "Nereden başlayacağımı bilmiyorum…",
+      ]}
       examples={[
-        "Bugün huzursuzum",
-        "Bir karar veremiyorum",
-        "İçim sıkışıyor",
-        "Yorgun hissediyorum",
+        "Bir fikri netleştir",
+        "Bir proje başlat",
+        "Bir karar ver",
       ]}
     />
   );

@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
+  Animated,
   Pressable,
   StyleSheet,
   KeyboardAvoidingView,
@@ -37,12 +38,27 @@ export function PromptLanding({
 }: {
   title: string;
   subtitle?: string;
-  placeholder: string;
-  ctx: "home" | "dream" | "relationship" | "journal";
+  placeholder: string | string[];
+  ctx: "home" | "think" | "create" | "projects" | "explore" | "dream" | "relationship" | "journal";
   examples?: string[];
 }) {
   const insets = useSafeAreaInsets();
   const [text, setText] = useState("");
+  const entrance = useRef(new Animated.Value(0)).current;
+  const placeholders = Array.isArray(placeholder) ? placeholder : [placeholder];
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+
+  React.useEffect(() => {
+    if (placeholders.length < 2) return;
+    const timer = setInterval(() => {
+      setPlaceholderIndex((index) => (index + 1) % placeholders.length);
+    }, 3200);
+    return () => clearInterval(timer);
+  }, [placeholders.length]);
+
+  useEffect(() => {
+    Animated.timing(entrance, { toValue: 1, duration: 1200, delay: 220, useNativeDriver: true }).start();
+  }, [entrance]);
 
   // V1 Insight — sekme/özellik açılış ölçümü (dream_open / relationship_open /
   // journal_open / home_open). Her odaklanmada tetiklenir (sekme kullanımı).
@@ -78,11 +94,12 @@ export function PromptLanding({
               <Text style={styles.title}>{title}</Text>
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
+              <Animated.View style={[styles.inputReveal, { opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }]}>
               <View style={styles.inputWrap}>
                 <TextInput
                   value={text}
                   onChangeText={setText}
-                  placeholder={placeholder}
+                  placeholder={placeholders[placeholderIndex]}
                   placeholderTextColor={COLORS.textFaint}
                   style={styles.input}
                   multiline
@@ -117,6 +134,7 @@ export function PromptLanding({
                   ))}
                 </View>
               )}
+              </Animated.View>
             </View>
           </ScrollView>
 
@@ -158,6 +176,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 34,
   },
+  inputReveal: { width: "100%", alignItems: "center" },
   inputWrap: {
     width: "100%",
     flexDirection: "row",

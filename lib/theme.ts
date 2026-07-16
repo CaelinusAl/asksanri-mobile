@@ -1,7 +1,7 @@
 /**
- * SANRI tasarım dili — "by Aura" premium / spiritüel / editöryel.
+ * SANRI OS tasarım dili — sessiz, canlı ve bilinç öncesi.
  *
- * Dergideki altın + derin lacivert paleti. Tek kaynak burası;
+ * Siyah + cyan + indigo + beyaz paleti. Tek kaynak burası;
  * tüm yeni yüzeyler (PromptLanding, SanriHeader, Sanctum arka planı)
  * bu sabitleri kullanır. ChatGPT/jenerik AI hissi YOK.
  */
@@ -10,14 +10,19 @@ export const COLORS = {
   bg: "#070B16",
   bgDeep: "#04060d",
   bgRaise: "#0c1322",
-  surface: "rgba(212,178,106,0.05)",
-  surfaceBorder: "rgba(212,178,106,0.22)",
+  surface: "rgba(154,168,255,0.05)",
+  surfaceBorder: "rgba(169,244,242,0.18)",
 
-  // Altın
-  gold: "#D4B26A",
-  goldSoft: "#E7CE97",
-  goldDim: "rgba(212,178,106,0.55)",
-  goldGlow: "rgba(212,178,106,0.16)",
+  // Minimal vurgu — legacy gold isimleri geriye dönük uyumluluk için korunur.
+  gold: "#A9F4F2",
+  goldSoft: "#F4F7FF",
+  goldDim: "rgba(169,244,242,0.55)",
+  goldGlow: "rgba(154,168,255,0.14)",
+
+  // SANRI OS consciousness palette
+  cyan: "#A9F4F2",
+  indigo: "#9AA8FF",
+  white: "#F4F7FF",
 
   // Metin — sıcak fildişi
   text: "#F3ECDD",
