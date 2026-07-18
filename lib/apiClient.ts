@@ -1,11 +1,25 @@
 import { API_BASE } from "./config";
 import { storageGet } from "./storage";
+import { getSupabaseSession } from "./supabase";
 
 const TOKEN_KEY = "user_token";
-const USER_KEY = "user_data";
+
+export const LEGACY_ASK_DISABLED_MESSAGE =
+  "Bu alan artık legacy sohbet üzerinden çalışmıyor. Devam etmek için SANRI OS sohbetine geçin ve doğrulanmış oturumla devam edin.";
 
 export const API = {
   base: API_BASE,
+  // Sprint 3 canonical contracts. These are not used for anonymous legacy
+  // traffic until the Supabase JWT migration is complete.
+  v1Chat: `${API_BASE}/v1/chat`,
+  v1Conversations: `${API_BASE}/v1/conversations`,
+  v1SessionClose: (conversationId: string) =>
+    `${API_BASE}/v1/conversations/${conversationId}/close`,
+  v1Memories: `${API_BASE}/v1/memories`,
+  v1Projects: `${API_BASE}/v1/projects`,
+  v1AuraState: `${API_BASE}/v1/aura/state`,
+  // Legacy transport retained only as a fail-closed reference. Callers are
+  // blocked client-side; backend also rejects unsafe legacy identity.
   ask: `${API_BASE}/bilinc-alani/ask`,
   deepenAccept: `${API_BASE}/bilinc-alani/deepen/accept`,
   transcribe: `${API_BASE}/api/voice/transcribe`,
@@ -14,33 +28,18 @@ export const API = {
   dailyStream: `${API_BASE}/content/daily-stream`,
 };
 
+function assertLegacyAskTransportAllowed(url: string) {
+  if (url.includes("/bilinc-alani/")) {
+    throw new Error(LEGACY_ASK_DISABLED_MESSAGE);
+  }
+}
+
 // ------------------ TOKEN ------------------
 async function getToken() {
   try {
     return await storageGet(TOKEN_KEY);
   } catch {
     return null;
-  }
-}
-
-// ------------------ USER ID ------------------
-async function getUserId() {
-  try {
-    const rawUser = await storageGet(USER_KEY);
-
-    if (!rawUser) {
-      return (globalThis as any).__user_id || null;
-    }
-
-    const parsedUser = JSON.parse(rawUser);
-
-    if (parsedUser?.id !== undefined && parsedUser?.id !== null) {
-      return String(parsedUser.id).trim();
-    }
-
-    return (globalThis as any).__user_id || null;
-  } catch {
-    return (globalThis as any).__user_id || null;
   }
 }
 
@@ -82,21 +81,28 @@ async function buildHeaders(includeJson = true) {
   }
 
   const token = await getToken();
-  const userId = await getUserId();
-
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  if (userId && String(userId).trim()) {
-    headers["X-User-Id"] = String(userId).trim();
   }
 
   return headers;
 }
 
+async function buildV1Headers() {
+  const session = await getSupabaseSession();
+  if (!session?.access_token) {
+    throw new Error("Supabase session required for V1");
+  }
+  return {
+    Accept: "text/event-stream",
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session.access_token}`,
+  };
+}
+
 // ------------------ GET ------------------
 export async function apiGetJson(url: string, timeout = 15000) {
+  assertLegacyAskTransportAllowed(url);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
 
@@ -130,6 +136,7 @@ export async function apiPostJson(
   body: Record<string, any>,
   timeout = 25000
 ) {
+  assertLegacyAskTransportAllowed(url);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
 
@@ -166,6 +173,51 @@ export async function apiPostJson(
   }
 }
 
+export async function apiPostV1Stream(
+  url: string,
+  body: Record<string, any>,
+  onEvent: (event: string, data: any) => void,
+  timeout = 45000
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: await buildV1Headers(),
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!res.ok || !res.body) {
+      const text = await res.text();
+      throw new Error(normalizeErrorPayload(parseResponseText(text), url, "POST", res.status));
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let eventName = "message";
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const frames = buffer.split("\n\n");
+      buffer = frames.pop() || "";
+      for (const frame of frames) {
+        const eventLine = frame.split("\n").find((line) => line.startsWith("event:"));
+        const dataLine = frame.split("\n").find((line) => line.startsWith("data:"));
+        if (eventLine) eventName = eventLine.slice(6).trim();
+        if (dataLine) {
+          const raw = dataLine.slice(5).trim();
+          onEvent(eventName, parseResponseText(raw));
+        }
+      }
+      if (done) break;
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ------------------ POST FORM (multipart) ------------------
 export async function apiPostForm(
   url: string,
@@ -177,8 +229,6 @@ export async function apiPostForm(
 
   try {
     const token = await getToken();
-    const userId = await getUserId();
-
     const headers: Record<string, string> = {
       Accept: "application/json",
     };
@@ -186,10 +236,6 @@ export async function apiPostForm(
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
-    if (userId && String(userId).trim()) {
-      headers["X-User-Id"] = String(userId).trim();
-    }
-
     const res = await fetch(url, {
       method: "POST",
       headers,

@@ -60,7 +60,7 @@ const COPY: Record<
     title: "Kapılar",
     sub: "Her kapı bir hatırlatma.\nHangisi seni çağırıyor?",
     items: [
-      { title: "SANRI", sub: "Kişisel yansıma alanı", route: "/(tabs)/sanri_flow" },
+      { title: "SANRI", sub: "Kişisel yansıma alanı", route: "/(tabs)/chat" },
       { title: "UYANAN ŞEHİRLER", sub: "Şehrin kodunu seç", route: "/(tabs)/awakenedCities" },
       { title: "MATRIX", sub: "Akışı decode et", route: "/(tabs)/matrix", entitlement: "vip_access" },
       { title: "KOD OKUMA", sub: "Gerçekliğin kodunu oku", route: "/(tabs)/ust_bilinc", entitlement: "code_training_access" },
@@ -74,7 +74,7 @@ const COPY: Record<
     title: "Gates",
     sub: "Every gate is a reminder.\nWhich one is calling you?",
     items: [
-      { title: "SANRI", sub: "Personal reflection field", route: "/(tabs)/sanri_flow" },
+      { title: "SANRI", sub: "Personal reflection field", route: "/(tabs)/chat" },
       { title: "AWAKENED CITIES", sub: "Choose the code of a city", route: "/(tabs)/awakenedCities" },
       { title: "MATRIX", sub: "Decode the stream", route: "/(tabs)/matrix", entitlement: "vip_access" },
       { title: "CODE READING", sub: "Read the code of reality", route: "/(tabs)/ust_bilinc", entitlement: "code_training_access" },

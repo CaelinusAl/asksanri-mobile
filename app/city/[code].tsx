@@ -158,8 +158,9 @@ export default function CityCodeScreen() {
   const goToSanri = useCallback(
     (gateMode: "mirror" | "divine") => {
       router.push({
-        pathname: "/(tabs)/sanri_flow",
+        pathname: "/(tabs)/chat",
         params: {
+          ctx: "explore",
           lang: appLang,
           code: cityCode,
           city: cityName,

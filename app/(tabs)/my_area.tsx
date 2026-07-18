@@ -637,7 +637,7 @@ export default function MyAreaScreen() {
           <Text style={s.bodyText}>{t.reading1} <Text style={s.hl}>"{intent}"</Text> {t.reading2}</Text>
           <Text style={s.bodyText}>{t.reading3} <Text style={s.hl}>"{emotion}"</Text>.</Text>
           <Text style={s.bodyText}>{t.reading4} <Text style={s.hl}>"{tone}"</Text> {t.reading5} <Text style={s.hl}>"{archetype}"</Text> {t.reading6}</Text>
-          <Pressable onPress={() => router.push("/(tabs)/sanri_flow")} style={s.primaryBtn}>
+          <Pressable onPress={() => router.push("/(tabs)/chat")} style={s.primaryBtn}>
             <Text style={s.primaryBtnTxt}>{t.deepen}</Text>
           </Pressable>
         </View>

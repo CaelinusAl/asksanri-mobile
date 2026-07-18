@@ -27,6 +27,7 @@ export const API_BASE = getApiBase();
 |--------------------------------------------------------------------------
 */
 
+/** @deprecated Legacy ask is fail-closed. Use authenticated V1 chat. */
 export const SANRI_ASK_URL =
   API_BASE + "/bilinc-alani/ask";
 
@@ -71,6 +72,7 @@ RITUAL_PACK_URL + "/tanricanin_hatirlayisi"
 export const WORLD_EVENTS_LIST_URL =
   API_BASE + "/world-events/list";
 
+/** @deprecated Legacy ask is fail-closed. Use authenticated V1 chat. */
 export const WORLD_EVENTS_CREATE_URL =
   API_BASE + "/bilinc-alani/ask";
 
