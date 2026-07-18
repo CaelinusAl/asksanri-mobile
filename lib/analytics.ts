@@ -2,10 +2,10 @@ import * as FileSystem from "expo-file-system/legacy";
 import { AppState, AppStateStatus } from "react-native";
 import { API_BASE } from "./config";
 import { storageGet, storageSet } from "./storage";
+import { getSupabaseSession } from "./supabase";
+import { getEventSessionId } from "./eventSession";
 
 const ANALYTICS_FILE = (FileSystem.documentDirectory || "") + "sanri_analytics.json";
-const TOKEN_KEY = "user_token";
-const USER_KEY = "user_data";
 
 export type AnalyticsEvent = {
   event: string;
@@ -48,53 +48,12 @@ async function persistToFile() {
 }
 
 async function _getAuthHeaders(): Promise<Record<string, string>> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  try {
-    const token = await storageGet(TOKEN_KEY);
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    const rawUser = await storageGet(USER_KEY);
-    if (rawUser) {
-      const u = JSON.parse(rawUser);
-      if (u?.id) headers["X-User-Id"] = String(u.id);
-    }
-  } catch { /* noop */ }
-  return headers;
-}
-
-async function _getUserId(): Promise<string | undefined> {
-  try {
-    const rawUser = await storageGet(USER_KEY);
-    if (rawUser) {
-      const u = JSON.parse(rawUser);
-      if (u?.id) return String(u.id);
-    }
-  } catch { /* noop */ }
-  return (globalThis as any).__user_id || undefined;
-}
-
-// Kalıcı anonim cihaz kimliği — onboardingStore ile AYNI anahtar/biçim.
-// Anonim kullanıcıları tekil sayabilmek için session_id olarak kullanılır.
-// (Aksi halde backend tüm anonimleri "anon" altında birleştiriyordu.)
-const ANON_ID_KEY = "sanri_device_uuid";
-let _anonId: string | null = null;
-
-async function _getAnonId(): Promise<string> {
-  if (_anonId) return _anonId;
-  try {
-    let v = await storageGet(ANON_ID_KEY);
-    if (!v) {
-      v =
-        "anon_" +
-        Math.random().toString(36).slice(2) +
-        Date.now().toString(36) +
-        Math.random().toString(36).slice(2);
-      await storageSet(ANON_ID_KEY, v);
-    }
-    _anonId = v;
-    return v;
-  } catch {
-    return "anon";
-  }
+  const session = await getSupabaseSession();
+  if (!session?.access_token) return {};
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session.access_token}`,
+  };
 }
 
 export async function trackEvent(
@@ -106,7 +65,7 @@ export async function trackEvent(
     meta?: Record<string, any>;
   } = {}
 ) {
-  const uid = params.userId || (await _getUserId());
+  const uid = params.userId;
   const entry: AnalyticsEvent = {
     event,
     userId: uid,
@@ -128,14 +87,17 @@ export async function trackEvent(
     const ctrl = new AbortController();
     const tmr = setTimeout(() => ctrl.abort(), 8000);
     const headers = await _getAuthHeaders();
-    const sessionId = uid ? String(uid) : await _getAnonId();
+    if (!headers.Authorization) {
+      clearTimeout(tmr);
+      return;
+    }
+    const sessionId = await getEventSessionId();
     await fetch(API_BASE + "/events/log", {
       method: "POST",
       headers,
       body: JSON.stringify({
         action: event,
         domain: params.meta?.domain || "app",
-        user_id: uid ? String(uid) : undefined,
         meta: {
           ...params.meta,
           mode: params.mode,
